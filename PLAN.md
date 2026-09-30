@@ -10,7 +10,7 @@ Schools run many disconnected systems (records, attendance, transport, canteen,
 activities, parent communication), so nobody sees the whole picture. This platform
 puts **one student record** underneath all of them, with two front doors:
 
-- **Staff Dashboard** (web): admins, teachers, transport officers, nurse, canteen staff (canteen POS runs in the browser on a tablet)
+- **Staff Dashboard** (web): admins, teachers, transport officers, nurse, canteen staff. Every exception (a missing strap, a missed bus, a manual correction) is handled here; there is no staff mobile app
 - **Parent App** (mobile): parents follow their child's whole day as it happens
 
 Reference story: Layla (9, Grade 4) and her mother Nadia. Nadia sees each moment
@@ -41,8 +41,8 @@ Rules:
    app tabs, notifications, reports and background jobs.
 5. **Plans are presets.** A plan (Basic / Standard / Premium) is a named bundle of
    modules. Any school can also get a custom bundle.
-6. **Limits per school:** number of students, SMS credits, storage and buses, so
-   pricing can be per student or per module.
+6. **Limits per school:** number of students, WhatsApp message volume, storage, buses and
+   gateways, so pricing can be per student or per module.
 
 ## 3. Module catalog
 
@@ -57,32 +57,34 @@ The student record and the front door.
 - **School profile:** name, logo, colors (white-label), branches/campuses, academic year and terms
 - **Academic structure:** stages → grades → classes/sections, subjects
 - **Student records:** profile, photo, national ID/birth certificate, medical notes and allergies, emergency contacts, guardians (several per student), siblings linked to one parent account
-- **Staff records:** teachers, admins, drivers, supervisors, canteen staff
-- **Users, roles & permissions:** built-in roles (Owner, School Admin, Teacher, Transport, Nurse, Canteen, Accountant, Parent, Student). Drivers and bus supervisors are contacts on a bus, not app users plus custom roles with fine-grained permissions
-- **Authentication:** phone number + OTP (SMS/WhatsApp), email/password, password reset, device sessions
+- **Staff records:** teachers, admins, transport officers, nurse, canteen staff. Drivers and bus supervisors are stored as bus contacts, not users
+- **Users, roles & permissions:** built-in roles (Owner, School Admin, Teacher, Transport, Nurse, Canteen, Accountant, Parent, Student) plus custom roles with fine-grained permissions
+- **Authentication:** phone number + one-time code over **WhatsApp**, or email + password (codes by email); password reset; device sessions
 - **Bulk import/export:** Excel/CSV import for students, parents and staff
-- **Notifications engine:** push, SMS, WhatsApp and email; per-user preferences; Arabic/English templates
+- **Notifications engine:** app push, **WhatsApp** and **email** only (no SMS); per-user preferences; Arabic/English templates; WhatsApp templates pre-approved with Meta
 - **Audit log:** who changed what and when
 - **Languages:** Arabic (RTL) and English
 - **Module manager:** the on/off switchboard for modules, features and limits
 - **Files & documents:** upload and store student documents
 
 ### M1 · Smart Attendance **[MVP]**
-- Daily attendance by class (teacher marks it in the app)
-- Per-period attendance *(feature toggle)*
-- Automatic check-in/out when a student's BLE tag is detected by a gate gateway
-- Per-period presence with classroom gateways *(feature toggle, optional hardware)*
+Attendance is **automatic everywhere**: a gateway detects the student's BLE strap.
+- School arrival and departure: gate gateways
+- Class and period presence: a gateway in each classroom
+- Bus, canteen, clinic and club attendance: the gateway in that place
+- **Fallback when a strap fails or is forgotten:** the teacher marks the student on the classroom PC (dashboard). The record is flagged "manual" with a reason, and the strap is reported for checking
+- **Exceptions are handled on the dashboard:** strap not seen, seen at the gate but not in class, left without a departure, dead battery
 - Late arrival and early dismissal logging, with a reason
 - Absence excuses: the parent submits one with an attachment, the school approves it
-- Instant parent notification: "Arrived 7:42" / "Absent today"
+- Instant parent notification by push / WhatsApp: "Arrived 7:42" / "Absent today"
 - Staff attendance *(feature toggle)*
 - Reports: daily summary (present / absent / late / on trip), chronic absence alerts, monthly export
 
 ### M2 · Bus Tracking & Transport **[MVP]**
 - Buses, routes, stops, drivers and supervisors
 - Assigning students to a bus, stop and pick-up time
-- **Bus gateway (hardware on every bus):** BLE receiver + GPS + 4G SIM. Detects each student's BLE tag on boarding and drop-off automatically and reports location every few seconds. No app for drivers or supervisors; reports are buffered when signal is lost and sent on reconnect
-- **Student BLE tags:** card or wristband per rider, with battery-level monitoring
+- **Bus device (hardware on every bus):** BLE gateway + GPS + 4G SIM, powered from the bus. It **starts when the bus starts and stops when the bus stops**, so the trip starts and ends with the engine. It detects each student's strap on boarding and drop-off and reports location every few seconds. Reports are buffered when the signal is lost and sent on reconnect. There is no app for drivers or supervisors
+- Problems on a trip (strap not detected, wrong stop, bus offline) appear on the dashboard for the transport officer
 - Gateway health on the dashboard: online/offline, signal, GPS lock, tags in range
 - **Live GPS** on a map for parents and the school *(feature toggle)*
 - ETA: "4 stops away · 6 min"
@@ -95,7 +97,7 @@ The student record and the front door.
 Depends on **M9 Payments**.
 - Prepaid **student wallet**; parents top up in the app
 - Canteen menu with items, prices and categories
-- Point-of-sale screen for canteen staff: the counter gateway picks the nearest BLE tag (or staff search by name), then staff charge the wallet
+- **Canteen device with BLE:** the counter terminal reads the nearest student strap over BLE, shows the name and photo to the cashier, and charges the wallet. If the strap fails, the cashier searches by name
 - **Parental controls:** daily spending limit, blocked items, allergy warnings at checkout
 - Real-time notification to the parent: "Lunch · 24 EGP"
 - Pre-ordering meals *(feature toggle) **[Later]***
@@ -136,7 +138,7 @@ Depends on **M9 Payments**.
 - Announcements to the whole school, a grade, a class, a bus or a club
 - Surveys and polls
 - Meeting booking for parent–teacher conferences *(feature toggle)*
-- Emergency broadcast (SMS + push)
+- Emergency broadcast (push + WhatsApp + email)
 
 ### M9 · Payments & Fees **[MVP, needed by Canteen]**
 - Online payment gateway (Paymob / Fawry / cards / wallets / InstaPay) *(provider = setting)*
@@ -161,7 +163,7 @@ Depends on **M9 Payments**.
 - Create and onboard schools
 - Assign plans and modules, set limits
 - Subscription billing for schools
-- Usage stats per school (active users, SMS used, storage)
+- Usage stats per school (active users, WhatsApp messages sent, storage, gateways online)
 - Support access (impersonate a school admin, with an audit trail)
 
 ---
@@ -170,10 +172,11 @@ Depends on **M9 Payments**.
 
 All automatic tracking uses Bluetooth Low Energy, across every module.
 
-- **Student tags:** every student carries one **FSC-BP107D** BLE beacon. A tag is assigned to a student record once and reassigned when it's replaced.
+- **Student straps:** every student wears one **FSC-BP107D** BLE beacon strap. A strap is assigned to a student record once and reassigned when it's replaced.
 - **Custom gateways** (built in-house): each one scans for BLE tags and reports sightings to the platform.
-  - **Fixed gateways:** school gates, canteen counter, clinic, club rooms and (optionally) classrooms. Uplink over Ethernet or Wi-Fi.
-  - **Bus gateways:** the same BLE scanner plus GPS and a 4G SIM. Reports location and tags on board every few seconds and buffers reports while offline.
+  - **Fixed gateways:** school gates, every classroom, clinic and club rooms. Uplink over Ethernet or Wi-Fi.
+  - **Canteen device:** a counter terminal with BLE built in, used as the point of sale.
+  - **Bus device:** BLE gateway + GPS + 4G SIM. It powers on and off with the bus, reports location and straps on board every few seconds, and buffers reports while offline.
 - **Detection rules** (per zone, set in Devices): a tag sighting only becomes an event once it passes a signal-strength threshold and a minimum time in range, e.g.:
   - Gate: seen 3 s at −70 dBm or stronger → Arrived / Left
   - Bus: seen 10 s after the doors close → Boarded / Dropped off
@@ -184,14 +187,16 @@ All automatic tracking uses Bluetooth Low Energy, across every module.
   - The protocol from gateway to platform (MQTT over TLS is the usual choice) and how each gateway authenticates.
   - Tags broadcast a fixed ID that anyone nearby can read, so decide whether to use rotating IDs or accept the risk.
   - Canteen identification when several children stand at the counter.
+  - Tell apart a strap that is really in the room from one heard through a wall from the next classroom.
   - Tag battery life and a replacement process.
 
 ## 4. Apps and who uses them
 
 | App | Users | Main screens |
 |---|---|---|
-| **Staff Dashboard** (web) | School admin, teachers, transport officer, nurse, canteen staff | Students, attendance, transport map, canteen, activities, grades, messages, reports, settings |
+| **Staff Dashboard** (web, incl. classroom PCs) | School admin, teachers, transport officer, nurse, canteen staff | Students, attendance and exceptions, transport map, canteen, activities, grades, messages, reports, settings, devices |
 | **Parent App** (iOS/Android) | Parents | Child's day timeline, live bus, wallet, clubs, grades, messages, payments. Switch between siblings |
+| **Canteen terminal** (BLE device) | Canteen staff | Identify the student by strap, charge the wallet |
 | **Owner Console** (web) | You | Schools, plans, modules, billing |
 | **Student App** *(Later)* | Older students | Timetable, homework, grades |
 
@@ -204,7 +209,8 @@ Every screen, tab and menu item appears **only if its module is enabled** for th
 | **Basic** | Core, Attendance, Communication (announcements only) |
 | **Standard** | Basic + Transport + Canteen & Wallet + Payments |
 | **Premium** | Standard + Activities + Academics + Behavior + full Messaging + Analytics |
-| **Add-ons** | Tuition fees, Admissions, Homework, extra gateways and BLE tags (hardware), white-label app |
+| **Add-ons** | Tuition fees, Admissions, Homework, white-label app |
+| **Hardware** | Straps, classroom/gate gateways, bus devices, canteen terminal (sold or rented per school) |
 
 ## 6. Build phases
 
