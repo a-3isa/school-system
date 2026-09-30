@@ -339,12 +339,12 @@ Each phase adds to what's already running. Nothing gets rebuilt.
 
 ## 10. Recommended MVP and stack (solo, as soon as possible)
 
-Building every module alone would take well over a year, so the first release does **one thing end to end**: automatic attendance, visible to parents.
+Building every module alone would take well over a year, so the first release does **one thing end to end**: attendance (manual and automatic), visible to parents.
 
 **MVP (first school):**
 1. Core: one school, users and roles, students and the two parents, Excel import, push notifications, audit log
 2. Devices: pair gateways, assign straps, see gateway and strap health
-3. Attendance: **manual mode first** (every period on the classroom PC, which is also the Essentials plan), then automatic mode with gate and classroom gateways; exceptions on the dashboard; fixed-time absence push
+3. Attendance: **both modes in the first release**. Manual mode (every period on the classroom PC, also the Essentials plan) and automatic mode (gate and classroom gateways, with the PC as fallback) ship together; exceptions on the dashboard; fixed-time absence push
 4. Simple timetable: periods, classes and rooms
 5. Parent app: child's day timeline, push notifications, consent at sign-up
 
