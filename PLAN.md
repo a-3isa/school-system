@@ -227,13 +227,46 @@ Essentials lets a school start with no hardware and upgrade later without changi
 
 ## 6. Build phases
 
-1. **Foundation:** Core (tenants, module manager, users/roles, students, staff, parents, auth, notifications) + Attendance
-2. **Daily Life:** Transport + Payments + Canteen & Wallet + Parent App day timeline
-3. **Engagement:** Activities & Clubs, trips, events
-4. **Connection:** Academics/grades, teacher notes, messaging, reports
-5. **Later:** Homework, Admissions, tuition fees, advanced analytics
+Each phase ends with something a school can use and pay for. Nothing gets rebuilt later.
 
-Each phase adds to what's already running. Nothing gets rebuilt.
+**Phase 0 · Groundwork** (in parallel with Phase 1)
+- Product name, domain, WhatsApp Business account
+- Hardware costs → pricing calculator → first quotes
+- Radio tests: straps and ESP32 gateways in real rooms (walls, thresholds, battery)
+- Hosting (EU region for development) and a data-protection check
+
+**Phase 1 · Attendance (first sellable release: Essentials + Smart attendance)**
+- Core: school, classes, rooms, users and roles, students and the two parents, Excel import, module switches, audit log
+- Simple timetable: periods, classes and rooms
+- Manual attendance on the classroom PC, every period
+- Automatic attendance: ESP32 gate and classroom gateways, MQTT ingestion, strongest-gateway room rule
+- Devices: pair gateways, assign straps, health and battery
+- Exceptions on the dashboard; gateway offline → manual; correction windows
+- Parent app: day timeline, push notifications, consent at sign-up
+- Owner console (basic): create a school, set plan and modules
+
+**Phase 2 · Transport**
+- Bus device: ESP32 + GPS + 4G, ignition + backup battery
+- Trips from leaving to re-entering the school area; morning or afternoon by time of day
+- Boarding and drop-off by strap; parent taps "Received"; alerts on the dashboard and WhatsApp to the supervisor
+- Live bus for parents during their child's trip; "bus approaching" two stops before
+
+**Phase 3 · Payments & Canteen**
+- Payment provider, wallet top-ups, receipts
+- Canteen kit: ESP32 BLE unit + Android tablet POS, photo confirmation, cash sales, end-of-day cash count
+- Parental controls: daily limit, blocked items, allergies
+- Strap purchase and replacement in the app
+
+**Phase 4 · School life**
+- Activities & clubs, trips and permission slips, events
+- Academics: grades, exams, report cards (built on the Phase 1 timetable)
+- Behavior & notes, clinic visits
+- Messaging: parent–teacher chat, announcements, polls, meetings, emergency broadcast
+
+**Phase 5 · Business & add-ons**
+- Reports & analytics, multi-branch
+- Owner console: billing, usage, support access
+- Add-ons: Homework, Admissions, Tuition fees, school-branded app
 
 ## 7. Open decisions
 
