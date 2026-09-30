@@ -71,6 +71,11 @@ model School {
   attendance AttendanceRecord[]
   classAways ClassAway[]
   notifications Notification[]
+  gateways   Gateway[]
+  straps     Strap[]
+  exceptions AttendanceException[]
+  // Detection rules for automatic attendance; see src/devices/rules.ts.
+  detection  Json @default("{}")
 }
 
 model SchoolModule {
@@ -145,6 +150,7 @@ model Room {
 
   school    School           @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   timetable TimetableEntry[]
+  gateways  Gateway[]
 
   @@unique([schoolId, name])
 }
@@ -218,6 +224,9 @@ model Student {
   guardians  StudentGuardian[]
   attendance AttendanceRecord[]
   absenceNotices AbsenceNotice[]
+  strap      Strap?
+  presence   GatePresence[]
+  exceptions AttendanceException[]
 
   @@unique([schoolId, code])
   @@index([schoolId, classId])
@@ -343,4 +352,128 @@ model AbsenceNotice {
   student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@id([studentId, date])
+}
+
+enum GatewayKind {
+  GATE
+  ROOM
+  BUS
+  CANTEEN
+}
+
+// A BLE gateway (ESP32). Registered by the platform owner with a serial,
+// a claim code and a secret; a school claims it with the claim code.
+model Gateway {
+  id         String       @id @default(cuid())
+  serial     String       @unique
+  claimCode  String       @unique
+  secretHash String
+  schoolId   String?
+  name       String?
+  kind       GatewayKind?
+  roomId     String?
+  firmware   String?
+  lastSeenAt DateTime?
+  createdAt  DateTime     @default(now())
+
+  school    School?    @relation(fields: [schoolId], references: [id], onDelete: SetNull)
+  room      Room?      @relation(fields: [roomId], references: [id], onDelete: SetNull)
+  sightings Sighting[]
+
+  @@index([schoolId])
+}
+
+// A student's FSC-BP107D strap, identified by its BLE MAC address.
+model Strap {
+  id         String    @id @default(cuid())
+  schoolId   String
+  mac        String
+  studentId  String?   @unique
+  battery    Int?
+  lastSeenAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  school    School     @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student   Student?   @relation(fields: [studentId], references: [id], onDelete: SetNull)
+  sightings Sighting[]
+
+  @@unique([schoolId, mac])
+}
+
+// Raw "gateway heard strap" rows. Kept for one week (decision H38).
+model Sighting {
+  id        BigInt   @id @default(autoincrement())
+  schoolId  String
+  gatewayId String
+  strapId   String
+  rssi      Int
+  seenAt    DateTime
+
+  gateway Gateway @relation(fields: [gatewayId], references: [id], onDelete: Cascade)
+  strap   Strap   @relation(fields: [strapId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId, seenAt])
+  @@index([strapId, seenAt])
+}
+
+// Arrival and departure through the school gates, one row per child per day.
+model GatePresence {
+  studentId String
+  date      DateTime  @db.Date
+  arrivedAt DateTime?
+  lastGateAt DateTime?
+  leftAt    DateTime?
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@id([studentId, date])
+}
+
+enum ExceptionType {
+  NOT_IN_CLASS // at school (arrived through the gate) but not in the lesson
+  LEFT_LESSON // in the lesson for less than the required share
+  LEFT_EARLY // went out through the gate during the school day
+  STRAP_NOT_SEEN // present by manual mark but the strap wasn't heard
+  LOW_BATTERY
+  GATEWAY_OFFLINE // a lesson couldn't be decided automatically; mark it manually
+}
+
+enum ExceptionStatus {
+  OPEN
+  RESOLVED
+}
+
+// Things a person has to look at, shown on the dashboard.
+model AttendanceException {
+  id          String          @id @default(cuid())
+  schoolId    String
+  type        ExceptionType
+  status      ExceptionStatus @default(OPEN)
+  date        DateTime        @db.Date
+  studentId   String?
+  gatewayId   String?
+  classId     String?
+  periodId    String?
+  message     String
+  // Stops the same exception being raised twice.
+  dedupeKey   String          @unique
+  note        String?
+  resolvedById String?
+  resolvedAt  DateTime?
+  createdAt   DateTime        @default(now())
+
+  school  School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student Student? @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId, date, status])
+}
+
+// Marks a period as already decided from strap sightings.
+model EvaluatedPeriod {
+  schoolId String
+  date     DateTime @db.Date
+  periodId String
+  at       DateTime @default(now())
+
+  @@id([schoolId, date, periodId])
 }

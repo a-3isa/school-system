@@ -6,6 +6,8 @@ import { AuthUser, CurrentUser, RequiresModule, Roles, SchoolId, STAFF } from '.
 import { DATE_RE } from '../common/dates';
 import { NotificationsService } from '../notifications/notifications';
 import { AttendanceService } from './attendance.service';
+import { AttendanceEvaluator } from '../devices/evaluator';
+import { DevicesModule } from '../devices/exceptions';
 
 class MarkDto {
   @IsString() studentId: string;
@@ -86,7 +88,7 @@ export class ParentAttendanceController {
   }
 }
 
-/** Runs the timed work every minute: absence notices, then pushing notifications. */
+/** Runs the timed work every minute: automatic attendance, absence notices, then pushing notifications. */
 @Injectable()
 export class AttendanceJobs implements OnModuleInit, OnModuleDestroy {
   private timer?: NodeJS.Timeout;
@@ -95,6 +97,7 @@ export class AttendanceJobs implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly attendance: AttendanceService,
     private readonly notifications: NotificationsService,
+    private readonly evaluator: AttendanceEvaluator,
   ) {}
 
   onModuleInit() {
@@ -108,6 +111,7 @@ export class AttendanceJobs implements OnModuleInit, OnModuleDestroy {
 
   async tick(now = new Date()) {
     try {
+      await this.evaluator.tick(now);
       await this.attendance.sendAbsenceNotices(now);
       await this.notifications.flush();
     } catch (e) {
@@ -117,6 +121,7 @@ export class AttendanceJobs implements OnModuleInit, OnModuleDestroy {
 }
 
 @Module({
+  imports: [DevicesModule],
   controllers: [AttendanceController, ParentAttendanceController],
   providers: [AttendanceService, AttendanceJobs],
   exports: [AttendanceService],
