@@ -8,7 +8,7 @@ import { PlatformModule } from './platform/modules';
 import { SetupModule } from './setup/setup';
 import { TimetableModule } from './timetable/timetable';
 import { UsersModule } from './users/users';
-import { StudentsModule } from './students/students';
+import { StudentsModule } from './students/students.module';
 import { NotificationsModule } from './notifications/notifications';
 import { AttendanceModule } from './attendance/attendance';
 

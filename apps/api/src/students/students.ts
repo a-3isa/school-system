@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Delete, ForbiddenException, Get, Injectable, Module, NotFoundException, Param, Patch, Post, Query } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, ForbiddenException, Get, Injectable, NotFoundException, Param, Patch, Post, Query } from '@nestjs/common';
 import { GuardianRelation, Prisma, Role } from '@prisma/client';
 import { IsBoolean, IsDateString, IsEmail, IsEnum, IsOptional, IsString, MinLength } from 'class-validator';
 import { PrismaService } from '../prisma/prisma.service';
@@ -235,5 +235,3 @@ export class ParentController {
   }
 }
 
-@Module({ controllers: [StudentsController, ParentController], providers: [StudentsService], exports: [StudentsService] })
-export class StudentsModule {}

@@ -27,7 +27,12 @@ export default function StudentsPage() {
 
   return (
     <>
-      <PageHead eyebrow="People" title="Students & parents" sub="One record per child, shared by every module. Each child can have up to two parent accounts." />
+      <PageHead
+        eyebrow="People"
+        title="Students & parents"
+        sub="One record per child, shared by every module. Each child can have up to two parent accounts."
+        actions={isAdmin && <Link className="btn" href="/students/import">Import from Excel</Link>}
+      />
       <div className="form-row">
         <Field label="Search" id="q">
           <input id="q" className="input" placeholder="Name or student code" value={q} onChange={(e) => setQ(e.target.value)} />

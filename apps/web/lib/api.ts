@@ -69,3 +69,27 @@ export function dateTimeCairo(iso: string | null | undefined): string {
   if (!iso) return 'Never';
   return new Intl.DateTimeFormat('en-GB', { timeZone: 'Africa/Cairo', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(iso));
 }
+
+/** Sends a file as multipart form data under the field name "file". */
+export async function upload<T = any>(path: string, file: File): Promise<T> {
+  const token = getToken();
+  const form = new FormData();
+  form.append('file', file);
+  const res = await fetch(`${API_URL}${path}`, { method: 'POST', body: form, headers: token ? { authorization: `Bearer ${token}` } : {} });
+  const data = await res.json().catch(() => null);
+  if (!res.ok) throw new ApiError(res.status, Array.isArray(data?.message) ? data.message.join(' ') : data?.message ?? `Upload failed (${res.status}).`);
+  return data as T;
+}
+
+/** Downloads a file from the API (with the login token) and saves it. */
+export async function download(path: string, filename: string) {
+  const token = getToken();
+  const res = await fetch(`${API_URL}${path}`, { headers: token ? { authorization: `Bearer ${token}` } : {} });
+  if (!res.ok) throw new ApiError(res.status, `Download failed (${res.status}).`);
+  const url = URL.createObjectURL(await res.blob());
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
