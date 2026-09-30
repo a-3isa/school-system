@@ -1,0 +1,244 @@
+// School platform — Phase 1 data model (core, timetable, people).
+// Every school-owned row carries schoolId; queries are always scoped by it.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Plan {
+  ESSENTIALS
+  SMART
+  COMPLETE
+}
+
+enum AttendanceMode {
+  MANUAL
+  AUTOMATIC
+}
+
+enum Role {
+  OWNER // platform owner, not tied to a school
+  SCHOOL_ADMIN
+  TEACHER
+  TRANSPORT
+  NURSE
+  CANTEEN
+  ACCOUNTANT
+  PARENT
+}
+
+enum RoomKind {
+  CLASSROOM
+  LAB
+  LIBRARY
+  SPORTS
+  OTHER
+}
+
+enum GuardianRelation {
+  MOTHER
+  FATHER
+}
+
+model School {
+  id                String         @id @default(cuid())
+  name              String
+  nameAr            String?
+  timezone          String         @default("Africa/Cairo")
+  plan              Plan           @default(ESSENTIALS)
+  attendanceMode    AttendanceMode @default(MANUAL)
+  // Time (HH:mm, school time zone) when "absent today" notices go to parents.
+  absenceNoticeTime String         @default("08:15")
+  // Weekdays with lessons, 0 = Sunday … 6 = Saturday.
+  schoolDays        Int[]          @default([0, 1, 2, 3, 4])
+  createdAt         DateTime       @default(now())
+
+  modules    SchoolModule[]
+  users      User[]
+  grades     Grade[]
+  classes    Class[]
+  rooms      Room[]
+  subjects   Subject[]
+  periods    Period[]
+  timetable  TimetableEntry[]
+  students   Student[]
+  auditLogs  AuditLog[]
+}
+
+model SchoolModule {
+  schoolId  String
+  key       String
+  enabled   Boolean  @default(false)
+  // Feature switches inside the module, e.g. { "perPeriod": true }.
+  features  Json     @default("{}")
+  updatedAt DateTime @updatedAt
+
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@id([schoolId, key])
+}
+
+model User {
+  id           String   @id @default(cuid())
+  schoolId     String?
+  name         String
+  email        String?  @unique
+  phone        String?  @unique
+  passwordHash String?
+  role         Role
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  school      School?           @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  children    StudentGuardian[]
+  teaching    TimetableEntry[]
+  homerooms   Class[]
+
+  @@index([schoolId, role])
+}
+
+model Grade {
+  id       String @id @default(cuid())
+  schoolId String
+  name     String
+  order    Int
+
+  school  School  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  classes Class[]
+
+  @@unique([schoolId, name])
+}
+
+model Class {
+  id                String  @id @default(cuid())
+  schoolId          String
+  gradeId           String
+  name              String
+  homeroomTeacherId String?
+
+  school          School           @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  grade           Grade            @relation(fields: [gradeId], references: [id], onDelete: Restrict)
+  homeroomTeacher User?            @relation(fields: [homeroomTeacherId], references: [id], onDelete: SetNull)
+  students        Student[]
+  timetable       TimetableEntry[]
+
+  @@unique([schoolId, name])
+}
+
+model Room {
+  id       String   @id @default(cuid())
+  schoolId String
+  name     String
+  kind     RoomKind @default(CLASSROOM)
+
+  school    School           @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  timetable TimetableEntry[]
+
+  @@unique([schoolId, name])
+}
+
+model Subject {
+  id       String @id @default(cuid())
+  schoolId String
+  name     String
+
+  school    School           @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  timetable TimetableEntry[]
+
+  @@unique([schoolId, name])
+}
+
+// The school's bell schedule: period 1 is 08:00–08:45, and so on.
+model Period {
+  id        String @id @default(cuid())
+  schoolId  String
+  number    Int
+  startTime String // HH:mm
+  endTime   String // HH:mm
+
+  school    School           @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  timetable TimetableEntry[]
+
+  @@unique([schoolId, number])
+}
+
+// One lesson: this class, on this weekday and period, in this room.
+model TimetableEntry {
+  id        String @id @default(cuid())
+  schoolId  String
+  classId   String
+  dayOfWeek Int // 0 = Sunday … 6 = Saturday
+  periodId  String
+  roomId    String
+  subjectId String
+  teacherId String?
+
+  school  School  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  class   Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
+  period  Period  @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  room    Room    @relation(fields: [roomId], references: [id], onDelete: Restrict)
+  subject Subject @relation(fields: [subjectId], references: [id], onDelete: Restrict)
+  teacher User?   @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+
+  @@unique([classId, dayOfWeek, periodId])
+  @@unique([roomId, dayOfWeek, periodId])
+  @@unique([teacherId, dayOfWeek, periodId])
+  @@index([schoolId, dayOfWeek])
+}
+
+model Student {
+  id           String    @id @default(cuid())
+  schoolId     String
+  code         String
+  firstName    String
+  lastName     String
+  nameAr       String?
+  classId      String?
+  dateOfBirth  DateTime?
+  photoUrl     String?
+  medicalNotes String?
+  active       Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+
+  school    School            @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  class     Class?            @relation(fields: [classId], references: [id], onDelete: SetNull)
+  guardians StudentGuardian[]
+
+  @@unique([schoolId, code])
+  @@index([schoolId, classId])
+}
+
+// A parent linked to a child. At most two per student (mother and father).
+model StudentGuardian {
+  studentId  String
+  userId     String
+  relation   GuardianRelation
+  // Set by the school to limit what this parent sees (e.g. separated families).
+  restricted Boolean          @default(false)
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([studentId, userId])
+  @@unique([studentId, relation])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  schoolId  String?
+  actorId   String?
+  action    String
+  entity    String
+  entityId  String?
+  data      Json?
+  createdAt DateTime @default(now())
+
+  school School? @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId, createdAt])
+}
