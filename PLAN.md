@@ -68,10 +68,16 @@ The student record and the front door.
 - **Files & documents:** upload and store student documents
 
 ### M1 · Smart Attendance **[MVP]**
-Attendance is **automatic everywhere**: a gateway detects the student's BLE strap.
+Attendance works in two modes, chosen per school:
+- **Manual mode (no hardware):** teachers take attendance for every period on the classroom PC. A school can use the whole platform this way.
+- **Automatic mode (BLE):** a gateway in every room where lessons happen (classrooms, labs, library, PE areas) and at the gates detects each student's strap; the classroom PC is the fallback.
+
+In automatic mode:
 - School arrival and departure: gate gateways
-- Class and period presence: a gateway in each classroom
+- Class and period presence: a gateway in every lesson room. Present = seen for 70% of the period; late = first seen more than 10 minutes after it starts
 - Bus, canteen, clinic and club attendance: the gateway in that place
+- Class on a trip or an exam elsewhere: the teacher or admin marks it "on a trip" in advance so nobody is flagged absent
+- Leaving through the gate early without permission: alert to the parent and the admin
 - **Every period counts:** a student must be present in every lesson; each period has its own attendance record
 - **Fallback when a strap fails or is forgotten, and for students too young for a strap:** the teacher marks the student on the classroom PC (dashboard). The record is flagged "manual" with a reason, and the strap is reported for checking
 - **Gateway offline:** the class switches to manual marking on the classroom PC automatically until the gateway is back
@@ -84,6 +90,9 @@ Attendance is **automatic everywhere**: a gateway detects the student's BLE stra
 ### M2 · Bus Tracking & Transport **[MVP]**
 - Buses, routes, stops, drivers and supervisors
 - Assigning students to a bus, stop and pick-up time
+- **A trip starts when the bus leaves the school area and ends when it comes back into it.** The time of day decides whether it's the morning or afternoon trip
+- **Drop-off:** the gateway sees the child leave the bus and the parent taps "Received" in the app; no confirmation within 10 minutes = alert on the dashboard
+- Students without a strap (below Grade 1) aren't tracked on the bus; the transport officer can mark them on the dashboard
 - **Bus device (hardware on every bus):** BLE gateway + GPS + 4G SIM, powered from the bus. It **starts when the bus starts and stops when the bus stops**, so the trip starts and ends with the engine. It detects each student's strap on boarding and drop-off and reports location every few seconds. Reports are buffered when the signal is lost and sent on reconnect. There is no app for drivers or supervisors
 - Problems on a trip (strap not detected, wrong stop, bus offline) appear on the dashboard for the transport officer
 - Gateway health on the dashboard: online/offline, signal, GPS lock, tags in range
@@ -178,7 +187,7 @@ All automatic tracking uses Bluetooth Low Energy, across every module.
 - **Student straps:** students above a set age wear one **FSC-BP107D** BLE beacon strap all day. Straps belong to the parents, are configured by Ahmed before handover (broadcast interval, power), have a ~6-year replaceable battery, and are reassigned when replaced. Staff don't wear straps.
 - **Custom gateways** (built in-house): each one scans for BLE tags and reports sightings to the platform.
   - **Fixed gateways:** school gates, every classroom, clinic and club rooms. Uplink over Ethernet or Wi-Fi.
-  - **Canteen device:** a counter terminal with BLE built in, used as the point of sale.
+  - **Canteen kit:** an ESP32 BLE unit paired with an Android tablet that runs the point of sale and shows the child's photo.
   - **Bus device:** ESP32 BLE gateway + GPS + 4G modem. Powered from the bus ignition **plus its own backup battery**, so it can report its last position after the engine stops. Reports location and straps on board every few seconds and buffers reports while offline.
 - **Detection rules** (per zone, set in Devices): a tag sighting only becomes an event once it passes a signal-strength threshold and a minimum time in range, e.g.:
   - Gate: seen 3 s at −70 dBm or stronger → Arrived / Left
@@ -205,15 +214,16 @@ All automatic tracking uses Bluetooth Low Energy, across every module.
 
 Every screen, tab and menu item appears **only if its module is enabled** for that school.
 
-## 5. Suggested plans for marketing
+## 5. Plans (what schools buy)
 
-| Plan | Modules |
-|---|---|
-| **Basic** | Core, Attendance, Communication (announcements only) |
-| **Standard** | Basic + Transport + Canteen & Wallet + Payments |
-| **Premium** | Standard + Activities + Academics + Behavior + full Messaging + Analytics |
-| **Add-ons** | Tuition fees, Admissions, Homework, white-label app |
-| **Hardware** | Straps, classroom/gate gateways, bus devices, canteen terminal (sold or rented per school) |
+| Plan | What's in it | Hardware |
+|---|---|---|
+| **Essentials** | Core, parent app, manual attendance on classroom PCs (every period), announcements, basic reports | None |
+| **Smart** | Essentials + **automatic BLE attendance**, Transport, Canteen & wallet, Payments | Gateways, bus devices, canteen kit, straps |
+| **Complete** | Smart + Activities, Academics, Behavior & notes, full Messaging, Reports & analytics | Same as Smart |
+| **Add-ons** | Homework, Admissions, Tuition fees, school-branded app | — |
+
+Essentials lets a school start with no hardware and upgrade later without changing systems.
 
 ## 6. Build phases
 
@@ -227,11 +237,10 @@ Each phase adds to what's already running. Nothing gets rebuilt.
 
 ## 7. Open decisions
 
-- Tech stack (backend, web dashboard, mobile apps, database)
-- Hosting (cloud provider, region, data residency)
-- Gateway firmware and uplink protocol (see 3a)
-- Payment gateway choice for Egypt
-- Pricing model: per student / per module / flat
+- Product name (suggestions in the chat)
+- Payment provider for Egypt (Paymob, Fawry, etc.)
+- Actual prices: need hardware and running costs (see section 9)
+- Permanent hosting location, after checking Egypt's data-protection law; development starts on an EU cloud region
 
 ## 8. Decisions so far
 
@@ -279,21 +288,52 @@ Each phase adds to what's already running. Nothing gets rebuilt.
 | I40 | Team | Ahmed alone |
 | I41 | Gateway hardware | ESP32, MQTT over TLS |
 | I42 | Timeline | As soon as possible |
+| R1 | Strap age | Grade 1 and up |
+| R2 | Children without straps on the bus | Not tracked; the transport officer can mark them on the dashboard |
+| R3 | Receiving the child at drop-off | Parent taps "Received"; no confirmation in 10 minutes = dashboard alert |
+| R4 | Trip start and end | Starts when the bus leaves the school area, ends when it comes back into it |
+| R5 | Present / late in a lesson | Present if seen 70% of the period; late if first seen after 10 minutes |
+| R6 | Correction window | Teacher until end of day; after that, admin only |
+| R7 | Rooms without gateways | Every lesson room gets a gateway. Automatic attendance is optional: a school can run on classroom PCs only |
+| R8 | Class on a trip | Teacher or admin marks it in advance |
+| R9 | Leaving early without permission | Alert to the parent and the admin |
+| R10 | Timetable | A simple timetable (periods and rooms) moves into the first release |
+| R11 | Canteen hardware | ESP32 BLE unit paired with an Android tablet; canteen staff close the day on the tablet with the cash counted, and the admin sees any difference |
+| R12 | Channels for parents | Push notifications from the app only (no email, no WhatsApp) |
+| R13 | Hosting | Development on an EU cloud region; permanent choice later |
 
-## 9. Pricing model (proposal)
+## 9. How to charge schools
 
-Four parts, so each cost is covered by its own line:
+**Who pays:** the school signs a yearly contract and pays. Most schools will pass the cost to parents as a yearly "smart services" fee, so give them a ready-made fee sheet to send to parents. Straps are the one thing parents buy directly.
 
-1. **Software subscription:** per enrolled student per academic year, priced by plan (Basic / Standard / Premium), with a **minimum yearly fee per school** so small schools still cover support. Billed **per term**, which matches how schools collect fees.
-2. **Hardware:** offered two ways.
-   - **Rent (recommended for first schools):** a yearly fee per gateway, bus device and canteen terminal. Ahmed owns, installs, replaces and upgrades them. This means a smaller upfront cost for the school, and the devices stay under his control.
-   - **Buy:** a one-time price plus a yearly maintenance contract.
-3. **Straps:** the first strap per student is included in the subscription. Lost or broken straps are paid for by parents, directly from the app wallet.
-4. **One-time setup fee:** installation, data import and staff training.
+### Price lines
 
-Running costs to cover when setting prices: cloud hosting per student, WhatsApp messages (a monthly quota per student included, extra billed), the 4G SIM per bus (included in the bus device fee), hardware cost and failure rate, and support time.
+1. **Software, per enrolled student per year**, by plan (Essentials / Smart / Complete), plus a **minimum yearly fee per school** so small schools still cover support.
+2. **Hardware rent, per device per year:** gate gateway, classroom gateway, bus device (4G data included), canteen kit (BLE unit + Android tablet). Rent includes installation, replacement of faulty devices and firmware updates. Set the rent so a device pays for itself within about two school years.
+   - Schools that insist on owning hardware can **buy** it: one-time price plus a yearly maintenance contract of about 15–20% of the hardware price.
+3. **Straps:** sold to parents (they own them) through the school at registration or in the app, at cost plus a margin. Replacements cost the same.
+4. **One-time setup fee:** a base amount plus an amount per installed device. Covers installation, data import and staff training.
 
-Optional extra revenue: a small convenience fee on parent wallet top-ups, on top of the payment provider's fee.
+### Contract terms
+
+- Yearly contract, billed **per term in advance**.
+- **Two-year contract = discount**; multi-branch schools get a volume discount.
+- **Price review clause:** software reviewed yearly for inflation; hardware tied to the dollar rate, because parts are imported.
+- **Late payment:** after a grace period the school drops to read-only (parents still see history; nothing is deleted).
+
+### Setting the numbers
+
+- **Floor (your cost):** per student = cloud hosting + WhatsApp share + support time; per device = its cost spread over 24 months + 4G data + expected failures.
+- **Ceiling (what schools will accept):** start from the assumption that the total yearly cost per student should be a small percentage of the school's yearly tuition, then test it.
+- **Test before fixing prices:** quote three schools with different tuition levels and adjust from their reactions.
+
+### Example school (quantities only)
+
+600 students (540 from Grade 1 up), 24 lesson rooms, 2 gates, 6 buses, 1 canteen counter:
+- Software: 600 × plan price per student
+- Hardware rent: 26 gateways + 6 bus devices + 1 canteen kit
+- Setup: base + 33 devices
+- Straps: about 540, paid by parents
 
 **Launch offer:** the first one or two schools get a discounted first year in exchange for a case study, a testimonial and feedback.
 
@@ -304,8 +344,9 @@ Building every module alone would take well over a year, so the first release do
 **MVP (first school):**
 1. Core: one school, users and roles, students and the two parents, Excel import, push notifications, audit log
 2. Devices: pair gateways, assign straps, see gateway and strap health
-3. Attendance: gate and classroom gateways, every period, manual marking on the classroom PC, exceptions on the dashboard, fixed-time absence push
-4. Parent app: child's day timeline, notifications, consent at sign-up
+3. Attendance: **manual mode first** (every period on the classroom PC, which is also the Essentials plan), then automatic mode with gate and classroom gateways; exceptions on the dashboard; fixed-time absence push
+4. Simple timetable: periods, classes and rooms
+5. Parent app: child's day timeline, push notifications, consent at sign-up
 
 Transport, then Canteen & Payments follow, then everything else. The module system is built from day one so nothing is rebuilt later.
 
