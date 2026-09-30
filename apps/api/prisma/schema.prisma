@@ -68,6 +68,9 @@ model School {
   timetable  TimetableEntry[]
   students   Student[]
   auditLogs  AuditLog[]
+  attendance AttendanceRecord[]
+  classAways ClassAway[]
+  notifications Notification[]
 }
 
 model SchoolModule {
@@ -98,6 +101,8 @@ model User {
   children    StudentGuardian[]
   teaching    TimetableEntry[]
   homerooms   Class[]
+  marked      AttendanceRecord[]
+  notifications Notification[]
 
   @@index([schoolId, role])
 }
@@ -126,6 +131,8 @@ model Class {
   homeroomTeacher User?            @relation(fields: [homeroomTeacherId], references: [id], onDelete: SetNull)
   students        Student[]
   timetable       TimetableEntry[]
+  attendance      AttendanceRecord[]
+  aways           ClassAway[]
 
   @@unique([schoolId, name])
 }
@@ -161,8 +168,9 @@ model Period {
   startTime String // HH:mm
   endTime   String // HH:mm
 
-  school    School           @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  timetable TimetableEntry[]
+  school     School             @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  timetable  TimetableEntry[]
+  attendance AttendanceRecord[]
 
   @@unique([schoolId, number])
 }
@@ -205,9 +213,11 @@ model Student {
   active       Boolean   @default(true)
   createdAt    DateTime  @default(now())
 
-  school    School            @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  class     Class?            @relation(fields: [classId], references: [id], onDelete: SetNull)
-  guardians StudentGuardian[]
+  school     School             @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  class      Class?             @relation(fields: [classId], references: [id], onDelete: SetNull)
+  guardians  StudentGuardian[]
+  attendance AttendanceRecord[]
+  absenceNotices AbsenceNotice[]
 
   @@unique([schoolId, code])
   @@index([schoolId, classId])
@@ -241,4 +251,96 @@ model AuditLog {
   school School? @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
   @@index([schoolId, createdAt])
+}
+
+enum AttendanceStatus {
+  PRESENT
+  LATE
+  ABSENT
+  EXCUSED
+  ON_TRIP
+}
+
+enum AttendanceSource {
+  MANUAL // marked on the classroom PC or the dashboard
+  AUTOMATIC // decided from BLE strap sightings
+}
+
+// One student's attendance in one period on one day.
+model AttendanceRecord {
+  id          String           @id @default(cuid())
+  schoolId    String
+  studentId   String
+  classId     String
+  periodId    String
+  date        DateTime         @db.Date
+  status      AttendanceStatus
+  source      AttendanceSource
+  reason      String?
+  markedById  String?
+  // Automatic mode: when the strap was first seen in the room and for how long.
+  firstSeenAt DateTime?
+  secondsSeen Int?
+  updatedAt   DateTime         @updatedAt
+
+  school   School  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student  Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  class    Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
+  period   Period  @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  markedBy User?   @relation(fields: [markedById], references: [id], onDelete: SetNull)
+
+  @@unique([studentId, date, periodId])
+  @@index([schoolId, date])
+  @@index([classId, date])
+}
+
+// A class away from its rooms (trip, exam elsewhere), set in advance so
+// nobody is flagged absent. Null periods = the whole day.
+model ClassAway {
+  id          String   @id @default(cuid())
+  schoolId    String
+  classId     String
+  date        DateTime @db.Date
+  fromPeriod  Int?
+  toPeriod    Int?
+  reason      String
+  createdById String?
+  createdAt   DateTime @default(now())
+
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  class  Class  @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId, date])
+}
+
+// Push notifications to users. Sending is done by the notifications worker;
+// the row also serves as the in-app notification list.
+model Notification {
+  id        String    @id @default(cuid())
+  schoolId  String
+  userId    String
+  type      String
+  title     String
+  body      String
+  data      Json?
+  createdAt DateTime  @default(now())
+  sentAt    DateTime?
+  readAt    DateTime?
+
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([sentAt])
+}
+
+// Makes sure the "absent today" notice goes out once per student per day.
+model AbsenceNotice {
+  studentId String
+  date      DateTime @db.Date
+  sentAt    DateTime @default(now())
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@id([studentId, date])
 }

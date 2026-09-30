@@ -1,5 +1,6 @@
 process.env.DATABASE_URL = process.env.TEST_DATABASE_URL ?? 'postgresql://school:school@localhost:5432/school_test';
 process.env.JWT_SECRET = 'test-secret';
+process.env.DISABLE_JOBS = '1';
 
 import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
