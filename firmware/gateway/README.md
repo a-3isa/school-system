@@ -5,9 +5,8 @@ MQTT topic `gw/<serial>/sightings` every few seconds. The platform turns these r
 into arrivals and lesson attendance. Same firmware for gate and classroom gateways;
 what a gateway *is* (gate, room) is set when the school claims it on the dashboard.
 
-> Status: written but **not compiled yet**. The development environment can't reach
-> the PlatformIO registry, so build it on your machine first (below) and fix anything
-> the compiler reports.
+> Status: compiles in CI (GitHub Actions builds it on every pull request). Not yet run
+> on real hardware.
 
 ## Build and flash
 
