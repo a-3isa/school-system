@@ -9,7 +9,7 @@ void main() {
     final api = Api(await SharedPreferences.getInstance());
     await tester.pumpWidget(ParentApp(api: api));
     await tester.pumpAndSettle();
-    expect(find.text('Sign in'), findsOneWidget);
+    expect(find.text('Send code by WhatsApp'), findsOneWidget);
     expect(find.text('Mobile number'), findsOneWidget);
   });
 

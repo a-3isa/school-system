@@ -14,6 +14,7 @@ flutter test
 First sign-in asks the parent to agree to tracking (decision H39); nothing else is shown
 until they do.
 
-Not done yet: sign-in codes by WhatsApp (parents use a password the school sets for
-now), real push notifications through Firebase (the Notifications tab lists them), and
-Arabic.
+Parents sign in with a 6-digit code sent to WhatsApp (a school-set password also works).
+
+Not done yet: real push notifications through Firebase (the Notifications tab lists them)
+and Arabic.

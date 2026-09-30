@@ -59,6 +59,18 @@ class Api {
     return res;
   }
 
+  /// Asks the server to send a sign-in code by WhatsApp.
+  Future<void> requestCode(String phone) => post('/auth/code', {'phone': phone});
+
+  /// Signs in with the WhatsApp code.
+  Future<void> verifyCode(String phone, String code) async {
+    final res = await post('/auth/code/verify', {'phone': phone, 'code': code}) as Map<String, dynamic>;
+    if (res['user']['role'] != 'PARENT') {
+      throw ApiException(403, 'This app is for parents. Staff use the school dashboard.');
+    }
+    await _prefs.setString(_tokenKey, res['token'] as String);
+  }
+
   Future<Map<String, dynamic>> me() async => await get('/auth/me') as Map<String, dynamic>;
   Future<void> consent() => post('/parent/consent');
   Future<List<dynamic>> children() async => await get('/parent/children') as List<dynamic>;
