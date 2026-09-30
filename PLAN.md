@@ -70,8 +70,8 @@ The student record and the front door.
 ### M1 · Smart Attendance **[MVP]**
 - Daily attendance by class (teacher marks it in the app)
 - Per-period attendance *(feature toggle)*
-- Automatic check-in/out with **QR code / NFC card / RFID gate** *(feature toggle per device type)*
-- Face recognition check-in *(feature toggle) **[Later]***
+- Automatic check-in/out when a student's BLE tag is detected by a gate gateway
+- Per-period presence with classroom gateways *(feature toggle, optional hardware)*
 - Late arrival and early dismissal logging, with a reason
 - Absence excuses: the parent submits one with an attachment, the school approves it
 - Instant parent notification: "Arrived 7:42" / "Absent today"
@@ -95,7 +95,7 @@ The student record and the front door.
 Depends on **M9 Payments**.
 - Prepaid **student wallet**; parents top up in the app
 - Canteen menu with items, prices and categories
-- Point-of-sale screen for canteen staff: identify the student by QR/NFC/name and charge the wallet
+- Point-of-sale screen for canteen staff: the counter gateway picks the nearest BLE tag (or staff search by name), then staff charge the wallet
 - **Parental controls:** daily spending limit, blocked items, allergy warnings at checkout
 - Real-time notification to the parent: "Lunch · 24 EGP"
 - Pre-ordering meals *(feature toggle) **[Later]***
@@ -166,6 +166,26 @@ Depends on **M9 Payments**.
 
 ---
 
+## 3a. Hardware layer: BLE tags and gateways
+
+All automatic tracking uses Bluetooth Low Energy, across every module.
+
+- **Student tags:** every student carries one **FSC-BP107D** BLE beacon. A tag is assigned to a student record once and reassigned when it's replaced.
+- **Custom gateways** (built in-house): each one scans for BLE tags and reports sightings to the platform.
+  - **Fixed gateways:** school gates, canteen counter, clinic, club rooms and (optionally) classrooms. Uplink over Ethernet or Wi-Fi.
+  - **Bus gateways:** the same BLE scanner plus GPS and a 4G SIM. Reports location and tags on board every few seconds and buffers reports while offline.
+- **Detection rules** (per zone, set in Devices): a tag sighting only becomes an event once it passes a signal-strength threshold and a minimum time in range, e.g.:
+  - Gate: seen 3 s at −70 dBm or stronger → Arrived / Left
+  - Bus: seen 10 s after the doors close → Boarded / Dropped off
+  - Canteen counter: strongest tag at −55 dBm or stronger → identifies the buyer (cashier confirms name and photo)
+  - Clinic / club rooms: seen 60 s → Visit / Attended
+- **Devices screen (part of Core):** gateway list with location, uplink, signal, firmware and status; tag inventory with battery level and last sighting; claim-code pairing for new gateways; firmware update status.
+- **Open questions for the gateway design:**
+  - The protocol from gateway to platform (MQTT over TLS is the usual choice) and how each gateway authenticates.
+  - Tags broadcast a fixed ID that anyone nearby can read, so decide whether to use rotating IDs or accept the risk.
+  - Canteen identification when several children stand at the counter.
+  - Tag battery life and a replacement process.
+
 ## 4. Apps and who uses them
 
 | App | Users | Main screens |
@@ -184,7 +204,7 @@ Every screen, tab and menu item appears **only if its module is enabled** for th
 | **Basic** | Core, Attendance, Communication (announcements only) |
 | **Standard** | Basic + Transport + Canteen & Wallet + Payments |
 | **Premium** | Standard + Activities + Academics + Behavior + full Messaging + Analytics |
-| **Add-ons** | Tuition fees, Admissions, Homework, face recognition, bus gateways + BLE tags (hardware), white-label app |
+| **Add-ons** | Tuition fees, Admissions, Homework, extra gateways and BLE tags (hardware), white-label app |
 
 ## 6. Build phases
 
@@ -200,6 +220,6 @@ Each phase adds to what's already running. Nothing gets rebuilt.
 
 - Tech stack (backend, web dashboard, mobile apps, database)
 - Hosting (cloud provider, region, data residency)
-- Check-in hardware: QR only at first, or NFC/RFID cards from day one?
+- Gateway firmware and uplink protocol (see 3a)
 - Payment gateway choice for Egypt
 - Pricing model: per student / per module / flat
