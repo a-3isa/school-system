@@ -10,7 +10,7 @@ Schools run many disconnected systems (records, attendance, transport, canteen,
 activities, parent communication), so nobody sees the whole picture. This platform
 puts **one student record** underneath all of them, with two front doors:
 
-- **Staff Dashboard** (web): admins, teachers, supervisors, drivers, canteen staff
+- **Staff Dashboard** (web): admins, teachers, transport officers, nurse, canteen staff (canteen POS runs in the browser on a tablet)
 - **Parent App** (mobile): parents follow their child's whole day as it happens
 
 Reference story: Layla (9, Grade 4) and her mother Nadia. Nadia sees each moment
@@ -58,7 +58,7 @@ The student record and the front door.
 - **Academic structure:** stages → grades → classes/sections, subjects
 - **Student records:** profile, photo, national ID/birth certificate, medical notes and allergies, emergency contacts, guardians (several per student), siblings linked to one parent account
 - **Staff records:** teachers, admins, drivers, supervisors, canteen staff
-- **Users, roles & permissions:** built-in roles (Owner, School Admin, Teacher, Supervisor, Driver, Canteen, Parent, Student) plus custom roles with fine-grained permissions
+- **Users, roles & permissions:** built-in roles (Owner, School Admin, Teacher, Transport, Nurse, Canteen, Accountant, Parent, Student). Drivers and bus supervisors are contacts on a bus, not app users plus custom roles with fine-grained permissions
 - **Authentication:** phone number + OTP (SMS/WhatsApp), email/password, password reset, device sessions
 - **Bulk import/export:** Excel/CSV import for students, parents and staff
 - **Notifications engine:** push, SMS, WhatsApp and email; per-user preferences; Arabic/English templates
@@ -81,14 +81,15 @@ The student record and the front door.
 ### M2 · Bus Tracking & Transport **[MVP]**
 - Buses, routes, stops, drivers and supervisors
 - Assigning students to a bus, stop and pick-up time
-- **Driver/supervisor app:** start trip, boarding check (QR/NFC tap or tick list), drop-off confirmation
+- **Bus gateway (hardware on every bus):** BLE receiver + GPS + 4G SIM. Detects each student's BLE tag on boarding and drop-off automatically and reports location every few seconds. No app for drivers or supervisors; reports are buffered when signal is lost and sent on reconnect
+- **Student BLE tags:** card or wristband per rider, with battery-level monitoring
+- Gateway health on the dashboard: online/offline, signal, GPS lock, tags in range
 - **Live GPS** on a map for parents and the school *(feature toggle)*
 - ETA: "4 stops away · 6 min"
 - Notifications: bus approaching, boarded, arrived at school, dropped home
 - Alerts: student didn't board, missed drop-off, route deviation, speeding *(feature toggle)*
 - Parent can report "my child won't ride today"
 - Trip history and transport reports
-- GPS hardware integration *(feature toggle) **[Later]***
 
 ### M3 · Canteen & Wallet **[MVP]**
 Depends on **M9 Payments**.
@@ -169,9 +170,8 @@ Depends on **M9 Payments**.
 
 | App | Users | Main screens |
 |---|---|---|
-| **Staff Dashboard** (web) | School admin, teachers, supervisors | Students, attendance, transport map, canteen, activities, grades, messages, reports, settings |
+| **Staff Dashboard** (web) | School admin, teachers, transport officer, nurse, canteen staff | Students, attendance, transport map, canteen, activities, grades, messages, reports, settings |
 | **Parent App** (iOS/Android) | Parents | Child's day timeline, live bus, wallet, clubs, grades, messages, payments. Switch between siblings |
-| **Staff Mobile App** | Teachers, drivers/supervisors, canteen staff | Take attendance, run a bus trip, canteen POS |
 | **Owner Console** (web) | You | Schools, plans, modules, billing |
 | **Student App** *(Later)* | Older students | Timetable, homework, grades |
 
@@ -184,7 +184,7 @@ Every screen, tab and menu item appears **only if its module is enabled** for th
 | **Basic** | Core, Attendance, Communication (announcements only) |
 | **Standard** | Basic + Transport + Canteen & Wallet + Payments |
 | **Premium** | Standard + Activities + Academics + Behavior + full Messaging + Analytics |
-| **Add-ons** | Tuition fees, Admissions, Homework, face recognition, GPS hardware, white-label app |
+| **Add-ons** | Tuition fees, Admissions, Homework, face recognition, bus gateways + BLE tags (hardware), white-label app |
 
 ## 6. Build phases
 
