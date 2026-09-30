@@ -7,9 +7,9 @@ One platform for every part of school life. Product plan: [`PLAN.md`](PLAN.md).
 | Path | What it is |
 |---|---|
 | `apps/api` | Backend: NestJS + PostgreSQL (Prisma) |
-| `apps/web` | Staff dashboard and owner console (Next.js), not started yet |
-| `apps/parent` | Parent app (Flutter), not started yet |
-| `firmware/gateway` | ESP32 BLE gateway firmware, not started yet |
+| `apps/web` | Staff dashboard and owner console (Next.js) |
+| `apps/parent` | Parent app (Flutter), see its README |
+| `firmware/gateway` | ESP32 BLE gateway firmware, see its README (not compiled yet) |
 
 ## Running the API locally
 

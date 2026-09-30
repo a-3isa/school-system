@@ -212,7 +212,20 @@ export class StudentsController {
 
 @Controller('parent')
 export class ParentController {
-  constructor(private readonly students: StudentsService) {}
+  constructor(
+    private readonly students: StudentsService,
+    private readonly prisma: PrismaService,
+    private readonly audit: AuditService,
+  ) {}
+
+  /** The parent agrees to tracking; the app asks once, before showing anything. */
+  @Roles(Role.PARENT)
+  @Post('consent')
+  async consent(@CurrentUser() user: AuthUser) {
+    const u = await this.prisma.user.update({ where: { id: user.id }, data: { consentAt: new Date() }, select: { consentAt: true } });
+    await this.audit.log(user, 'parent.consent', 'user', user.id);
+    return u;
+  }
 
   @Roles(Role.PARENT)
   @Get('children')

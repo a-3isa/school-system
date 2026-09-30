@@ -136,6 +136,9 @@ describe('Phase 1 core (e2e)', () => {
     await admin.post(`/api/students/${karim.body.id}/guardians`, { relation: 'MOTHER', name: 'Nadia Hussein', phone: '+201000000001' }).expect(201);
 
     const parent = as(await login('+201000000001', 'parent-pass'));
+    expect((await parent.get('/api/auth/me').expect(200)).body.consentAt).toBeNull();
+    await parent.post('/api/parent/consent').expect(201);
+    expect((await parent.get('/api/auth/me').expect(200)).body.consentAt).not.toBeNull();
     const kids = await parent.get('/api/parent/children').expect(200);
     expect(kids.body.map((k: any) => k.firstName).sort()).toEqual(['Karim', 'Layla']);
     await parent.get('/api/students').expect(403);

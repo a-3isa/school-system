@@ -100,6 +100,8 @@ model User {
   passwordHash String?
   role         Role
   active       Boolean  @default(true)
+  // When a parent agreed to their child's presence and location being tracked (decision H39).
+  consentAt    DateTime?
   createdAt    DateTime @default(now())
 
   school      School?           @relation(fields: [schoolId], references: [id], onDelete: Cascade)

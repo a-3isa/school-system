@@ -36,7 +36,7 @@ export class AuthService {
   async me(auth: AuthUser) {
     const user = await this.prisma.user.findUniqueOrThrow({
       where: { id: auth.id },
-      select: { id: true, name: true, email: true, phone: true, role: true, schoolId: true, school: { select: { name: true, attendanceMode: true } } },
+      select: { id: true, name: true, email: true, phone: true, role: true, schoolId: true, consentAt: true, school: { select: { name: true, attendanceMode: true } } },
     });
     const modules = auth.schoolId
       ? (await this.prisma.schoolModule.findMany({ where: { schoolId: auth.schoolId, enabled: true } })).map((m) => m.key)
