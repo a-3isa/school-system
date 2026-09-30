@@ -229,3 +229,31 @@ Each phase adds to what's already running. Nothing gets rebuilt.
 - Gateway firmware and uplink protocol (see 3a)
 - Payment gateway choice for Egypt
 - Pricing model: per student / per module / flat
+
+## 8. Decisions so far
+
+| # | Question | Decision |
+|---|---|---|
+| A1 | First customer | No pilot school yet. Ahmed markets the product himself, so a demo school and a pilot offer are needed before launch |
+| A2 | Target schools | All types: national, language, international, nurseries. Curriculum, grading and KG handling stay configurable per school |
+| A3 | Market | Egypt only at first (EGP, Egyptian payment providers, Arabic + English) |
+| A4 | Pricing | See section 9 (proposal to validate with schools) |
+| A5 | Installation & maintenance | Ahmed installs and maintains all hardware. Devices must be quick to install, pair with a claim code and be monitored remotely |
+| A6 | Parent app | One shared app for all schools first; a school-branded app is a paid add-on |
+
+## 9. Pricing model (proposal)
+
+Four parts, so each cost is covered by its own line:
+
+1. **Software subscription:** per enrolled student per academic year, priced by plan (Basic / Standard / Premium), with a **minimum yearly fee per school** so small schools still cover support. Billed **per term**, which matches how schools collect fees.
+2. **Hardware:** offered two ways.
+   - **Rent (recommended for first schools):** a yearly fee per gateway, bus device and canteen terminal. Ahmed owns, installs, replaces and upgrades them. This means a smaller upfront cost for the school, and the devices stay under his control.
+   - **Buy:** a one-time price plus a yearly maintenance contract.
+3. **Straps:** the first strap per student is included in the subscription. Lost or broken straps are paid for by parents, directly from the app wallet.
+4. **One-time setup fee:** installation, data import and staff training.
+
+Running costs to cover when setting prices: cloud hosting per student, WhatsApp messages (a monthly quota per student included, extra billed), the 4G SIM per bus (included in the bus device fee), hardware cost and failure rate, and support time.
+
+Optional extra revenue: a small convenience fee on parent wallet top-ups, on top of the payment provider's fee.
+
+**Launch offer:** the first one or two schools get a discounted first year in exchange for a case study, a testimonial and feedback.
