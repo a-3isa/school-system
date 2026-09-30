@@ -1,0 +1,74 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  api:
+    name: API (unit + e2e)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: school
+          POSTGRES_PASSWORD: school
+          POSTGRES_DB: school_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U school" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgresql://school:school@localhost:5432/school_test
+      DATABASE_URL: postgresql://school:school@localhost:5432/school_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npx prisma generate
+        working-directory: apps/api
+      - run: npx tsc --noEmit -p tsconfig.json
+        working-directory: apps/api
+      - run: npm test -w apps/api
+      - run: npm run test:e2e -w apps/api
+
+  web:
+    name: Dashboard build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npm run build -w apps/web
+        env: { NEXT_TELEMETRY_DISABLED: 1 }
+
+  parent:
+    name: Parent app (Flutter)
+    runs-on: ubuntu-latest
+    defaults:
+      run: { working-directory: apps/parent }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable, cache: true }
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
+
+  firmware:
+    name: Gateway firmware (ESP32)
+    runs-on: ubuntu-latest
+    defaults:
+      run: { working-directory: firmware/gateway }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - uses: actions/cache@v4
+        with:
+          path: ~/.platformio
+          key: pio-${{ hashFiles('firmware/gateway/platformio.ini') }}
+      - run: pip install platformio
+      - run: pio run
