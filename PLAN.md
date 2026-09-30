@@ -56,12 +56,12 @@ The student record and the front door.
 - **Multi-school (multi-tenant):** each school's data is fully isolated; one install serves many schools
 - **School profile:** name, logo, colors (white-label), branches/campuses, academic year and terms
 - **Academic structure:** stages → grades → classes/sections, subjects
-- **Student records:** profile, photo, national ID/birth certificate, medical notes and allergies, emergency contacts, guardians (several per student), siblings linked to one parent account
+- **Student records:** profile, photo, national ID/birth certificate, medical notes and allergies, emergency contacts, up to **two parent accounts** per student (mother and father), siblings linked to the same parents; the school can restrict what one parent sees (e.g. separated families)
 - **Staff records:** teachers, admins, transport officers, nurse, canteen staff. Drivers and bus supervisors are stored as bus contacts, not users
 - **Users, roles & permissions:** built-in roles (Owner, School Admin, Teacher, Transport, Nurse, Canteen, Accountant, Parent, Student) plus custom roles with fine-grained permissions
 - **Authentication:** phone number + one-time code over **WhatsApp**, or email + password (codes by email); password reset; device sessions
 - **Bulk import/export:** Excel/CSV import for students, parents and staff
-- **Notifications engine:** app push, **WhatsApp** and **email** only (no SMS); per-user preferences; Arabic/English templates; WhatsApp templates pre-approved with Meta
+- **Notifications engine:** **app push for everything parents receive** (the app is required). WhatsApp from one shared business number only for login codes and alerts to bus supervisors, who have no app. Email for staff accounts, receipts and reports. No SMS. Arabic/English templates
 - **Audit log:** who changed what and when
 - **Languages:** Arabic (RTL) and English
 - **Module manager:** the on/off switchboard for modules, features and limits
@@ -72,12 +72,13 @@ Attendance is **automatic everywhere**: a gateway detects the student's BLE stra
 - School arrival and departure: gate gateways
 - Class and period presence: a gateway in each classroom
 - Bus, canteen, clinic and club attendance: the gateway in that place
-- **Fallback when a strap fails or is forgotten:** the teacher marks the student on the classroom PC (dashboard). The record is flagged "manual" with a reason, and the strap is reported for checking
+- **Every period counts:** a student must be present in every lesson; each period has its own attendance record
+- **Fallback when a strap fails or is forgotten, and for students too young for a strap:** the teacher marks the student on the classroom PC (dashboard). The record is flagged "manual" with a reason, and the strap is reported for checking
+- **Gateway offline:** the class switches to manual marking on the classroom PC automatically until the gateway is back
 - **Exceptions are handled on the dashboard:** strap not seen, seen at the gate but not in class, left without a departure, dead battery
 - Late arrival and early dismissal logging, with a reason
 - Absence excuses: the parent submits one with an attachment, the school approves it
-- Instant parent notification by push / WhatsApp: "Arrived 7:42" / "Absent today"
-- Staff attendance *(feature toggle)*
+- Parent notifications by push: "Arrived 7:42" instantly; "Absent today" at a **fixed time** set by the school
 - Reports: daily summary (present / absent / late / on trip), chronic absence alerts, monthly export
 
 ### M2 · Bus Tracking & Transport **[MVP]**
@@ -86,8 +87,8 @@ Attendance is **automatic everywhere**: a gateway detects the student's BLE stra
 - **Bus device (hardware on every bus):** BLE gateway + GPS + 4G SIM, powered from the bus. It **starts when the bus starts and stops when the bus stops**, so the trip starts and ends with the engine. It detects each student's strap on boarding and drop-off and reports location every few seconds. Reports are buffered when the signal is lost and sent on reconnect. There is no app for drivers or supervisors
 - Problems on a trip (strap not detected, wrong stop, bus offline) appear on the dashboard for the transport officer
 - Gateway health on the dashboard: online/offline, signal, GPS lock, tags in range
-- **Live GPS** on a map for parents and the school *(feature toggle)*
-- ETA: "4 stops away · 6 min"
+- **Live GPS** on a map for the school at all times; for parents **only during their own child's trip**
+- ETA: "4 stops away · 6 min"; "bus approaching" push **two stops before** the child's stop
 - Notifications: bus approaching, boarded, arrived at school, dropped home
 - Alerts: student didn't board, missed drop-off, route deviation, speeding *(feature toggle)*
 - Parent can report "my child won't ride today"
@@ -97,7 +98,9 @@ Attendance is **automatic everywhere**: a gateway detects the student's BLE stra
 Depends on **M9 Payments**.
 - Prepaid **student wallet**; parents top up in the app
 - Canteen menu with items, prices and categories
-- **Canteen device with BLE:** the counter terminal reads the nearest student strap over BLE, shows the name and photo to the cashier, and charges the wallet. If the strap fails, the cashier searches by name
+- **Canteen terminal (custom device with a screen and BLE):** reads the nearest strap and shows the **photo of the child who will be charged** plus the items, so the cashier always confirms before charging; one or more terminals per school depending on counters. If the strap fails, the cashier searches by name
+- **No balance → pay cash:** cash sales are recorded on the terminal too, so reports cover all sales
+- Menu, prices and canteen staff are managed by the school
 - **Parental controls:** daily spending limit, blocked items, allergy warnings at checkout
 - Real-time notification to the parent: "Lunch · 24 EGP"
 - Pre-ordering meals *(feature toggle) **[Later]***
@@ -138,7 +141,7 @@ Depends on **M9 Payments**.
 - Announcements to the whole school, a grade, a class, a bus or a club
 - Surveys and polls
 - Meeting booking for parent–teacher conferences *(feature toggle)*
-- Emergency broadcast (push + WhatsApp + email)
+- Emergency broadcast (push to all parents, WhatsApp to bus supervisors)
 
 ### M9 · Payments & Fees **[MVP, needed by Canteen]**
 - Online payment gateway (Paymob / Fawry / cards / wallets / InstaPay) *(provider = setting)*
@@ -172,11 +175,11 @@ Depends on **M9 Payments**.
 
 All automatic tracking uses Bluetooth Low Energy, across every module.
 
-- **Student straps:** every student wears one **FSC-BP107D** BLE beacon strap. A strap is assigned to a student record once and reassigned when it's replaced.
+- **Student straps:** students above a set age wear one **FSC-BP107D** BLE beacon strap all day. Straps belong to the parents, are configured by Ahmed before handover (broadcast interval, power), have a ~6-year replaceable battery, and are reassigned when replaced. Staff don't wear straps.
 - **Custom gateways** (built in-house): each one scans for BLE tags and reports sightings to the platform.
   - **Fixed gateways:** school gates, every classroom, clinic and club rooms. Uplink over Ethernet or Wi-Fi.
   - **Canteen device:** a counter terminal with BLE built in, used as the point of sale.
-  - **Bus device:** BLE gateway + GPS + 4G SIM. It powers on and off with the bus, reports location and straps on board every few seconds, and buffers reports while offline.
+  - **Bus device:** ESP32 BLE gateway + GPS + 4G modem. Powered from the bus ignition **plus its own backup battery**, so it can report its last position after the engine stops. Reports location and straps on board every few seconds and buffers reports while offline.
 - **Detection rules** (per zone, set in Devices): a tag sighting only becomes an event once it passes a signal-strength threshold and a minimum time in range, e.g.:
   - Gate: seen 3 s at −70 dBm or stronger → Arrived / Left
   - Bus: seen 10 s after the doors close → Boarded / Dropped off
@@ -184,11 +187,11 @@ All automatic tracking uses Bluetooth Low Energy, across every module.
   - Clinic / club rooms: seen 60 s → Visit / Attended
 - **Devices screen (part of Core):** gateway list with location, uplink, signal, firmware and status; tag inventory with battery level and last sighting; claim-code pairing for new gateways; firmware update status.
 - **Open questions for the gateway design:**
-  - The protocol from gateway to platform (MQTT over TLS is the usual choice) and how each gateway authenticates.
-  - Tags broadcast a fixed ID that anyone nearby can read, so decide whether to use rotating IDs or accept the risk.
+  - **Decided:** gateways are **ESP32**-based and talk to the platform over **MQTT over TLS**, each with its own credentials.
+  - **Room assignment rule:** when several gateways hear the same strap, the one with the strongest signal wins, so a strap heard through a wall from the next classroom isn't counted there.
+  - Tags broadcast an ID that anyone nearby can read; the strap is configured before handover, so check whether it can use a rotating or encrypted ID.
   - Canteen identification when several children stand at the counter.
   - Tell apart a strap that is really in the room from one heard through a wall from the next classroom.
-  - Tag battery life and a replacement process.
 
 ## 4. Apps and who uses them
 
@@ -240,6 +243,42 @@ Each phase adds to what's already running. Nothing gets rebuilt.
 | A4 | Pricing | See section 9 (proposal to validate with schools) |
 | A5 | Installation & maintenance | Ahmed installs and maintains all hardware. Devices must be quick to install, pair with a claim code and be monitored remotely |
 | A6 | Parent app | One shared app for all schools first; a school-branded app is a paid add-on |
+| B7 | Who wears a strap | Only students above a set age; younger children are marked manually on the classroom PC |
+| B8 | Strap ownership | The parent owns it and pays for a replacement |
+| B9 | How it's worn | On the wrist all day |
+| B10 | Strap settings | Configured (broadcast interval, power) before handover |
+| B11 | Swapped straps | Risk accepted; teachers spot-check the class list on the PC |
+| B12 | Battery | About 6 years, replaceable |
+| B13 | Staff straps | No. Staff attendance is not tracked by the system |
+| C14 | Meaning of present | Gate = in school; classroom gateway = in lesson; seen at the gate but in no class after 10 minutes = alert on the dashboard |
+| C15 | Period attendance | Every period is recorded; a student must attend all lessons |
+| C16 | Corrections | Teacher can fix today's record, admin can fix any record; every change is logged |
+| C17 | Gateway offline | The class switches to manual marking automatically |
+| C18 | Who handles exceptions | Any exception can be handled by the responsible role while it is still within its time window; after that it needs higher privileges (admin) |
+| C19 | Absence message | Sent at a fixed time set by the school |
+| D20 | What a trip is | From the start of the route to its finish, not from engine on to engine off |
+| D21 | Morning or afternoon trip | Decided by the time of day |
+| D22 | Strap not detected on boarding | Alert to the transport officer on the dashboard plus WhatsApp to the bus supervisor |
+| D23 | Bus approaching | Push to the parent two stops before |
+| D24 | Drop-off | Needs both the gateway detecting the child leaving and a confirmation that the child was received |
+| D25 | Bus device power | Bus ignition plus its own backup battery |
+| E26 | Canteen counters | Depends on the school; several terminals supported |
+| E27 | Canteen terminal | Custom device with a screen showing the photo of the child who will be charged and the items |
+| E28 | Confirm every charge | Yes |
+| E29 | No balance | Child pays cash; cash sales are recorded too |
+| E30 | Who runs the canteen | The school |
+| F31 | WhatsApp number | One shared number for all schools |
+| F32 | Channel for parents | App push for everything |
+| F33 | Parents without the app | Not supported; parents must install the app |
+| G34 | Parent accounts | Only the two parents |
+| G35 | Live bus for parents | Only during their own child's trip |
+| G36 | Separated families | The school can restrict what one parent sees |
+| H37 | Data location | Not decided yet |
+| H38 | Location and presence history | Raw sightings and GPS kept for **one week**, then only attendance records and daily summaries |
+| H39 | Parent consent to tracking | Required, collected in the app at sign-up |
+| I40 | Team | Ahmed alone |
+| I41 | Gateway hardware | ESP32, MQTT over TLS |
+| I42 | Timeline | As soon as possible |
 
 ## 9. Pricing model (proposal)
 
@@ -257,3 +296,22 @@ Running costs to cover when setting prices: cloud hosting per student, WhatsApp 
 Optional extra revenue: a small convenience fee on parent wallet top-ups, on top of the payment provider's fee.
 
 **Launch offer:** the first one or two schools get a discounted first year in exchange for a case study, a testimonial and feedback.
+
+## 10. Recommended MVP and stack (solo, as soon as possible)
+
+Building every module alone would take well over a year, so the first release does **one thing end to end**: automatic attendance, visible to parents.
+
+**MVP (first school):**
+1. Core: one school, users and roles, students and the two parents, Excel import, push notifications, audit log
+2. Devices: pair gateways, assign straps, see gateway and strap health
+3. Attendance: gate and classroom gateways, every period, manual marking on the classroom PC, exceptions on the dashboard, fixed-time absence push
+4. Parent app: child's day timeline, notifications, consent at sign-up
+
+Transport, then Canteen & Payments follow, then everything else. The module system is built from day one so nothing is rebuilt later.
+
+**Stack (one language where possible, so one person can maintain it):**
+- Backend: **NestJS (TypeScript) + PostgreSQL**, with an **MQTT broker** (e.g. EMQX or Mosquitto) that the backend subscribes to
+- Staff dashboard and owner console: **Next.js (TypeScript)**
+- Parent app: **Flutter** (iOS + Android from one codebase)
+- Gateways: **ESP32** firmware (ESP-IDF or Arduino), MQTT over TLS; bus device adds a GPS module and a 4G modem
+- Hosting: one managed cloud region to start; before choosing it, check the rules on storing children's data outside Egypt under Egypt's Personal Data Protection Law (Law 151 of 2020)
