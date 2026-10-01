@@ -72,6 +72,16 @@ export class DevicesService {
     return { id: gw.id, serial, claimCode: code, secret };
   }
 
+  /** Gives a gateway a new secret (lost, leaked or mistyped); the old one stops working at once. */
+  async newSecret(user: AuthUser, id: string) {
+    const secret = randomBytes(24).toString('base64url');
+    const gw = await this.prisma.gateway.update({ where: { id }, data: { secretHash: hashSecret(secret) } }).catch(() => {
+      throw new NotFoundException('Gateway not found.');
+    });
+    await this.audit.log(user, 'gateway.secret', 'gateway', gw.id, { serial: gw.serial }, null);
+    return { id: gw.id, serial: gw.serial, claimCode: gw.claimCode, secret };
+  }
+
   private async checkRoom(schoolId: string, kind: GatewayKind | undefined, roomId: string | undefined) {
     if (kind === GatewayKind.ROOM && !roomId) throw new BadRequestException('A room gateway needs a room.');
     if (roomId && !(await this.prisma.room.findFirst({ where: { id: roomId, schoolId } }))) {
@@ -188,6 +198,11 @@ export class OwnerGatewaysController {
   @Post()
   register(@CurrentUser() user: AuthUser, @Body() dto: RegisterGatewayDto) {
     return this.devices.registerGateway(user, dto.serial);
+  }
+
+  @Post(':id/secret')
+  newSecret(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.devices.newSecret(user, id);
   }
 }
 

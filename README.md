@@ -56,6 +56,28 @@ npx ts-node scripts/simulate-gateway.ts --serial DEMO-R204 --secret <secret> \
 cd apps/parent && flutter run -d chrome --dart-define=API_URL=http://localhost:3000/api
 ```
 
+On Windows the `NAME=value command` form doesn't work. Set the values first, in the same window:
+
+```bat
+:: Command Prompt
+set OWNER_EMAIL=you@example.com
+set OWNER_PASSWORD=choose-one
+npm run seed
+npx ts-node scripts/demo.ts
+```
+
+```powershell
+# PowerShell
+$env:OWNER_EMAIL="you@example.com"; $env:OWNER_PASSWORD="choose-one"
+npm run seed
+npx ts-node scripts/demo.ts
+```
+
+If the simulator answers `401 Unknown gateway or wrong secret`, sign in as the owner, open
+Gateways, press **New secret** on that gateway and use the secret it shows.
+
+The parent app needs Flutter with Dart 3.6 or newer (`flutter --version`).
+
 ## Phase 1 status
 
 | Part | State |
