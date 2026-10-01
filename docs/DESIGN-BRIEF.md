@@ -15,31 +15,27 @@ Schools in Egypt (private and international first). Every student from Grade 1 u
 
 Parents are told as things happen. Attendance also works **without** straps: teachers mark it on the classroom PC.
 
-Two attendance modes per school:
-- **Manual:** teachers mark each lesson (Present / Late / Absent / Excused).
-- **Automatic:** the straps decide each lesson when it ends. Teachers only correct the children the strap got wrong, for example a forgotten strap.
+A school either has straps or not. With straps, the straps decide each lesson and a teacher only corrects a child who forgot their strap. Without straps, the teacher takes the register. **The teacher's screen is the same in both cases.**
 
 ## The people, and the screens each one has
 
 Each role sees only its own screens. Design each role's navigation separately; nobody sees an item they can't use.
 
 ### 1. Teacher: classroom PC at the front of the room, often with a class waiting
-Signs in with email and password. Needs to see in two seconds who isn't in the room, and fix a forgotten strap with one tap. Large tap targets; readable from a step back; no clutter. **A teacher never sees school-wide data:** no other classes, no student list, no settings.
+Signs in with email and password. The teacher only opens the PC for one reason: a child forgot their strap (or, at a school without straps, to take the register). So the teacher has **one screen only, and it is the same design with or without straps**. No menu, no other pages, no school-wide data.
 
-Navigation has exactly three items:
-- **My class now** (the start page, and the most important screen in the product):
-  - **Header:** class, subject, room, period and time, e.g. "4-A · Math · Room 204 · Period 3 · 09:50–10:35".
-  - **Summary line:** "9 of 12 are in the room now", updated every 15 seconds.
-  - **One row per child:** name and code, then a live state:
-    - **In the room**
-    - **Not in the room**, with "Last heard: Gate A, 07:42" and "Parents told at 10:00"
-    - **No strap**
-    - **Not heard today**
-  - **Each row also has:** the status control P / L / A / E (preset from the strap; the children not in the room come first, preset to A), what's recorded ("Decided when the lesson ends" or "Present · by Hana Nabil · Strap forgotten"), and a reason dropdown.
-  - **Save button** with a count ("Save 1").
-  - **Between lessons:** "No lesson right now. Next: 4-A Math in Room 204 at 09:50."
-- **My lessons today:** the teacher's lessons, each with marking progress (8 / 12, Done) and an Open button. A lesson opens the same class list as My class now. A past day is read-only, with a note that only an admin can correct it.
-- **My timetable:** a week grid of only their own lessons. Each cell shows class, subject and room.
+**My class now:**
+- **Header:** class, subject and room, with the period and time, e.g. "4-A · Math · Room 204 · Period 3 · 09:50–10:35". One big **Save** button with a count ("Save (1)"), or "Saved".
+- **Summary line:** "11 present · 1 absent", plus one short sentence:
+  - with straps: "from the straps, updated every 15 seconds. Tap Present for a child who forgot their strap."
+  - without straps: "everyone starts as present. Tap the absent ones, then Save."
+- **The list:** one large row per child (name), with three large buttons: **Present / Late / Absent**. An absent row is tinted.
+  - **With straps:** each row starts as the strap says, and a small line under the name says why: "In the room", "Not in the room · last heard Gate A, 07:42 · parents told 10:00", "No strap" or "Strap not heard today". Absent children come first.
+  - **Without straps:** everyone starts as Present.
+  - **After saving:** a row shows "Saved by Hana Nabil".
+- **Nothing else:** no reason box (filled in automatically), no "manual/automatic" switch, no columns.
+- **Between lessons:** "No lesson right now. Next: 4-A Math in Room 204 at 09:50."
+- **Design for:** a PC screen read from a step away, and touch screens. Big names and big buttons; the one child who needs a tap must jump out.
 
 ### 2. School admin: at a desk, all day
 Watches today's attendance, deals with exceptions, finds where a child is, registers students and parents, and sets up the school.
@@ -143,7 +139,7 @@ Screens:
 1. A design direction: colour tokens (light and dark), type scale for Arabic and English, spacing, radius, and the status colour system.
 2. Components: sidebar, page header, KPI tile, table, status control (P/L/A/E), live-state badge, name chip, place panel, timeline, notice/alert, form fields, empty states, toast.
 3. Full screens, by role, in this order:
-   1. Teacher: My class now (live during a lesson, with 3 children not in the room), My lessons today, My timetable
+   1. Teacher: My class now, with straps (one child shown absent, about to be tapped Present) and without straps (everyone present, one tapped Absent), and between lessons
    2. Parent app: sign in, create account (all three steps), child's day, notifications, account with change mobile
    3. Admin: Where students are, Today, Exceptions, Student page (with parents' sign-up status), then the rest
    4. Owner: Schools, Gateways

@@ -1,10 +1,9 @@
 'use client';
-import Link from 'next/link';
 import { useEffect } from 'react';
 import { useApi } from '@/lib/hooks';
 import { useSession } from '@/lib/session';
 import { Card, ErrorNote, PageHead } from '@/components/ui';
-import { Roster } from '@/components/Roster';
+import { ClassNow } from '@/components/ClassNow';
 
 /** Where a teacher lands: the class in front of them right now. */
 export default function MyClassNowPage() {
@@ -23,7 +22,7 @@ export default function MyClassNowPage() {
 
   if (now) {
     return (
-      <Roster
+      <ClassNow
         key={`${now.classId}:${now.periodId}`}
         classId={now.classId}
         periodId={now.periodId}
@@ -44,7 +43,6 @@ export default function MyClassNowPage() {
         ) : (
           <span className="muted">No more lessons for you today.</span>
         )}
-        <span><Link href="/attendance">All your lessons today →</Link></span>
       </Card>
     </>
   );

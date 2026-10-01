@@ -99,25 +99,25 @@ Attendance is taken **per lesson** (every period counts). A lesson's status is o
 - Excused
 - On a trip
 
-### Manual mode (no straps)
-- A teacher signs in on the classroom PC with their email and opens the lesson.
-- They tap P / L / A / E for each child, or "Mark the rest present", then save.
-- A teacher can mark only lessons they teach (or their homeroom class), and only **today**. Past days can only be corrected by an admin, and future days can't be marked.
-- **Class away** (trip, exam elsewhere): the homeroom teacher or an admin marks a class away for some periods or the whole day, and nobody in it shows as absent. Only an admin can do this for a past day.
+### The teacher's screen: My class now (one screen, with or without straps)
+A teacher signs in on the classroom PC with their email and password and sees **one screen only**: the class in front of them right now. It moves to the next lesson by itself when the bell goes; between lessons it shows the next one.
 
-### Automatic mode (straps)
-- Nobody has to take attendance. Each lesson is **decided when it ends** (see section 6).
-- The teacher still has the class on screen and **only touches the children the strap got wrong**.
-  - Example: a child who forgot their strap shows as absent; the teacher taps P and saves.
-  - A manual change needs a reason, which is filled in for them ("Strap forgotten"). A manual mark always wins over the strap.
+The screen is **the same whether the school has straps or not**: a list of the class, each child with **Present / Late / Absent**, and a **Save** button. Only the starting values differ:
+- **School with straps:**
+  - Each child starts as the strap says: in the room means Present; not heard in the room means Absent. The list updates every 15 seconds.
+  - Under each name: "In the room", "Not in the room · last heard Gate A, 07:42 · parents told 10:00", "No strap" or "Strap not heard today".
+  - Children shown as absent come first.
+  - **The teacher only opens it when a child forgot their strap:** they tap **Present** for that child and press **Save**. The reason ("Strap forgotten") is filled in by itself, a manual mark always wins over the strap, and the rest of the class is decided from the straps.
+- **School without straps:** everyone starts as **Present**; the teacher taps the absent (or late) ones and presses **Save**.
 
-### My class now (teachers)
-This is where a teacher lands after signing in with their email. It shows **only the lesson they are teaching right now**, and moves to the next lesson by itself when the bell goes.
-- **Every 15 seconds,** each child shows **In the room**, **Not in the room** (with where and when they were last heard), **No strap**, or **Not heard today**.
-- **Order:** children who are not in the room come first, preset to **A**.
-- **Forgotten strap:** the teacher taps **P** for a child who is sitting in front of them but whose strap is missing, and saves.
-- **Parents told:** the row shows the time the child's parents were told.
-- **No lesson now:** it shows the next lesson today.
+A teacher can change today's lessons they teach; correcting a past day is for the admin.
+
+### The admin
+- **Take attendance:** any lesson, any day, with Present / Late / Absent / Excused, "Mark the rest present", and a reason.
+- **Class away** (trip, exam elsewhere): an admin marks a class away for some periods or the whole day, and nobody in it shows as absent. The homeroom teacher can do this for today through the server; it isn't on the teacher's screen.
+
+### How the straps decide (automatic mode)
+Nobody has to take attendance. Each lesson is **decided when it ends** (see section 6), and the teacher's changes are kept.
 
 ## 5. What parents are told
 
@@ -157,9 +157,7 @@ All messages arrive as **app notifications**, and every one is also kept in the 
 
 | Screen | Teacher | School admin | Owner |
 |---|:-:|:-:|:-:|
-| **My class now:** the lesson in front of them, live (section 4) | ✓ | | |
-| **My lessons today:** their lessons and how far each is marked; opens the class list. Past days are read-only. | ✓ | | |
-| **My timetable:** only their own lessons, with class, subject and room | ✓ | | |
+| **My class now:** the lesson in front of them, the teacher's only screen (section 4) | ✓ | | |
 | **Today:** students enrolled and how many came in through the gate, present and absent per period, open exceptions, lessons today, and **Messages** to the school (e.g. a parent changed their mobile) | | ✓ | |
 | **Take attendance:** every lesson today; opens any class list, any day | | ✓ | |
 | **Exceptions:** things a person should look at, each resolved with a note:<ul><li>at school but not in the lesson</li><li>left a lesson</li><li>left early</li><li>gateway offline / room without a gateway</li><li>low battery</li></ul> | | ✓ | |

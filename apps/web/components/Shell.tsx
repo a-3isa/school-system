@@ -28,7 +28,6 @@ const SCHOOL_NAV: { group: string; items: NavItem[] }[] = [
   {
     group: 'Attendance',
     items: [
-      { href: '/attendance', label: 'My lessons today', module: 'attendance', roles: TEACHER },
       { href: '/attendance', label: 'Take attendance', module: 'attendance', roles: ADMIN },
       { href: '/attendance/exceptions', label: 'Exceptions', module: 'attendance', roles: SCHOOL_WIDE },
       { href: '/where', label: 'Where students are', module: 'attendance', roles: SCHOOL_WIDE },
@@ -38,7 +37,6 @@ const SCHOOL_NAV: { group: string; items: NavItem[] }[] = [
   {
     group: 'School setup',
     items: [
-      { href: '/timetable', label: 'My timetable', roles: TEACHER },
       { href: '/timetable', label: 'Timetable', roles: SCHOOL_WIDE },
       { href: '/setup', label: 'Classes, rooms & periods', roles: ADMIN },
       { href: '/devices', label: 'Devices', roles: ADMIN },

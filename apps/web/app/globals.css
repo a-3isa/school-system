@@ -143,3 +143,13 @@ textarea.input { height: auto; padding: 8px 12px; }
 .visits { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
 .visits li { display: grid; grid-template-columns: 112px 1fr auto; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line); }
 .visits li:last-child { border-bottom: 0; }
+
+/* My class now (teacher) */
+.btn.big { height: 46px; padding: 0 22px; font-size: 16px; }
+.class-summary { font-size: 16px; }
+.class-list { list-style: none; margin: 0; padding: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.class-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 18px; border-bottom: 1px solid var(--line); }
+.class-row:last-child { border-bottom: 0; }
+.class-row.s-ABSENT { background: var(--alert-bg); }
+.class-name { font-size: 17px; font-weight: 600; }
+.seg.big button { height: 44px; min-width: 92px; font-size: 15px; }

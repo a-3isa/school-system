@@ -19,7 +19,8 @@ describe('Automatic attendance (e2e)', () => {
 
   // A lesson that started 50 minutes ago and ended 5 minutes ago (Cairo time).
   let start = new Date(Date.now() - 50 * MIN);
-  if (localParts(start, 'Africa/Cairo').date !== localParts(new Date(start.getTime() + 45 * MIN), 'Africa/Cairo').date) {
+  // The gate arrivals 10 minutes before the lesson and the lesson itself must be on one Cairo day.
+  if (localParts(new Date(start.getTime() - 15 * MIN), 'Africa/Cairo').date !== localParts(new Date(start.getTime() + 45 * MIN), 'Africa/Cairo').date) {
     start = new Date(Date.now() - 20 * 60 * MIN); // avoid a lesson that crosses midnight
   }
   const end = new Date(start.getTime() + 45 * MIN);
