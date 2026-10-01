@@ -119,7 +119,7 @@ describe('Manual attendance (e2e)', () => {
   });
 
   it('needs a reason for manual marks when attendance is automatic', async () => {
-    await admin.patch('/api/modules/attendance/features', { features: { automatic: true } }).expect(200);
+    await owner.patch(`/api/owner/schools/${schoolId}/modules/attendance/features`, { features: { automatic: true } }).expect(200);
     await admin.patch('/api/school', { attendanceMode: 'AUTOMATIC' }).expect(200);
     const res = await teacher.put(`/api/attendance/classes/${classId}/periods/${p1}`, { date: today, marks: [{ studentId: aliId, status: 'PRESENT' }] }).expect(400);
     expect(res.body.message).toContain('needs a reason');

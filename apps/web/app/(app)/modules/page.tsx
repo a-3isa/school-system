@@ -17,10 +17,10 @@ export default function ModulesPage() {
   const modules = useApi<any[]>('/modules');
   const school = useApi('/school');
   const act = useAction();
-  const [settings, setSettings] = useState({ attendanceMode: 'MANUAL', absenceNoticeTime: '08:15', schoolDays: [0, 1, 2, 3, 4] as number[] });
+  const [settings, setSettings] = useState({ absenceNoticeTime: '08:15', schoolDays: [0, 1, 2, 3, 4] as number[] });
 
   useEffect(() => {
-    if (school.data) setSettings({ attendanceMode: school.data.attendanceMode, absenceNoticeTime: school.data.absenceNoticeTime, schoolDays: school.data.schoolDays });
+    if (school.data) setSettings({ absenceNoticeTime: school.data.absenceNoticeTime, schoolDays: school.data.schoolDays });
   }, [school.data]);
 
   const setFeature = async (key: string, feature: string, on: boolean) => {
@@ -44,12 +44,11 @@ export default function ModulesPage() {
       <Card title="Attendance settings">
         <form className="stack" onSubmit={saveSettings}>
           <div className="form-row">
-            <Field label="How attendance is taken" id="mode">
-              <select id="mode" className="input" value={settings.attendanceMode} onChange={(e) => setSettings({ ...settings, attendanceMode: e.target.value })}>
-                <option value="MANUAL">Manual, on the classroom PC</option>
-                <option value="AUTOMATIC" disabled={!automaticAllowed}>Automatic, from BLE straps{automaticAllowed ? '' : ' (turn the feature on below)'}</option>
-              </select>
-            </Field>
+            <div className="field">
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--muted)' }}>Automatic attendance (straps)</span>
+              <span>{automaticAllowed ? <Badge tone="ok">In your subscription</Badge> : <Badge>Not in your subscription</Badge>}</span>
+              <span className="muted small">{automaticAllowed ? 'Attendance starts from the straps, and you can see where students are.' : 'Teachers take the register on the classroom PC.'}</span>
+            </div>
             <Field label="“Absent today” message goes out at" id="t">
               <input id="t" className="input" type="time" value={settings.absenceNoticeTime} onChange={(e) => setSettings({ ...settings, absenceNoticeTime: e.target.value })} />
             </Field>
@@ -77,7 +76,7 @@ export default function ModulesPage() {
         {modules.data?.map((m) => (
           <Card key={m.key} title={m.name} action={m.key === 'core' ? <Badge tone="dark">Always on</Badge> : m.enabled ? <Badge tone="ok">In your plan</Badge> : <Badge>Not in your plan</Badge>}>
             {m.requires.length > 0 && <span className="muted small">Needs {m.requires.join(', ')}</span>}
-            {Object.entries(m.features as Record<string, boolean>).map(([f, on]) => (
+            {Object.entries(m.features as Record<string, boolean>).filter(([f]) => !(m.key === 'attendance' && f === 'automatic')).map(([f, on]) => (
               <div key={f} className="row between" style={{ opacity: m.enabled ? 1 : 0.5 }}>
                 <span>{FEATURE[f] ?? f}</span>
                 <Switch on={on} label={FEATURE[f] ?? f} disabled={!m.enabled || act.busy} onChange={(v) => setFeature(m.key, f, v)} />

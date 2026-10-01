@@ -10,6 +10,8 @@ interface NavItem {
   label: string;
   module?: string;
   roles?: string[];
+  /** Only for schools with automatic attendance (straps). */
+  straps?: boolean;
 }
 
 const ADMIN = ['SCHOOL_ADMIN'];
@@ -30,7 +32,7 @@ const SCHOOL_NAV: { group: string; items: NavItem[] }[] = [
     items: [
       { href: '/attendance', label: 'Take attendance', module: 'attendance', roles: ADMIN },
       { href: '/attendance/exceptions', label: 'Exceptions', module: 'attendance', roles: SCHOOL_WIDE },
-      { href: '/where', label: 'Where students are', module: 'attendance', roles: SCHOOL_WIDE },
+      { href: '/where', label: 'Where students are', module: 'attendance', roles: SCHOOL_WIDE, straps: true },
     ],
   },
   { group: 'People', items: [{ href: '/students', label: 'Students & parents', roles: SCHOOL_WIDE }, { href: '/staff', label: 'Staff', roles: ADMIN }] },
@@ -39,7 +41,7 @@ const SCHOOL_NAV: { group: string; items: NavItem[] }[] = [
     items: [
       { href: '/timetable', label: 'Timetable', roles: SCHOOL_WIDE },
       { href: '/setup', label: 'Classes, rooms & periods', roles: ADMIN },
-      { href: '/devices', label: 'Devices', roles: ADMIN },
+      { href: '/devices', label: 'Devices', roles: ADMIN, straps: true },
       { href: '/modules', label: 'Modules & settings', roles: ADMIN },
       { href: '/audit', label: 'Audit log', roles: ADMIN },
     ],
@@ -58,7 +60,7 @@ export function Shell({ children }: { children: ReactNode }) {
   const groups = (me.role === 'OWNER' ? OWNER_NAV : SCHOOL_NAV)
     .map((g) => ({
       ...g,
-      items: g.items.filter((i: NavItem) => (!i.module || me.modules.includes(i.module)) && (!i.roles || i.roles.includes(me.role))),
+      items: g.items.filter((i: NavItem) => (!i.module || me.modules.includes(i.module)) && (!i.roles || i.roles.includes(me.role)) && (!i.straps || me.straps)),
     }))
     .filter((g) => g.items.length);
   // The most specific matching link is the current page.

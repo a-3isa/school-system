@@ -1,6 +1,6 @@
 'use client';
 import { FormEvent, useState } from 'react';
-import { post, put } from '@/lib/api';
+import { patch, post, put } from '@/lib/api';
 import { useAction, useApi } from '@/lib/hooks';
 import { Badge, Card, Empty, ErrorNote, Field, PageHead, Switch, toast } from '@/components/ui';
 
@@ -31,6 +31,12 @@ export default function OwnerPage() {
       if (res.alsoEnabled?.length) toast(`Also switched on: ${res.alsoEnabled.join(', ')}.`);
     });
     if (ok) await schools.reload();
+  };
+
+  const setStraps = async (on: boolean) => {
+    if (await act.run(async () => modules.setData(await patch(`/owner/schools/${selected}/modules/attendance/features`, { features: { automatic: on } })))) {
+      toast(on ? 'Automatic attendance is on for this school.' : 'Automatic attendance is off: teachers take the register.');
+    }
   };
 
   const setPlan = async (plan: string) => {
@@ -78,9 +84,17 @@ export default function OwnerPage() {
             </Field>
             <span className="muted small">Changing the plan resets modules to that plan’s set.</span>
             {modules.data?.map((m) => (
-              <div key={m.key} className="row between">
-                <span>{m.name}</span>
-                {m.key === 'core' ? <Badge tone="dark">Always on</Badge> : <Switch on={m.enabled} label={m.name} disabled={act.busy} onChange={(v) => toggle(m.key, v)} />}
+              <div key={m.key} className="stack" style={{ gap: 6 }}>
+                <div className="row between">
+                  <span>{m.name}</span>
+                  {m.key === 'core' ? <Badge tone="dark">Always on</Badge> : <Switch on={m.enabled} label={m.name} disabled={act.busy} onChange={(v) => toggle(m.key, v)} />}
+                </div>
+                {m.key === 'attendance' && m.enabled && (
+                  <div className="row between" style={{ paddingLeft: 16 }}>
+                    <span className="small">Automatic attendance (straps, gateways, tracking)</span>
+                    <Switch on={!!m.features.automatic} label="Automatic attendance" disabled={act.busy} onChange={(v) => setStraps(v)} />
+                  </div>
+                )}
               </div>
             ))}
           </Card>

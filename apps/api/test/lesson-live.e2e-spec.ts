@@ -36,7 +36,7 @@ describe('The lesson happening now (e2e)', () => {
     schoolId = (await owner.post('/api/owner/schools', { name: 'Live School', plan: 'SMART', admin: { name: 'Admin', email: 'admin@live.eg', password: 'admin-pass' } }).expect(201)).body.id;
     admin = await login(app, 'admin@live.eg', 'admin-pass');
     await admin.patch('/api/school', { schoolDays: [0, 1, 2, 3, 4, 5, 6] }).expect(200);
-    await admin.patch('/api/modules/attendance/features', { features: { automatic: true } }).expect(200);
+    await owner.patch(`/api/owner/schools/${schoolId}/modules/attendance/features`, { features: { automatic: true } }).expect(200);
     await admin.patch('/api/school', { attendanceMode: 'AUTOMATIC' }).expect(200);
     const t = (await admin.post('/api/staff', { name: 'Hana', role: 'TEACHER', email: 'hana@live.eg', password: 'teacher-pass' }).expect(201)).body;
     const grade = (await admin.post('/api/grades', { name: 'Grade 4', order: 4 })).body;
@@ -86,6 +86,7 @@ describe('The lesson happening now (e2e)', () => {
     if (!fits) return;
     const res = await teacher.get(`/api/attendance/classes/${classId}/periods/${periodId}?date=${local.date}`).expect(200);
     expect(res.body.lessonState).toBe('now');
+    expect(res.body.gatewayWorking).toBe(true);
     const by = Object.fromEntries(res.body.students.map((s: any) => [s.name.split(' ')[0], s.live]));
     expect(by.Layla).toEqual(expect.objectContaining({ inRoom: true, lastPlace: 'Room 204' }));
     expect(by.Salma).toEqual(expect.objectContaining({ inRoom: false, lastPlace: 'Gate A' }));

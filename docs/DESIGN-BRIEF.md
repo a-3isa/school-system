@@ -15,7 +15,7 @@ Schools in Egypt (private and international first). Every student from Grade 1 u
 
 Parents are told as things happen. Attendance also works **without** straps: teachers mark it on the classroom PC.
 
-A school either has straps or not. With straps, the straps decide each lesson and a teacher only corrects a child who forgot their strap. Without straps, the teacher takes the register. **The teacher's screen is the same in both cases.**
+**There is one design, not two.** Straps are an optional subscription. With them, attendance starts from the straps, a teacher only corrects a child who forgot their strap, and the school also gets tracking (where students are). Without them, the teacher takes the register. **The attendance screen is the same in both cases and for every role.** The only extra layer with straps is the tracking: a short line under each name in the list, plus a few screens that simply don't exist for schools without straps (marked "straps only" below).
 
 ## The people, and the screens each one has
 
@@ -29,8 +29,8 @@ Signs in with email and password. The teacher only opens the PC for one reason: 
 - **Summary line:** "11 present · 1 absent", plus one short sentence:
   - with straps: "from the straps, updated every 15 seconds. Tap Present for a child who forgot their strap."
   - without straps: "everyone starts as present. Tap the absent ones, then Save."
-- **The list:** one large row per child (name), with three large buttons: **Present / Late / Absent**. An absent row is tinted.
-  - **With straps:** each row starts as the strap says, and a small line under the name says why: "In the room", "Not in the room · last heard Gate A, 07:42 · parents told 10:00", "No strap" or "Strap not heard today". Absent children come first.
+- **The list:** one large row per child (name), with large buttons **Present / Late / Absent / Excused**. An absent row is tinted. This is **the attendance screen for everyone**: the admin opens exactly the same screen from Take attendance.
+  - **With straps (straps only):** each row starts as the strap says, and a small line under the name says why: "In the room", "Not in the room · last heard Gate A, 07:42 · parents told 10:00", "No strap" or "Strap not heard today". Absent children come first.
   - **Without straps:** everyone starts as Present.
   - **After saving:** a row shows "Saved by Hana Nabil".
 - **Nothing else:** no reason box (filled in automatically), no "manual/automatic" switch, no columns.
@@ -43,11 +43,11 @@ Watches today's attendance, deals with exceptions, finds where a child is, regis
 Navigation, grouped:
 - **Overview**
   - **Today:**
-    - KPIs: students, came in through the gate, present (latest period), absent, needs attention
+    - KPIs: students (with "came in through the gate", straps only), present (latest period), absent, needs attention
     - lists: lessons today with marking progress, things needing attention, attendance by period (present / late / absent / excused / on a trip)
     - **Messages** to the school, with "Mark read": e.g. "Amr Gamal changed their mobile: checked a new mobile, +201222222222, when signing up in the app. It replaces +201111111111." 
 - **Attendance**
-  - **Take attendance:** every lesson today, any date; opens any class list (manual mode adds "Mark the rest present").
+  - **Take attendance:** every lesson, any date, each with marking progress; opening one shows **the same attendance screen as the teacher's** (no separate admin design).
   - **Exceptions:** a list of things to look at, each with a type tag and Resolve with a note:
     - "Salma Gamal came in at 08:20 but hasn't been in 4-A Math in Room 204 (period 3)"
     - "Ali was in 4-A Science for only 40% of the lesson"
@@ -55,7 +55,7 @@ Navigation, grouped:
     - "Science lab has no gateway"
     - "Low strap battery"
     - "Left early"
-  - **Where students are** (a live map without a map), refreshing every 10 seconds:
+  - **Where students are** (straps only; a live map without a map), refreshing every 10 seconds:
     - **KPIs:** heard in the last 10 minutes, not heard for 10+ minutes (only during school hours), out of school, not heard today
     - **A "Needs a look" table:** name, class, last heard, where
     - **A panel for each place:** each room and the gate, with the children in it as name chips; a chip shows "4 min ago" when not fresh
@@ -66,23 +66,23 @@ Navigation, grouped:
   - **Student page:**
     - **Parents** (at most mother and father). Each shows name, email, mobile, and two status tags: "Signed up in the app" or "Not signed up yet", and "Mobile checked by WhatsApp" or "Mobile not checked yet". Actions: Restrict, Remove.
     - **Add-parent form:** relation, name, **email (required)**, mobile (optional). Explain under it that the parent signs up in the app with this email, and that their mobile is checked by WhatsApp then and saved here.
-    - **Where today:** a timeline, e.g. "07:49 Gate A", "08:00–09:29 Room 204"…
+    - **Where today** (straps only): a timeline, e.g. "07:49 Gate A", "08:00–09:29 Room 204"…
     - **Attendance for the last two weeks:** date, period, status, and how (strap, or manual with the reason).
   - **Import from Excel:** download the template, upload, a check step (summary plus a row-by-row list of problems), import. Columns include each parent's email (required) and mobile (optional).
   - **Staff:** accounts table (name, role, email, active) and an add form.
 - **School setup**
   - **Timetable:** a week grid (days × periods) for a chosen class; each cell shows subject, room and teacher; add or remove lessons; clash errors inline.
   - **Classes, rooms & periods:** four small editors.
-  - **Devices:**
+  - **Devices** (straps only):
     - **Gateways:** claim by code; name; kind (gate or room); room; last seen; firmware.
     - **Straps:** address, student, battery, last seen.
     - **Detection rules form.**
-  - **Modules & settings:** attendance mode (Manual / Automatic), school days, time of the daily absence message, module feature switches.
+  - **Modules & settings:** school days, time of the daily absence message, module feature switches, and a read-only line "Automatic attendance (straps): in your subscription / not in your subscription". There is no attendance-mode choice.
   - **Audit log:** who did what and when.
 
 ### 3. Owner (the platform operator): runs the platform for many schools
 Navigation:
-- **Schools:** a list with plan (Essentials / Smart / Complete), create a school with its first admin, module switches per school.
+- **Schools:** a list with plan (Essentials / Smart / Complete), create a school with its first admin, module switches per school, and under Attendance the **Automatic attendance (straps)** switch, which is the subscription.
 - **Gateways:** register by serial; show the claim code and the one-time secret; "New secret".
 
 ### 4. Parent: on a phone, Arabic or English

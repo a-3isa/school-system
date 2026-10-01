@@ -26,6 +26,8 @@ describe('Where students are (e2e)', () => {
     const owner = await ownerClient(app, prisma, 'loc');
     schoolId = (await owner.post('/api/owner/schools', { name: 'Location School', plan: 'SMART', admin: { name: 'Admin', email: 'admin@loc.eg', password: 'admin-pass' } }).expect(201)).body.id;
     admin = await login(app, 'admin@loc.eg', 'admin-pass');
+    await admin.get('/api/locations').expect(403); // tracking comes with automatic attendance
+    await owner.patch(`/api/owner/schools/${schoolId}/modules/attendance/features`, { features: { automatic: true } }).expect(200);
     // School is on right now: every day is a school day and one period spans the present.
     await admin.patch('/api/school', { schoolDays: [0, 1, 2, 3, 4, 5, 6] }).expect(200);
     const hhmm = (ms: number) => localParts(new Date(ms), 'Africa/Cairo').time;

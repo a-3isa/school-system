@@ -11,6 +11,8 @@ export interface Me {
   schoolId: string | null;
   schoolName: string | null;
   attendanceMode: 'MANUAL' | 'AUTOMATIC' | null;
+  /** The school subscribes to automatic attendance: straps, gateways and tracking. */
+  straps: boolean;
   modules: string[];
 }
 

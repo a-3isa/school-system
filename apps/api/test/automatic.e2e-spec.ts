@@ -41,7 +41,7 @@ describe('Automatic attendance (e2e)', () => {
     schoolId = (await owner.post('/api/owner/schools', { name: 'Auto School', plan: 'SMART', admin: { name: 'Admin', email: 'admin@auto.eg', password: 'admin-pass' } })).body.id;
     admin = await login(app, 'admin@auto.eg', 'admin-pass');
     await admin.patch('/api/school', { schoolDays: [0, 1, 2, 3, 4, 5, 6] }).expect(200);
-    await admin.patch('/api/modules/attendance/features', { features: { automatic: true } }).expect(200);
+    await owner.patch(`/api/owner/schools/${schoolId}/modules/attendance/features`, { features: { automatic: true } }).expect(200);
     await admin.patch('/api/school', { attendanceMode: 'AUTOMATIC' }).expect(200);
 
     const grade = (await admin.post('/api/grades', { name: 'Grade 4', order: 4 })).body;

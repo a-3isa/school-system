@@ -8,50 +8,62 @@ const CHOICES = [
   { status: 'PRESENT', label: 'Present' },
   { status: 'LATE', label: 'Late' },
   { status: 'ABSENT', label: 'Absent' },
+  { status: 'EXCUSED', label: 'Excused' },
 ] as const;
 
 const REFRESH_MS = 15_000;
 
 /**
- * The teacher's one screen: the class in front of them. It is the same with
- * or without straps; only where the starting values come from differs.
- * - With straps: each child starts as the strap says (in the room = present).
- *   The teacher only changes a child whose strap was forgotten, and saves.
- * - Without straps: everyone starts as present; the teacher taps the absent
- *   ones and saves.
+ * The one attendance screen, for teachers and admins alike, with or without
+ * straps; only where the starting values come from differs.
+ * - With straps: each child starts as the strap says (in the room = present,
+ *   or as the lesson was decided). Change a child the strap got wrong (a
+ *   forgotten strap) and save.
+ * - Without straps: everyone starts as present; tap the absent ones and save.
  */
-export function ClassNow({ classId, periodId, date, eyebrow }: { classId: string; periodId: string; date: string; eyebrow: string }) {
+export function AttendanceList({ classId, periodId, date, eyebrow }: { classId: string; periodId: string; date: string; eyebrow?: string }) {
   const roster = useApi(`/attendance/classes/${classId}/periods/${periodId}?date=${date}`);
   const save = useAction();
   const [chosen, setChosen] = useState<Record<string, string>>({});
-  const straps = roster.data?.mode === 'AUTOMATIC';
+  const auto = roster.data?.mode === 'AUTOMATIC';
+  // The straps say who is here only during the lesson, while the room's gateway is working.
+  const live = auto && roster.data?.lessonState === 'now' && roster.data?.gatewayWorking;
+  const fromStrap = (s: any) => !s.status && live && !!s.live;
 
   // With straps the list follows the room live; the teacher's taps are kept.
   useEffect(() => {
-    if (!straps) return;
+    if (!live) return;
     const t = setInterval(() => void roster.reload(), REFRESH_MS);
     return () => clearInterval(t);
-  }, [straps, roster.reload]);
+  }, [live, roster.reload]);
 
-  /** What a child shows before the teacher touches them. */
-  const start = (s: any): string => s.status ?? (straps ? (s.live?.inRoom ? 'PRESENT' : 'ABSENT') : 'PRESENT');
+  /** What a child shows before anyone touches them: what's saved, what the strap says, or present. */
+  const start = (s: any): string => s.status ?? (fromStrap(s) ? (s.live.inRoom ? 'PRESENT' : 'ABSENT') : 'PRESENT');
   const shown = (s: any) => chosen[s.id] ?? start(s);
 
   const toSave = useMemo(() => {
     if (!roster.data) return [];
-    return roster.data.students.filter((s: any) =>
-      // With straps only the teacher's changes are saved (the rest is decided from the straps);
-      // without straps the whole list is the attendance.
-      straps ? chosen[s.id] !== undefined && chosen[s.id] !== start(s) : shown(s) !== s.status,
-    );
-  }, [roster.data, chosen, straps]);
+    return roster.data.students.filter((s: any) => {
+      if (s.status) return shown(s) !== s.status; // already saved: only changes
+      if (fromStrap(s)) return chosen[s.id] !== undefined && chosen[s.id] !== start(s); // the strap decides the rest
+      return true; // nothing saved and no strap: the list is the register
+    });
+  }, [roster.data, chosen, live]);
+
+  /** With straps a manual mark needs a reason; nobody has to pick one. */
+  const reasonFor = (s: any, status: string) => {
+    if (!auto) return undefined;
+    if (s.status) return 'Correction';
+    if (!fromStrap(s)) return 'Gateway not working';
+    if (status === 'ABSENT') return 'Correction';
+    return s.live?.hasStrap === false ? 'No strap' : 'Strap forgotten';
+  };
 
   async function submit() {
     const ok = await save.run(async () => {
       const marks = toSave.map((s: any) => {
         const status = shown(s);
-        // With straps a change needs a reason; the teacher doesn't have to pick one.
-        const reason = !straps ? undefined : status === 'ABSENT' ? 'Correction by the teacher' : s.live?.hasStrap === false ? 'No strap' : 'Strap forgotten';
+        const reason = reasonFor(s, status);
         return { studentId: s.id, status, ...(reason ? { reason } : {}) };
       });
       roster.setData(await put(`/attendance/classes/${classId}/periods/${periodId}`, { date, marks }));
@@ -62,13 +74,13 @@ export function ClassNow({ classId, periodId, date, eyebrow }: { classId: string
 
   if (!roster.data) return <ErrorNote error={roster.error} />;
   const r = roster.data;
-  const students = straps ? [...r.students].sort((a: any, b: any) => Number(shown(a) === 'PRESENT') - Number(shown(b) === 'PRESENT')) : r.students;
+  const students = live ? [...r.students].sort((a: any, b: any) => Number(shown(a) === 'PRESENT') - Number(shown(b) === 'PRESENT')) : r.students;
   const absent = r.students.filter((s: any) => shown(s) === 'ABSENT').length;
 
   return (
     <>
       <PageHead
-        eyebrow={eyebrow}
+        eyebrow={eyebrow ?? `${date} · Period ${r.period.number} · ${r.period.startTime}–${r.period.endTime}`}
         title={`${r.class.name}${r.lesson ? ` · ${r.lesson.subject}` : ''}`}
         sub={r.lesson ? r.lesson.room.name : undefined}
         actions={
@@ -82,7 +94,7 @@ export function ClassNow({ classId, periodId, date, eyebrow }: { classId: string
       {!r.canEdit && <div className="notice warn">{r.readOnlyReason}</div>}
       <div className="class-summary">
         <b>{r.students.length - absent}</b> present · <b>{absent}</b> absent
-        <span className="muted">{straps ? ' · from the straps, updated every 15 seconds. Tap Present for a child who forgot their strap.' : ' · everyone starts as present. Tap the absent ones, then Save.'}</span>
+        <span className="muted">{live ? ' · from the straps, updated every 15 seconds. Tap Present for a child who forgot their strap, then Save.' : ' · tap anyone who isn’t present, then Save.'}</span>
       </div>
       <ErrorNote error={save.error} />
       <ul className="class-list">
@@ -91,7 +103,7 @@ export function ClassNow({ classId, periodId, date, eyebrow }: { classId: string
           const l = s.live;
           const note = s.status && s.source === 'MANUAL' && s.markedBy
             ? `Saved by ${s.markedBy}`
-            : straps && l
+            : live && l
               ? l.inRoom
                 ? 'In the room'
                 : !l.hasStrap

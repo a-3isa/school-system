@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 import { useApi } from '@/lib/hooks';
 import { useSession } from '@/lib/session';
 import { Card, ErrorNote, PageHead } from '@/components/ui';
-import { ClassNow } from '@/components/ClassNow';
+import { AttendanceList } from '@/components/AttendanceList';
 
 /** Where a teacher lands: the class in front of them right now. */
 export default function MyClassNowPage() {
@@ -22,7 +22,7 @@ export default function MyClassNowPage() {
 
   if (now) {
     return (
-      <ClassNow
+      <AttendanceList
         key={`${now.classId}:${now.periodId}`}
         classId={now.classId}
         periodId={now.periodId}

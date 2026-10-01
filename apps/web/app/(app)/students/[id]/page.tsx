@@ -15,7 +15,7 @@ export default function StudentPage() {
   const student = useApi(`/students/${id}`);
   const today = todayCairo();
   const history = useApi<any[]>(me.modules.includes('attendance') ? `/attendance/students/${id}?from=${shift(today, -13)}&to=${today}` : null);
-  const visits = useApi<any[]>(me.modules.includes('attendance') ? `/locations/students/${id}?date=${today}` : null);
+  const visits = useApi<any[]>(me.straps && me.modules.includes('attendance') ? `/locations/students/${id}?date=${today}` : null);
   const act = useAction();
   const [form, setForm] = useState({ relation: 'MOTHER', name: '', email: '', phone: '' });
 

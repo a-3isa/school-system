@@ -89,6 +89,7 @@ export class AttendanceService {
       canEdit: access.canEdit,
       readOnlyReason: access.why,
       lessonState: live?.state ?? null,
+      gatewayWorking: live?.gatewayWorking ?? false,
       students: students.map((s) => {
         const r = byStudent.get(s.id);
         return {
@@ -120,7 +121,7 @@ export class AttendanceService {
     const [straps, presence, roomGateways, places, alerts] = await Promise.all([
       this.prisma.strap.findMany({ where: { schoolId, studentId: { in: studentIds } }, select: { id: true, studentId: true } }),
       this.prisma.gatePresence.findMany({ where: { date: dbDate(date), studentId: { in: studentIds } } }),
-      this.prisma.gateway.findMany({ where: { schoolId, roomId: slot.lesson.roomId }, select: { id: true } }),
+      this.prisma.gateway.findMany({ where: { schoolId, roomId: slot.lesson.roomId }, select: { id: true, lastSeenAt: true } }),
       this.locations.placesOf(schoolId),
       this.prisma.attendanceException.findMany({
         where: { schoolId, type: ExceptionType.NOT_IN_CLASS, date: dbDate(date), periodId: slot.period.id, studentId: { in: studentIds } },
@@ -140,7 +141,9 @@ export class AttendanceService {
         return [id, { hasStrap: !!strap, inRoom, lastPlace: h ? places.get(h.gatewayId)?.name ?? null : null, lastHeardAt: h?.seenAt ?? null, arrivedAt: arrivedOf.get(id) ?? null, parentsToldAt: toldAt.get(id) ?? null }];
       }),
     );
-    return { state, students };
+    // A room whose gateway isn't working (not installed yet, or offline) can't say who is there.
+    const gatewayWorking = roomGateways.some((g) => g.lastSeenAt && now.getTime() - g.lastSeenAt.getTime() <= rulesFor(school.detection).gatewayOfflineMinutes * 60_000);
+    return { state, students, gatewayWorking };
   }
 
   /** The lesson a teacher has right now, and their next one today. */

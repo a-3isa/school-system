@@ -1,4 +1,4 @@
-import { Controller, Get, Injectable, NotFoundException, Param, Query } from '@nestjs/common';
+import { Controller, ForbiddenException, Get, Injectable, NotFoundException, Param, Query } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { RequiresModule, Roles, SchoolId, SCHOOL_WIDE, STAFF } from '../auth/auth.decorators';
@@ -134,15 +134,28 @@ export class LocationsService {
 @Roles(...SCHOOL_WIDE)
 @Controller('locations')
 export class LocationsController {
-  constructor(private readonly locations: LocationsService) {}
+  constructor(
+    private readonly locations: LocationsService,
+    private readonly prisma: PrismaService,
+  ) {}
+
+  /** Tracking comes with automatic attendance (straps); without it there is nothing to show. */
+  private async subscribed(schoolId: string) {
+    const mod = await this.prisma.schoolModule.findUnique({ where: { schoolId_key: { schoolId, key: 'attendance' } } });
+    if (!(mod?.features as Record<string, boolean> | undefined)?.automatic) {
+      throw new ForbiddenException('Tracking comes with automatic attendance, which isn’t part of this school’s subscription.');
+    }
+  }
 
   @Get()
-  now(@SchoolId() schoolId: string) {
+  async now(@SchoolId() schoolId: string) {
+    await this.subscribed(schoolId);
     return this.locations.now(schoolId);
   }
 
   @Get('students/:id')
-  day(@SchoolId() schoolId: string, @Param('id') id: string, @Query('date') date: string) {
+  async day(@SchoolId() schoolId: string, @Param('id') id: string, @Query('date') date: string) {
+    await this.subscribed(schoolId);
     return this.locations.day(schoolId, id, date);
   }
 }

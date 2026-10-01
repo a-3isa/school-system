@@ -78,9 +78,13 @@ describe('Phase 1 core (e2e)', () => {
 
   it('allows automatic attendance only when the feature is on', async () => {
     await admin.patch('/api/school', { attendanceMode: 'AUTOMATIC' }).expect(400);
-    await admin.patch('/api/modules/attendance/features', { features: { automatic: true } }).expect(200);
-    const res = await admin.patch('/api/school', { attendanceMode: 'AUTOMATIC', absenceNoticeTime: '08:15' }).expect(200);
-    expect(res.body.attendanceMode).toBe('AUTOMATIC');
+    // Automatic attendance (straps) comes with the subscription: the owner switches it on, not the school.
+    await admin.patch('/api/modules/attendance/features', { features: { automatic: true } }).expect(403);
+    expect((await admin.get('/api/auth/me').expect(200)).body.straps).toBe(false);
+    await owner.patch(`/api/owner/schools/${schoolId}/modules/attendance/features`, { features: { automatic: true } }).expect(200);
+    const me = (await admin.get('/api/auth/me').expect(200)).body;
+    expect(me.straps).toBe(true);
+    expect(me.attendanceMode).toBe('AUTOMATIC'); // the subscription sets it
     await admin.patch('/api/modules/attendance/features', { features: { flying: true } }).expect(400);
   });
 

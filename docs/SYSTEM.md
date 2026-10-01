@@ -56,7 +56,7 @@ This describes every part that exists in the code today. Phase 1 is attendance. 
   - **Essentials:** core, attendance and messaging
   - **Smart:** adds transport, canteen and payments
   - **Complete:** everything
-- **Module switches:** turn any module on or off per school.
+- **Module switches:** turn any module on or off per school, and **automatic attendance (straps)** inside Attendance.
   - Switching one on also switches on what it needs; for example, Transport needs Attendance.
   - Switching one off is refused while another module still needs it.
 - **Gateways:** register each gateway before it ships. You get:
@@ -68,7 +68,6 @@ This describes every part that exists in the code today. Phase 1 is attendance. 
 ## 3. School setup (admin)
 
 - **School settings:**
-  - attendance mode: **Manual** (PCs only) or **Automatic** (straps)
   - school days (Sunday–Thursday by default)
   - the time of the daily "absent today" message (08:15 by default)
 - **Grades, classes, rooms, subjects and bell periods.** Periods can't overlap.
@@ -99,25 +98,33 @@ Attendance is taken **per lesson** (every period counts). A lesson's status is o
 - Excused
 - On a trip
 
-### The teacher's screen: My class now (one screen, with or without straps)
-A teacher signs in on the classroom PC with their email and password and sees **one screen only**: the class in front of them right now. It moves to the next lesson by itself when the bell goes; between lessons it shows the next one.
+### One attendance screen, for everyone, with or without straps
+Teachers and admins use **the same screen**:
+- **Layout:** the class list, each child with **Present / Late / Absent / Excused**, and one **Save** button.
+- **The only difference is how each child starts:**
+  - **Already saved:** what was saved.
+  - **During the lesson, at a school with straps, while the room's gateway works:** what the strap says. In the room means Present; not heard in the room means Absent. A short line under the name says why ("In the room", "Not in the room · last heard Gate A, 07:42 · parents told 10:00", "No strap", "Strap not heard today"). The list updates every 15 seconds, and absent children come first.
+  - **Otherwise:** Present. That covers a school without straps, a room whose gateway isn't working, and a past lesson nobody recorded.
+- **The teacher:**
+  - signs in on the classroom PC and lands on **My class now**, their only screen: the lesson in front of them, moving on by itself when the bell goes
+  - at a school with straps, they open it only when a child forgot their strap: tap **Present**, then **Save**
+  - at a school without straps, they tap the absent ones, then **Save**
+  - can change today's lessons they teach
+- **The admin:** opens the same screen from **Take attendance** for any lesson on any day.
+- **Reasons:** a change at a school with straps needs a reason, which is filled in by itself ("Strap forgotten", "Correction", "Gateway not working"). A person's mark always wins over the strap.
+- **Class away** (trip, exam elsewhere): an admin marks a class away for some periods or the whole day, and nobody in it shows as absent.
 
-The screen is **the same whether the school has straps or not**: a list of the class, each child with **Present / Late / Absent**, and a **Save** button. Only the starting values differ:
-- **School with straps:**
-  - Each child starts as the strap says: in the room means Present; not heard in the room means Absent. The list updates every 15 seconds.
-  - Under each name: "In the room", "Not in the room · last heard Gate A, 07:42 · parents told 10:00", "No strap" or "Strap not heard today".
-  - Children shown as absent come first.
-  - **The teacher only opens it when a child forgot their strap:** they tap **Present** for that child and press **Save**. The reason ("Strap forgotten") is filled in by itself, a manual mark always wins over the strap, and the rest of the class is decided from the straps.
-- **School without straps:** everyone starts as **Present**; the teacher taps the absent (or late) ones and presses **Save**.
+### Straps are a subscription
+**Automatic attendance (straps, gateways, tracking)** is switched on per school by you, the owner, not by the school.
+- **Without it:** the school never sees anything about straps:
+  - no "Where students are"
+  - no Devices page
+  - no "came in through the gate" on Today
+  - no "Where today" on a student's page
+  - no strap line in the attendance list
 
-A teacher can change today's lessons they teach; correcting a past day is for the admin.
-
-### The admin
-- **Take attendance:** any lesson, any day, with Present / Late / Absent / Excused, "Mark the rest present", and a reason.
-- **Class away** (trip, exam elsewhere): an admin marks a class away for some periods or the whole day, and nobody in it shows as absent. The homeroom teacher can do this for today through the server; it isn't on the teacher's screen.
-
-### How the straps decide (automatic mode)
-Nobody has to take attendance. Each lesson is **decided when it ends** (see section 6), and the teacher's changes are kept.
+  The attendance screen is the same; teachers take the register.
+- **With it:** attendance starts from the straps, each lesson is decided when it ends (section 6), and the tracking screens appear.
 
 ## 5. What parents are told
 
@@ -137,7 +144,7 @@ All messages arrive as **app notifications**, and every one is also kept in the 
 - Each message is sent **once**.
 - A **restricted** parent isn't told anything about that child.
 
-## 6. How the straps decide (automatic mode)
+## 6. How the straps decide (schools with straps)
 
 - **Gateways:** they only listen and report. Every few seconds each gateway sends what it heard to the server: each strap, how loud, when, and its battery. Gateways decide nothing.
 - **One place per minute:** within each minute, a child belongs to **the gateway that heard them loudest**. A child is in one room, not in every room that hears them through a wall.
@@ -159,15 +166,15 @@ All messages arrive as **app notifications**, and every one is also kept in the 
 |---|:-:|:-:|:-:|
 | **My class now:** the lesson in front of them, the teacher's only screen (section 4) | ✓ | | |
 | **Today:** students enrolled and how many came in through the gate, present and absent per period, open exceptions, lessons today, and **Messages** to the school (e.g. a parent changed their mobile) | | ✓ | |
-| **Take attendance:** every lesson today; opens any class list, any day | | ✓ | |
+| **Take attendance:** every lesson; opens the same attendance screen for any lesson, any day | | ✓ | |
 | **Exceptions:** things a person should look at, each resolved with a note:<ul><li>at school but not in the lesson</li><li>left a lesson</li><li>left early</li><li>gateway offline / room without a gateway</li><li>low battery</li></ul> | | ✓ | |
-| **Where students are:** live every 10 seconds:<ul><li>each room and the gate, with who is in it now</li><li>"needs a look": not heard for 10+ minutes during school hours</li><li>who went out through the gate</li><li>who hasn't been heard today</li></ul>Has search and a class filter. | | ✓ | |
+| **Where students are** (only with straps): live every 10 seconds:<ul><li>each room and the gate, with who is in it now</li><li>"needs a look": not heard for 10+ minutes during school hours</li><li>who went out through the gate</li><li>who hasn't been heard today</li></ul>Has search and a class filter. | | ✓ | |
 | **Students & parents:** search, add, each student's page (parents, where today, two weeks of attendance) | | ✓ | |
 | **Import from Excel:** template, check, import | | ✓ | |
 | **Staff:** accounts | | ✓ | |
 | **Timetable** (whole school), **Classes, rooms & periods** | | ✓ | |
-| **Devices:** gateways, straps, detection rules | | ✓ | |
-| **Modules & settings:** attendance mode, school days, absence message time | | ✓ | |
+| **Devices** (only with straps): gateways, straps, detection rules | | ✓ | |
+| **Modules & settings:** school days, absence message time, whether straps are in the subscription | | ✓ | |
 | **Audit log** | | ✓ | |
 | **Schools, Gateways** (section 2) | | | ✓ |
 
@@ -199,7 +206,7 @@ The server enforces this: a teacher asking for school-wide data (the student lis
 
 - **`scripts/demo.ts`:** creates a demo school with 2 teachers, 2 classes of 12, a timetable, parents, 3 gateways and 24 straps.
   - On a school day it also plays today so far: arrivals, lessons, one child at home, one late, one leaving a lesson, everyone going home.
-  - It then switches the school to automatic attendance.
+  - It subscribes the demo school to automatic attendance.
 - **`scripts/simulate-gateway.ts`:** sends live readings for chosen straps.
 
 ---

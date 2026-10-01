@@ -37,7 +37,8 @@ async function main() {
   const admin = (await call(null, 'POST', '/auth/login', { login: 'admin@demo.school', password: 'demo-admin-1' })).token;
   const A = (m: string, p: string, b?: unknown) => call(admin, m, p, b);
 
-  await A('PATCH', '/modules/attendance/features', { features: { automatic: true } });
+  // The demo school subscribes to automatic attendance (straps); only the owner can switch it on.
+  await call(owner, 'PATCH', `/owner/schools/${school.id}/modules/attendance/features`, { features: { automatic: true } });
   await A('PATCH', '/school', { absenceNoticeTime: '08:30' });
 
   const hana = await A('POST', '/staff', { name: 'Hana Nabil', role: 'TEACHER', email: 'hana@demo.school', password: 'demo-teacher-1' });

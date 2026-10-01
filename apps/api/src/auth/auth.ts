@@ -299,11 +299,12 @@ export class AuthService {
         school: { select: { name: true, attendanceMode: true } },
       },
     });
-    const modules = auth.schoolId
-      ? (await this.prisma.schoolModule.findMany({ where: { schoolId: auth.schoolId, enabled: true } })).map((m) => m.key)
-      : [];
+    const rows = auth.schoolId ? await this.prisma.schoolModule.findMany({ where: { schoolId: auth.schoolId, enabled: true } }) : [];
+    const modules = rows.map((m) => m.key);
+    // The school subscribes to automatic attendance: straps, gateways and tracking.
+    const straps = !!(rows.find((m) => m.key === 'attendance')?.features as Record<string, boolean> | undefined)?.automatic;
     const { school, ...rest } = user;
-    return { ...rest, schoolName: school?.name ?? null, attendanceMode: school?.attendanceMode ?? null, modules };
+    return { ...rest, schoolName: school?.name ?? null, attendanceMode: school?.attendanceMode ?? null, straps, modules };
   }
 }
 

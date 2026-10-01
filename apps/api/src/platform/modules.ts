@@ -1,12 +1,12 @@
-import { BadRequestException, Body, Controller, Get, Injectable, Module, NotFoundException, Param, Patch, Post, Put } from '@nestjs/common';
-import { Plan, Prisma, Role } from '@prisma/client';
+import { BadRequestException, Body, Controller, ForbiddenException, Get, Injectable, Module, NotFoundException, Param, Patch, Post, Put } from '@nestjs/common';
+import { AttendanceMode, Plan, Prisma, Role } from '@prisma/client';
 import { Type } from 'class-transformer';
 import { IsBoolean, IsEmail, IsEnum, IsObject, IsOptional, IsString, MinLength, ValidateNested } from 'class-validator';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit';
 import { AuthUser, CurrentUser, Roles, SchoolId } from '../auth/auth.decorators';
 import { hashPassword } from '../auth/auth';
-import { isModuleKey, MODULE_KEYS, ModuleKey, MODULES, PLAN_MODULES, toggleModule } from './registry';
+import { isModuleKey, MODULE_KEYS, ModuleKey, MODULES, PLAN_MODULES, SUBSCRIPTION_FEATURES, toggleModule } from './registry';
 
 class AdminDto {
   @IsString() name: string;
@@ -89,10 +89,17 @@ export class ModulesService {
     const known = Object.keys(MODULES[key].features);
     const unknown = Object.keys(features).filter((f) => !known.includes(f));
     if (unknown.length) throw new BadRequestException(`Unknown feature: ${unknown.join(', ')}.`);
+    if (actor.role !== Role.OWNER && Object.keys(features).some((f) => SUBSCRIPTION_FEATURES[key]?.includes(f))) {
+      throw new ForbiddenException('Automatic attendance comes with the subscription. Ask the platform owner.');
+    }
     const row = await this.prisma.schoolModule.findUnique({ where: { schoolId_key: { schoolId, key } } });
     if (!row?.enabled && key !== 'core') throw new BadRequestException(`${MODULES[key].name} isn’t switched on.`);
     const merged = { ...MODULES[key].features, ...((row?.features as object) ?? {}), ...features };
     await this.prisma.schoolModule.update({ where: { schoolId_key: { schoolId, key } }, data: { features: merged } });
+    // The subscription decides how attendance starts: from the straps, or by hand.
+    if (key === 'attendance' && features.automatic !== undefined) {
+      await this.prisma.school.update({ where: { id: schoolId }, data: { attendanceMode: features.automatic ? AttendanceMode.AUTOMATIC : AttendanceMode.MANUAL } });
+    }
     await this.audit.log(actor, 'module.features', 'module', key, features, schoolId);
     return this.list(schoolId);
   }
@@ -184,6 +191,12 @@ export class OwnerController {
   @Put(':id/plan')
   plan(@CurrentUser() user: AuthUser, @Param('id') id: string, @Body() dto: SetPlanDto) {
     return this.modules.setPlan(user, id, dto.plan);
+  }
+
+  /** Features of a school's module, including the subscription ones (automatic attendance). */
+  @Patch(':id/modules/:key/features')
+  features(@CurrentUser() user: AuthUser, @Param('id') id: string, @Param('key') key: string, @Body() dto: FeaturesDto) {
+    return this.modules.setFeatures(user, id, key, dto.features);
   }
 }
 
