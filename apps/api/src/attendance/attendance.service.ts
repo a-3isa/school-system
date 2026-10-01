@@ -204,6 +204,10 @@ export class AttendanceService {
     if (user.role === Role.TEACHER && cls.homeroomTeacherId !== user.id) {
       throw new ForbiddenException('Only the homeroom teacher or an admin can mark this class away.');
     }
+    // Same rule as marking: a past day can only be changed by an admin.
+    if (user.role !== Role.SCHOOL_ADMIN && dto.date < (await this.today(schoolId))) {
+      throw new ForbiddenException('Past days can only be corrected by an admin.');
+    }
     if ((dto.fromPeriod == null) !== (dto.toPeriod == null)) throw new BadRequestException('Give both fromPeriod and toPeriod, or neither for the whole day.');
     if (dto.fromPeriod != null && dto.toPeriod! < dto.fromPeriod) throw new BadRequestException('toPeriod must not be before fromPeriod.');
     const periods = await this.prisma.period.findMany({

@@ -8,6 +8,7 @@ describe('Sign-in codes by WhatsApp (e2e)', () => {
   let app: INestApplication;
   const prisma = new PrismaClient();
   const phone = '+201300000001';
+  const phone2 = '+201300000002';
   const http = () => request(app.getHttpServer());
 
   beforeAll(async () => {
@@ -17,6 +18,7 @@ describe('Sign-in codes by WhatsApp (e2e)', () => {
     const admin = await login(app, 'admin@otp.eg', 'admin-pass');
     const s = await admin.post('/api/students', { code: 'O1', firstName: 'Mona', lastName: 'Ali' }).expect(201);
     await admin.post(`/api/students/${s.body.id}/guardians`, { relation: 'MOTHER', name: 'Heba', phone }).expect(201);
+    await admin.post(`/api/students/${s.body.id}/guardians`, { relation: 'FATHER', name: 'Karim', phone: phone2 }).expect(201);
   });
 
   afterAll(async () => {
@@ -47,6 +49,17 @@ describe('Sign-in codes by WhatsApp (e2e)', () => {
     const wrong = code === '000000' ? '111111' : '000000';
     for (let i = 0; i < 5; i++) await http().post('/api/auth/code/verify').send({ phone, code: wrong }).expect(401);
     await http().post('/api/auth/code/verify').send({ phone, code }).expect(401);
+  });
+
+  it('counts every guess, even when many arrive at once', async () => {
+    await http().post('/api/auth/code').send({ phone: phone2 }).expect(201);
+    const code = app.get(WhatsAppService).outbox.get(phone2)!;
+    const guesses = Array.from({ length: 20 }, (_, i) => String((Number(code) + 1 + i) % 1_000_000).padStart(6, '0'));
+    const results = await Promise.all(guesses.map((g) => http().post('/api/auth/code/verify').send({ phone: phone2, code: g })));
+    expect(results.every((r) => r.status === 401)).toBe(true);
+    const row = await prisma.loginCode.findFirst({ where: { phone: phone2 }, orderBy: { createdAt: 'desc' } });
+    expect(row!.attempts).toBe(5);
+    await http().post('/api/auth/code/verify').send({ phone: phone2, code }).expect(401);
   });
 
   it('limits how many codes one number can ask for', async () => {

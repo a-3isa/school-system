@@ -69,12 +69,16 @@ export class AuthService {
   async verifyCode(phone: string, code: string) {
     const row = await this.prisma.loginCode.findFirst({ where: { phone, usedAt: null }, orderBy: { createdAt: 'desc' } });
     const wrong = () => new UnauthorizedException('That code is wrong or has expired. Ask for a new one.');
-    if (!row || row.expiresAt < new Date() || row.attempts >= MAX_ATTEMPTS) throw wrong();
-    if (row.codeHash !== hashCode(phone, code)) {
-      await this.prisma.loginCode.update({ where: { id: row.id }, data: { attempts: { increment: 1 } } });
-      throw wrong();
-    }
-    await this.prisma.loginCode.update({ where: { id: row.id }, data: { usedAt: new Date() } });
+    if (!row || row.expiresAt < new Date()) throw wrong();
+    // Use up an attempt before comparing, atomically, so parallel guesses
+    // can't each read the same count and get past the limit.
+    const { count } = await this.prisma.loginCode.updateMany({
+      where: { id: row.id, usedAt: null, attempts: { lt: MAX_ATTEMPTS } },
+      data: { attempts: { increment: 1 } },
+    });
+    if (count !== 1 || row.codeHash !== hashCode(phone, code)) throw wrong();
+    const used = await this.prisma.loginCode.updateMany({ where: { id: row.id, usedAt: null }, data: { usedAt: new Date() } });
+    if (used.count !== 1) throw wrong();
     const user = await this.prisma.user.findUnique({ where: { phone } });
     if (!user?.active) throw wrong();
     return this.issue(user);

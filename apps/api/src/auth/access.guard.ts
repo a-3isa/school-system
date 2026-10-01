@@ -27,13 +27,17 @@ export class AccessGuard implements CanActivate {
     const token = header?.startsWith('Bearer ') ? header.slice(7) : undefined;
     if (!token) throw new UnauthorizedException('Sign in first.');
 
-    let user: AuthUser;
+    let sub: string;
     try {
-      const payload = await this.jwt.verifyAsync<{ sub: string; schoolId: string | null; role: Role }>(token);
-      user = { id: payload.sub, schoolId: payload.schoolId, role: payload.role };
+      sub = (await this.jwt.verifyAsync<{ sub: string }>(token)).sub;
     } catch {
       throw new UnauthorizedException('Your session has expired. Sign in again.');
     }
+    // Role and school come from the database, not the token, so a deactivated
+    // account or a changed role takes effect on the next request.
+    const row = await this.prisma.user.findUnique({ where: { id: sub }, select: { id: true, schoolId: true, role: true, active: true } });
+    if (!row?.active) throw new UnauthorizedException('Your session has expired. Sign in again.');
+    const user: AuthUser = { id: row.id, schoolId: row.schoolId, role: row.role };
     req.user = user;
 
     const roles = this.reflector.getAllAndOverride<Role[] | undefined>(ROLES, targets);

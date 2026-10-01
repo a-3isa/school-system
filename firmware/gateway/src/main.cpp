@@ -18,6 +18,7 @@
 #include <vector>
 #include <time.h>
 #include "config.h"
+#include "ca_cert.h"
 
 #ifndef FIRMWARE_VERSION
 #define FIRMWARE_VERSION "dev"
@@ -109,12 +110,17 @@ void connectWifi() {
 bool connectMqtt() {
   if (mqtt.connected()) return true;
   if (WiFi.status() != WL_CONNECTED) return false;
-  if (cfg.mqttTls) {
-    // TODO before production: pin the broker's CA certificate with tlsClient.setCACert().
-    tlsClient.setInsecure();
-    mqtt.setClient(tlsClient);
-  } else {
+  // The gateway's secret goes in the MQTT login, so it only talks to a broker
+  // whose certificate checks out against ca_cert.h. Plain MQTT is for
+  // development builds only (build flag -DALLOW_PLAIN_MQTT).
+#ifdef ALLOW_PLAIN_MQTT
+  if (!cfg.mqttTls) {
     mqtt.setClient(plainClient);
+  } else
+#endif
+  {
+    tlsClient.setCACert(MQTT_CA_CERT);
+    mqtt.setClient(tlsClient);
   }
   mqtt.setServer(cfg.mqttHost.c_str(), cfg.mqttPort);
   mqtt.setBufferSize(MQTT_MAX_PACKET_SIZE);

@@ -8,7 +8,7 @@ describe('Manual attendance (e2e)', () => {
   const prisma = new PrismaClient();
   let owner: Client, admin: Client, teacher: Client, other: Client, parent: Client;
   let schoolId: string, classId: string, class2Id: string, p1: string, p2: string, roomId: string, subjectId: string;
-  let laylaId: string, aliId: string, omarId: string;
+  let laylaId: string, aliId: string, omarId: string, sherifId: string;
   let today: string, yesterday: string, tomorrow: string;
 
   const shift = (d: string, days: number) => new Date(Date.parse(`${d}T00:00:00Z`) + days * 86400000).toISOString().slice(0, 10);
@@ -26,7 +26,7 @@ describe('Manual attendance (e2e)', () => {
 
     const grade = (await admin.post('/api/grades', { name: 'Grade 4', order: 4 })).body;
     const t = (await admin.post('/api/staff', { name: 'Hana', role: 'TEACHER', email: 'hana@att.eg', password: 'teacher-pass' })).body;
-    await admin.post('/api/staff', { name: 'Sherif', role: 'TEACHER', email: 'sherif@att.eg', password: 'teacher-pass' }).expect(201);
+    sherifId = (await admin.post('/api/staff', { name: 'Sherif', role: 'TEACHER', email: 'sherif@att.eg', password: 'teacher-pass' }).expect(201)).body.id;
     classId = (await admin.post('/api/classes', { name: '4-A', gradeId: grade.id })).body.id;
     class2Id = (await admin.post('/api/classes', { name: '4-B', gradeId: grade.id })).body.id;
     roomId = (await admin.post('/api/rooms', { name: 'Room 204' })).body.id;
@@ -134,5 +134,20 @@ describe('Manual attendance (e2e)', () => {
   it('keeps a student’s history', async () => {
     const res = await admin.get(`/api/attendance/students/${laylaId}?from=${yesterday}&to=${today}`).expect(200);
     expect(res.body.map((r: any) => r.status)).toEqual(['PRESENT', 'LATE']);
+  });
+
+  it('leaves marking a class away on a past day to admins', async () => {
+    const grade = (await admin.get('/api/grades')).body[0];
+    const homeroom = (await admin.post('/api/classes', { name: '4-C', gradeId: grade.id, homeroomTeacherId: sherifId }).expect(201)).body.id;
+    await other.post('/api/attendance/aways', { classId: homeroom, date: yesterday, reason: 'Trip' }).expect(403);
+    await other.post('/api/attendance/aways', { classId: homeroom, date: today, reason: 'Trip' }).expect(201);
+    await admin.post('/api/attendance/aways', { classId: homeroom, date: yesterday, reason: 'Trip' }).expect(201);
+  });
+
+  it('stops a deactivated account at once, even with a token it already has', async () => {
+    await other.get(`/api/attendance/my-lessons?date=${today}`).expect(200);
+    await admin.patch(`/api/staff/${sherifId}`, { active: false }).expect(200);
+    await other.get(`/api/attendance/my-lessons?date=${today}`).expect(401);
+    await other.get('/api/auth/me').expect(401);
   });
 });

@@ -51,7 +51,7 @@ pio device monitor      # serial console at 115200
 
 ## Before production
 
-- Pin the broker's CA certificate (`tlsClient.setCACert`) instead of `setInsecure()`.
+- The gateway checks the broker's certificate against `src/ca_cert.h` (Let's Encrypt roots by default). If the broker's certificate comes from another authority, put that authority's root there. Plain MQTT (`mqttTls off`) only works in a development build made with `-DALLOW_PLAIN_MQTT`.
 - Check the FSC-BP107D's MAC prefix and set `prefix` to match (default `DC:0D:30`).
 - Tune `minRssi` and the report interval against real rooms.
 - Over-the-air updates and the bus device (GPS + 4G) come in Phase 2.
