@@ -43,6 +43,9 @@ OWNER_EMAIL=you@example.com OWNER_PASSWORD=choose-one npm run seed
 npm run start:dev                                   # http://localhost:3000/api
 OWNER_EMAIL=you@example.com OWNER_PASSWORD=choose-one npx ts-node scripts/demo.ts
 #   prints the demo gateways' secrets; sign in as admin@demo.school / demo-admin-1
+#   On a school day it also plays today so far (arrivals, lessons, one absent child per class)
+#   and switches the school to automatic attendance. To play a day again on an existing
+#   demo school: npx ts-node scripts/demo-day.ts (same OWNER_EMAIL / OWNER_PASSWORD)
 
 # 2. Staff dashboard
 npm run dev -w apps/web                             # http://localhost:3001
