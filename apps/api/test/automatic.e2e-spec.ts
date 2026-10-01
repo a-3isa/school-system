@@ -13,7 +13,7 @@ describe('Automatic attendance (e2e)', () => {
   const prisma = new PrismaClient();
   let owner: Client, admin: Client, teacher: Client, parent: Client;
   let schoolId: string;
-  const gw: Record<string, { serial: string; secret: string; claimCode: string }> = {};
+  const gw: Record<string, { id: string; serial: string; secret: string; claimCode: string }> = {};
   const ids: Record<string, string> = {};
   const mac = (n: number) => `DC:0D:30:00:00:${String(n).padStart(2, '0')}`;
 
@@ -96,6 +96,18 @@ describe('Automatic attendance (e2e)', () => {
 
   it('rejects gateways with the wrong secret', async () => {
     await request(app.getHttpServer()).post('/api/gateway/sightings').auth(gw.GATE.serial, 'wrong').send({ sightings: [] }).expect(401);
+  });
+
+  it('gives a gateway a new secret and retires the old one', async () => {
+    const send = (secret: string) => request(app.getHttpServer()).post('/api/gateway/sightings').auth(gw.R205.serial, secret).send({ sightings: [] });
+    await admin.post(`/api/owner/gateways/${gw.R205.id}/secret`).expect(403); // owner only
+    const old = gw.R205.secret;
+    const res = await owner.post(`/api/owner/gateways/${gw.R205.id}/secret`).expect(201);
+    expect(res.body.secret).not.toBe(old);
+    await send(old).expect(401);
+    await send(res.body.secret).expect(200);
+    gw.R205 = { ...gw.R205, secret: res.body.secret };
+    await owner.post('/api/owner/gateways/nope/secret').expect(404);
   });
 
   it('confirms arrivals at the gate and tells the parent', async () => {

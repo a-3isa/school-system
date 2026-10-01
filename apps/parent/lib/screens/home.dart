@@ -209,7 +209,7 @@ class _NotificationsTabState extends State<NotificationsTab> {
       child: ListView.separated(
         padding: const EdgeInsets.all(20),
         itemCount: _items.isEmpty ? 1 : _items.length,
-        separatorBuilder: (_, _) => const SizedBox(height: 8),
+        separatorBuilder: (_, __) => const SizedBox(height: 8),
         itemBuilder: (context, i) {
           if (_items.isEmpty) return Text(_error ?? 'No notifications yet.', style: const TextStyle(color: Brand.muted));
           final n = _items[i] as Map<String, dynamic>;
