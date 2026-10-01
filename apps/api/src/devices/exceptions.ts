@@ -61,6 +61,6 @@ export class ExceptionsController {
 @Module({
   controllers: [DevicesController, OwnerGatewaysController, GatewayController, ExceptionsController, LocationsController],
   providers: [DevicesService, IngestService, MqttBridge, AttendanceEvaluator, LocationsService],
-  exports: [AttendanceEvaluator, IngestService],
+  exports: [AttendanceEvaluator, IngestService, LocationsService],
 })
 export class DevicesModule {}

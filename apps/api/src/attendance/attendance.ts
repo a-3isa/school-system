@@ -33,6 +33,13 @@ export class AwayDto {
 export class AttendanceController {
   constructor(private readonly attendance: AttendanceService) {}
 
+  /** The caller's lesson right now and their next one: where a teacher starts. */
+  @Roles(Role.SCHOOL_ADMIN, Role.TEACHER)
+  @Get('now')
+  current(@CurrentUser() user: AuthUser, @SchoolId() schoolId: string) {
+    return this.attendance.current(user, schoolId);
+  }
+
   @Roles(Role.SCHOOL_ADMIN, Role.TEACHER)
   @Get('my-lessons')
   async myLessons(@CurrentUser() user: AuthUser, @SchoolId() schoolId: string, @Query('date') date?: string) {

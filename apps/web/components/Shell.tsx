@@ -16,7 +16,7 @@ const ADMIN = ['SCHOOL_ADMIN'];
 const TEACHING = ['SCHOOL_ADMIN', 'TEACHER'];
 
 const SCHOOL_NAV: { group: string; items: NavItem[] }[] = [
-  { group: 'Overview', items: [{ href: '/today', label: 'Today' }] },
+  { group: 'Overview', items: [{ href: '/class', label: 'My class now', module: 'attendance', roles: ['TEACHER'] }, { href: '/today', label: 'Today' }] },
   {
     group: 'Attendance',
     items: [

@@ -19,7 +19,7 @@ function LoginForm() {
     try {
       const res = await post<{ token: string; user: { role: string } }>('/auth/login', { login, password });
       setToken(res.token);
-      router.replace(res.user.role === 'OWNER' ? '/owner' : '/today');
+      router.replace(res.user.role === 'OWNER' ? '/owner' : res.user.role === 'TEACHER' ? '/class' : '/today');
     } catch (err) {
       setError((err as Error).message);
     } finally {

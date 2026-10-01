@@ -31,6 +31,22 @@ export class LocationsService {
     return new Map<string, Place>(gateways.map((g) => [g.id, { gatewayId: g.id, name: g.name ?? g.serial, kind: g.kind, room: g.room?.name ?? null }]));
   }
 
+  /** Per strap: the latest minute it was heard in [from, to], and the loudest gateway in that minute. */
+  async lastHeard(schoolId: string, minRssi: number, from: Date, to: Date, strapIds?: string[]) {
+    const only = strapIds ? Prisma.sql`AND "strapId" IN (${strapIds.length ? Prisma.join(strapIds) : Prisma.sql`NULL`})` : Prisma.empty;
+    const rows = await this.prisma.$queryRaw<{ strapId: string; gatewayId: string; seenAt: Date }[]>(Prisma.sql`
+      SELECT DISTINCT ON ("strapId") "strapId", "gatewayId", "seenAt"
+      FROM "Sighting"
+      WHERE "schoolId" = ${schoolId} AND "seenAt" >= ${from} AND "seenAt" <= ${to} AND "rssi" >= ${minRssi} ${only}
+      ORDER BY "strapId", date_trunc('minute', "seenAt") DESC, "rssi" DESC`);
+    return new Map(rows.map((r) => [r.strapId, r]));
+  }
+
+  /** Gateways of a school by id, as places. */
+  placesOf(schoolId: string) {
+    return this.places(schoolId);
+  }
+
   async now(schoolId: string, at = new Date()) {
     const school = await this.prisma.school.findUniqueOrThrow({ where: { id: schoolId } });
     const minRssi = rulesFor(school.detection).room.minRssi;
@@ -40,13 +56,7 @@ export class LocationsService {
     const periods = await this.prisma.period.findMany({ where: { schoolId }, orderBy: { startTime: 'asc' }, select: { startTime: true, endTime: true } });
     const lastEnd = periods.reduce((m, p) => (p.endTime > m ? p.endTime : m), '00:00');
     const schoolHours = school.schoolDays.includes(dayOfWeek) && periods.length > 0 && time >= periods[0].startTime && time <= lastEnd;
-    // Per strap: the latest minute it was heard today, and the loudest gateway in that minute.
-    const last = await this.prisma.$queryRaw<{ strapId: string; gatewayId: string; seenAt: Date }[]>(Prisma.sql`
-      SELECT DISTINCT ON ("strapId") "strapId", "gatewayId", "seenAt"
-      FROM "Sighting"
-      WHERE "schoolId" = ${schoolId} AND "seenAt" >= ${dayStart} AND "seenAt" <= ${at} AND "rssi" >= ${minRssi}
-      ORDER BY "strapId", date_trunc('minute', "seenAt") DESC, "rssi" DESC`);
-    const byStrap = new Map(last.map((l) => [l.strapId, l]));
+    const byStrap = await this.lastHeard(schoolId, minRssi, dayStart, at);
     const places = await this.places(schoolId);
     const [students, gate] = await Promise.all([
       this.prisma.student.findMany({

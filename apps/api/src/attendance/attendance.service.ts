@@ -1,10 +1,12 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { AttendanceMode, AttendanceSource, AttendanceStatus, Prisma, Role } from '@prisma/client';
+import { AttendanceMode, AttendanceSource, AttendanceStatus, ExceptionStatus, ExceptionType, Prisma, Role } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit';
 import { NotificationsService } from '../notifications/notifications';
 import { AuthUser } from '../auth/auth.decorators';
-import { localParts } from '../common/time';
+import { localParts, zonedTime } from '../common/time';
+import { LocationsService } from '../devices/locations';
+import { rulesFor } from '../devices/rules';
 import { dbDate, isoDate, weekday } from '../common/dates';
 import { toMinutes } from '../common/validation';
 
@@ -23,6 +25,7 @@ export class AttendanceService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly notifications: NotificationsService,
+    private readonly locations: LocationsService,
   ) {}
 
   private async school(schoolId: string) {
@@ -76,6 +79,7 @@ export class AttendanceService {
       this.school(schoolId),
     ]);
     const byStudent = new Map(records.map((r) => [r.studentId, r]));
+    const live = await this.liveRoom(schoolId, school, slot, date, students.map((s) => s.id));
     return {
       date,
       class: { id: slot.cls.id, name: slot.cls.name },
@@ -84,9 +88,11 @@ export class AttendanceService {
       mode: school.attendanceMode,
       canEdit: access.canEdit,
       readOnlyReason: access.why,
+      lessonState: live?.state ?? null,
       students: students.map((s) => {
         const r = byStudent.get(s.id);
         return {
+          live: live?.students.get(s.id) ?? null,
           id: s.id,
           code: s.code,
           name: `${s.firstName} ${s.lastName}`,
@@ -98,6 +104,55 @@ export class AttendanceService {
           firstSeenAt: r?.firstSeenAt ?? null,
         };
       }),
+    };
+  }
+
+  /**
+   * While a lesson is on (automatic attendance): who the room's gateway hears
+   * now, and where everyone else was last heard. The lesson itself is still
+   * decided when it ends; this is what the teacher sees in front of them.
+   */
+  private async liveRoom(schoolId: string, school: { attendanceMode: AttendanceMode; timezone: string; detection: Prisma.JsonValue }, slot: Awaited<ReturnType<AttendanceService['loadSlot']>>, date: string, studentIds: string[], now = new Date()) {
+    if (school.attendanceMode !== AttendanceMode.AUTOMATIC || !slot.lesson || date !== localParts(now, school.timezone).date) return null;
+    const start = zonedTime(date, slot.period.startTime, school.timezone);
+    const end = zonedTime(date, slot.period.endTime, school.timezone);
+    const state = now < start ? 'before' : now < end ? 'now' : 'after';
+    const [straps, presence, roomGateways, places, alerts] = await Promise.all([
+      this.prisma.strap.findMany({ where: { schoolId, studentId: { in: studentIds } }, select: { id: true, studentId: true } }),
+      this.prisma.gatePresence.findMany({ where: { date: dbDate(date), studentId: { in: studentIds } } }),
+      this.prisma.gateway.findMany({ where: { schoolId, roomId: slot.lesson.roomId }, select: { id: true } }),
+      this.locations.placesOf(schoolId),
+      this.prisma.attendanceException.findMany({
+        where: { schoolId, type: ExceptionType.NOT_IN_CLASS, date: dbDate(date), periodId: slot.period.id, studentId: { in: studentIds } },
+        select: { studentId: true, createdAt: true },
+      }),
+    ]);
+    const toldAt = new Map(alerts.map((a) => [a.studentId!, a.createdAt]));
+    const heard = await this.locations.lastHeard(schoolId, rulesFor(school.detection).room.minRssi, zonedTime(date, '00:00', school.timezone), now, straps.map((x) => x.id));
+    const room = new Set(roomGateways.map((g) => g.id));
+    const strapOf = new Map(straps.map((x) => [x.studentId!, x.id]));
+    const arrivedOf = new Map(presence.map((p) => [p.studentId, p.arrivedAt]));
+    const students = new Map(
+      studentIds.map((id) => {
+        const strap = strapOf.get(id);
+        const h = strap ? heard.get(strap) : undefined;
+        const inRoom = !!h && state === 'now' && room.has(h.gatewayId) && h.seenAt >= start && now.getTime() - h.seenAt.getTime() <= 3 * 60_000;
+        return [id, { hasStrap: !!strap, inRoom, lastPlace: h ? places.get(h.gatewayId)?.name ?? null : null, lastHeardAt: h?.seenAt ?? null, arrivedAt: arrivedOf.get(id) ?? null, parentsToldAt: toldAt.get(id) ?? null }];
+      }),
+    );
+    return { state, students };
+  }
+
+  /** The lesson a teacher has right now, and their next one today. */
+  async current(user: AuthUser, schoolId: string, now = new Date()) {
+    const school = await this.school(schoolId);
+    const { date, time } = localParts(now, school.timezone);
+    if (!school.schoolDays.includes(weekday(date))) return { date, now: null, next: null };
+    const lessons = await this.myLessons(user, schoolId, date);
+    return {
+      date,
+      now: lessons.find((l) => l.startTime <= time && time < l.endTime) ?? null,
+      next: lessons.find((l) => l.startTime > time) ?? null,
     };
   }
 
@@ -128,10 +183,42 @@ export class AttendanceService {
         }),
       ),
     );
+    await this.clearLessonAlerts(user, schoolId, periodId, date, marks, slot);
     await this.audit.log(user, 'attendance.mark', 'attendance', `${classId}:${periodId}:${date}`, {
       marks: marks.map((m) => ({ studentId: m.studentId, status: m.status, reason: m.reason ?? null })),
     } as Prisma.InputJsonValue);
     return this.roster(user, schoolId, classId, periodId, date);
+  }
+
+  /**
+   * A child the parents were told was missing from this lesson has now been
+   * marked in it (a forgotten strap, say): close the alert and tell them.
+   */
+  private async clearLessonAlerts(user: AuthUser, schoolId: string, periodId: string, date: string, marks: Mark[], slot: Awaited<ReturnType<AttendanceService['loadSlot']>>) {
+    const inClass = marks.filter((m) => m.status === AttendanceStatus.PRESENT || m.status === AttendanceStatus.LATE).map((m) => m.studentId);
+    if (!inClass.length) return;
+    const open = await this.prisma.attendanceException.findMany({
+      where: { schoolId, type: ExceptionType.NOT_IN_CLASS, status: ExceptionStatus.OPEN, date: dbDate(date), periodId, studentId: { in: inClass } },
+      include: { student: { include: { guardians: { where: { restricted: false } } } } },
+    });
+    for (const e of open) {
+      await this.prisma.attendanceException.update({
+        where: { id: e.id },
+        data: { status: ExceptionStatus.RESOLVED, resolvedById: user.id, resolvedAt: new Date(), note: 'Marked present in the lesson' },
+      });
+      const s = e.student!;
+      const where = slot.lesson ? `${slot.lesson.subject.name} in ${slot.lesson.room.name}` : `period ${slot.period.number}`;
+      await this.notifications.notify(
+        s.guardians.map((g) => ({
+          schoolId,
+          userId: g.userId,
+          type: 'attendance.lessonPresent',
+          title: `${s.firstName} is in ${where}`,
+          body: `The teacher marked ${s.firstName} present in ${where}. Ignore the earlier message.`,
+          data: { studentId: s.id, date, periodId },
+        })),
+      );
+    }
   }
 
   /** A teacher's lessons on a day, with how far each has been marked. */
