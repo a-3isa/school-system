@@ -2,12 +2,15 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { dateTimeCairo, patch, post, put, timeCairo } from '@/lib/api';
 import { useAction, useApi } from '@/lib/hooks';
-import { Badge, Card, Empty, ErrorNote, Field, Kpi, PageHead, toast } from '@/components/ui';
+import { useI18n } from '@/lib/i18n';
+import { Dict } from '@/lib/strings';
+import { Empty, ErrorNote, Field, Note, PageHead, Pill, Section, Tabs, toast } from '@/components/ui';
 
-const KIND: Record<string, string> = { GATE: 'Gate', ROOM: 'Room', BUS: 'Bus', CANTEEN: 'Canteen' };
 const online = (iso: string | null) => !!iso && Date.now() - Date.parse(iso) < 5 * 60_000;
 
 export default function DevicesPage() {
+  const { t } = useI18n();
+  const [tab, setTab] = useState<'gateways' | 'straps' | 'rules'>('gateways');
   const gateways = useApi<any[]>('/devices/gateways');
   const straps = useApi<any[]>('/devices/straps');
   const students = useApi<any[]>('/students?active=true');
@@ -30,12 +33,14 @@ export default function DevicesPage() {
   }, [rules.data]);
 
   const withStrap = new Set(straps.data?.filter((s) => s.studentId).map((s) => s.studentId));
-  const low = straps.data?.filter((s) => s.battery != null && s.battery < 20).length ?? 0;
+  const kindName = (k: string) => t.devices.kinds[k as keyof Dict['devices']['kinds']] ?? '—';
+  const covered = new Set(gateways.data?.map((g) => g.room?.id).filter(Boolean));
+  const deaf = (rooms.data ?? []).filter((r) => !covered.has(r.id));
 
   async function doClaim(e: FormEvent) {
     e.preventDefault();
     if (await act.run(() => post('/devices/gateways/claim', { ...claim, roomId: claim.kind === 'ROOM' ? claim.roomId : undefined }))) {
-      toast(`${claim.name} added.`);
+      toast(t.devices.claimed(claim.name));
       setClaim({ claimCode: '', name: '', kind: claim.kind, roomId: '' });
       await gateways.reload();
     }
@@ -44,7 +49,7 @@ export default function DevicesPage() {
   async function addStrap(e: FormEvent) {
     e.preventDefault();
     if (await act.run(() => post('/devices/straps', { mac: strap.mac, studentId: strap.studentId || undefined }))) {
-      toast('Strap registered.');
+      toast(t.devices.strapAdded);
       setStrap({ mac: '', studentId: '' });
       await straps.reload();
     }
@@ -54,132 +59,130 @@ export default function DevicesPage() {
     if (await act.run(() => patch(`/devices/straps/${id}`, { studentId: studentId || null }))) await straps.reload();
   };
 
-  async function saveRules(e: FormEvent) {
-    e.preventDefault();
+  async function saveRules(e?: FormEvent) {
+    e?.preventDefault();
     const body = { rules: { room: { presentShare: ruleForm.presentShare / 100, lateAfterMinutes: ruleForm.lateAfterMinutes, minRssi: ruleForm.roomRssi }, gate: { minRssi: ruleForm.gateRssi } } };
-    if (await act.run(async () => rules.setData(await put('/devices/rules', body)))) toast('Rules saved.');
+    if (await act.run(async () => rules.setData(await put('/devices/rules', body)))) toast(t.devices.rulesSaved);
   }
+
+  const rule = (key: keyof typeof ruleForm, label: string, help: string, unit: string, min: number, max: number) => (
+    <div className="settings-row" key={key}>
+      <span><b>{label}</b><span>{help}</span></span>
+      <span className="unit">
+        <input className="input num" type="number" aria-label={label} min={min} max={max} value={ruleForm[key]} onChange={(e) => setRuleForm({ ...ruleForm, [key]: Number(e.target.value) })} />
+        {unit}
+      </span>
+    </div>
+  );
 
   return (
     <>
-      <PageHead eyebrow="School setup" title="Devices" sub="Gateways at the gates and in every lesson room hear each student’s strap. Add a gateway with the claim code on its label." />
+      <PageHead
+        sub={t.devices.sub}
+        title={t.nav.devices}
+        actions={tab === 'rules' && <button type="button" className="btn primary" disabled={act.busy} onClick={() => saveRules()}>{t.devices.saveRules}</button>}
+      />
+      <Tabs label={t.nav.devices} value={tab} onChange={setTab} items={[['gateways', t.devices.gateways], ['straps', t.devices.straps], ['rules', t.devices.rules]]} />
       <ErrorNote error={act.error ?? gateways.error} />
-      <div className="grid g4">
-        <Kpi label="Gateways online" value={`${gateways.data?.filter((g) => online(g.lastSeenAt)).length ?? 0} / ${gateways.data?.length ?? 0}`} />
-        <Kpi label="Straps assigned" value={withStrap.size} sub={`${students.data?.length ?? 0} students`} />
-        <Kpi label="Students without a strap" value={(students.data?.length ?? 0) - withStrap.size} sub="marked on the classroom PC" />
-        <Kpi label="Low batteries" value={low} sub="below 20%" />
-      </div>
 
-      <div className="grid" style={{ gridTemplateColumns: 'minmax(0, 1.6fr) minmax(0, 1fr)' }}>
-        <Card title="Gateways" pad={false}>
-          {gateways.data?.length ? (
-            <div className="table-wrap">
-              <table>
-                <thead><tr><th>Name</th><th>Kind</th><th>Room</th><th>Serial</th><th>Firmware</th><th>Status</th></tr></thead>
-                <tbody>
-                  {gateways.data.map((g) => (
-                    <tr key={g.id}>
-                      <td>{g.name}</td>
-                      <td>{KIND[g.kind] ?? '—'}</td>
-                      <td>{g.room?.name ?? '—'}</td>
-                      <td className="num small">{g.serial}</td>
-                      <td className="small">{g.firmware ?? '—'}</td>
-                      <td>{online(g.lastSeenAt) ? <Badge tone="ok">Online</Badge> : <Badge tone="alert">{g.lastSeenAt ? `Last seen ${timeCairo(g.lastSeenAt)}` : 'Never seen'}</Badge>}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <Empty>No gateways yet.</Empty>
-          )}
-        </Card>
-        <Card title="Add a gateway">
-          <form className="stack" onSubmit={doClaim}>
-            <Field label="Claim code (on the label)" id="cc"><input id="cc" className="input" required placeholder="GW-XXXX-XXXX" value={claim.claimCode} onChange={(e) => setClaim({ ...claim, claimCode: e.target.value })} /></Field>
-            <Field label="Name" id="gn"><input id="gn" className="input" required placeholder="Room 204" value={claim.name} onChange={(e) => setClaim({ ...claim, name: e.target.value })} /></Field>
-            <div className="form-row">
-              <Field label="Where" id="gk">
+      {tab === 'gateways' && (
+        <>
+          <Section title={t.devices.claimTitle}>
+            <form className="form" onSubmit={doClaim}>
+              <Field label={t.devices.claimCode} id="cc"><input id="cc" className="input mono" dir="ltr" required placeholder="GW-XXXX-XXXX" value={claim.claimCode} onChange={(e) => setClaim({ ...claim, claimCode: e.target.value })} /></Field>
+              <Field label={t.common.name} id="gn"><input id="gn" className="input" required placeholder={t.devices.namePh} value={claim.name} onChange={(e) => setClaim({ ...claim, name: e.target.value })} /></Field>
+              <Field label={t.devices.kind} id="gk">
                 <select id="gk" className="input" value={claim.kind} onChange={(e) => setClaim({ ...claim, kind: e.target.value })}>
-                  <option value="ROOM">Lesson room</option>
-                  <option value="GATE">School gate</option>
-                  <option value="CANTEEN">Canteen</option>
-                  <option value="BUS">Bus</option>
+                  {['ROOM', 'GATE', 'CANTEEN', 'BUS'].map((k) => <option key={k} value={k}>{kindName(k)}</option>)}
                 </select>
               </Field>
               {claim.kind === 'ROOM' && (
-                <Field label="Room" id="gr">
+                <Field label={t.devices.room} id="gr">
                   <select id="gr" className="input" required value={claim.roomId} onChange={(e) => setClaim({ ...claim, roomId: e.target.value })}>
-                    <option value="">Choose</option>
+                    <option value="">{t.common.choose}</option>
                     {rooms.data?.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
                   </select>
                 </Field>
               )}
-            </div>
-            <button className="btn primary" type="submit" disabled={act.busy}>Add gateway</button>
-          </form>
-        </Card>
-      </div>
+              <div className="form-actions"><button className="btn primary" type="submit" disabled={act.busy}>{t.devices.claim}</button></div>
+            </form>
+          </Section>
+          <div className="panel scroll">
+            {gateways.data?.length ? (
+              <table style={{ minWidth: 680 }}>
+                <thead><tr><th>{t.common.name}</th><th>{t.devices.kind}</th><th>{t.devices.room}</th><th>{t.devices.lastSeen}</th><th>{t.devices.firmware}</th></tr></thead>
+                <tbody>
+                  {gateways.data.map((g) => (
+                    <tr key={g.id}>
+                      <td className="strong">{g.name}<span className="sub mono"><bdi dir="ltr">{g.serial}</bdi></span></td>
+                      <td>{kindName(g.kind)}</td>
+                      <td>{g.room?.name ?? '—'}</td>
+                      <td>{online(g.lastSeenAt) ? <Pill tone="P" glyph="✓">{t.devices.online}</Pill> : <Pill tone="A" glyph="✕">{g.lastSeenAt ? t.devices.lastSeenAt(timeCairo(g.lastSeenAt)) : t.devices.never}</Pill>}</td>
+                      <td className="mono">{g.firmware ?? '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <Empty>{t.devices.noGateways}</Empty>
+            )}
+          </div>
+          {deaf.map((r) => <Note key={r.id} tone="warn" title={t.devices.noGatewayIn(r.name)}>{t.devices.noGatewayText}</Note>)}
+        </>
+      )}
 
-      <div className="grid" style={{ gridTemplateColumns: 'minmax(0, 1.6fr) minmax(0, 1fr)' }}>
-        <Card title="Straps" pad={false}>
-          {straps.data?.length ? (
-            <div className="table-wrap">
-              <table>
-                <thead><tr><th>Strap</th><th>Student</th><th>Battery</th><th>Last heard</th></tr></thead>
+      {tab === 'straps' && (
+        <>
+          <Section title={t.devices.registerStrap}>
+            <form className="form" onSubmit={addStrap}>
+              <Field label={t.devices.address} id="sm"><input id="sm" className="input mono" dir="ltr" required placeholder="DC:0D:30:AA:4A:11" value={strap.mac} onChange={(e) => setStrap({ ...strap, mac: e.target.value })} /></Field>
+              <Field label={t.devices.studentOptional} id="ss">
+                <select id="ss" className="input" value={strap.studentId} onChange={(e) => setStrap({ ...strap, studentId: e.target.value })}>
+                  <option value="">{t.devices.spare}</option>
+                  {students.data?.filter((st) => !withStrap.has(st.id)).map((st) => <option key={st.id} value={st.id}>{st.firstName} {st.lastName}</option>)}
+                </select>
+              </Field>
+              <div className="form-actions"><button className="btn primary" type="submit" disabled={act.busy}>{t.devices.register}</button></div>
+            </form>
+          </Section>
+          <div className="panel scroll">
+            {straps.data?.length ? (
+              <table style={{ minWidth: 640 }}>
+                <thead><tr><th>{t.devices.address}</th><th>{t.devices.student}</th><th>{t.devices.battery}</th><th>{t.devices.lastSeen}</th></tr></thead>
                 <tbody>
                   {straps.data.map((s) => (
                     <tr key={s.id}>
-                      <td className="num small">{s.mac}</td>
+                      <td className="mono"><bdi dir="ltr">{s.mac}</bdi></td>
                       <td>
-                        <select className="input" aria-label={`Student for strap ${s.mac}`} value={s.studentId ?? ''} onChange={(e) => assign(s.id, e.target.value)}>
-                          <option value="">Spare</option>
+                        <select className="input" aria-label={t.devices.studentFor(s.mac)} value={s.studentId ?? ''} onChange={(e) => assign(s.id, e.target.value)}>
+                          <option value="">{t.devices.spare}</option>
                           {students.data?.filter((st) => st.id === s.studentId || !withStrap.has(st.id)).map((st) => (
                             <option key={st.id} value={st.id}>{st.firstName} {st.lastName}{st.class ? ` · ${st.class.name}` : ''}</option>
                           ))}
                         </select>
                       </td>
-                      <td>{s.battery == null ? '—' : <Badge tone={s.battery < 20 ? 'alert' : 'ok'}>{s.battery}%</Badge>}</td>
-                      <td className="small">{dateTimeCairo(s.lastSeenAt)}</td>
+                      <td className="num">{s.battery == null ? '—' : s.battery < 20 ? <Pill tone="L" glyph="!">{t.devices.low(s.battery)}</Pill> : `${s.battery}%`}</td>
+                      <td className="small num">{s.lastSeenAt ? dateTimeCairo(s.lastSeenAt) : t.devices.never}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-            </div>
-          ) : (
-            <Empty>No straps registered yet.</Empty>
-          )}
-        </Card>
-        <div className="stack" style={{ gap: 16 }}>
-          <Card title="Register a strap">
-            <form className="stack" onSubmit={addStrap}>
-              <Field label="Strap address (MAC)" id="sm"><input id="sm" className="input" required placeholder="DC:0D:30:AA:4A:11" value={strap.mac} onChange={(e) => setStrap({ ...strap, mac: e.target.value })} /></Field>
-              <Field label="Student (optional)" id="ss">
-                <select id="ss" className="input" value={strap.studentId} onChange={(e) => setStrap({ ...strap, studentId: e.target.value })}>
-                  <option value="">Spare</option>
-                  {students.data?.filter((st) => !withStrap.has(st.id)).map((st) => <option key={st.id} value={st.id}>{st.firstName} {st.lastName}</option>)}
-                </select>
-              </Field>
-              <button className="btn primary" type="submit" disabled={act.busy}>Register</button>
-            </form>
-          </Card>
-          <Card title="Detection rules">
-            <form className="stack" onSubmit={saveRules}>
-              <div className="form-row">
-                <Field label="Present if in the room for (%)" id="ps"><input id="ps" className="input" type="number" min={10} max={100} value={ruleForm.presentShare} onChange={(e) => setRuleForm({ ...ruleForm, presentShare: Number(e.target.value) })} /></Field>
-                <Field label="Late after (minutes)" id="la"><input id="la" className="input" type="number" min={0} value={ruleForm.lateAfterMinutes} onChange={(e) => setRuleForm({ ...ruleForm, lateAfterMinutes: Number(e.target.value) })} /></Field>
-              </div>
-              <div className="form-row">
-                <Field label="Gate signal (dBm)" id="gs"><input id="gs" className="input" type="number" max={0} min={-120} value={ruleForm.gateRssi} onChange={(e) => setRuleForm({ ...ruleForm, gateRssi: Number(e.target.value) })} /></Field>
-                <Field label="Room signal (dBm)" id="rs"><input id="rs" className="input" type="number" max={0} min={-120} value={ruleForm.roomRssi} onChange={(e) => setRuleForm({ ...ruleForm, roomRssi: Number(e.target.value) })} /></Field>
-              </div>
-              <span className="muted small">A strap heard by several gateways belongs to the loudest one, so rooms don’t count straps through the wall.</span>
-              <button className="btn" type="submit" disabled={act.busy}>Save rules</button>
-            </form>
-          </Card>
-        </div>
-      </div>
+            ) : (
+              <Empty>{t.devices.noStraps}</Empty>
+            )}
+          </div>
+        </>
+      )}
+
+      {tab === 'rules' && (
+        <form className="panel" onSubmit={saveRules}>
+          {rule('presentShare', t.devices.rPresent, t.devices.rPresentHelp, t.devices.pctOfLesson, 10, 100)}
+          {rule('lateAfterMinutes', t.devices.rLate, t.devices.rLateHelp, t.devices.min, 0, 60)}
+          {rule('gateRssi', t.devices.rGate, t.devices.rSignalHelp, 'dBm', -120, 0)}
+          {rule('roomRssi', t.devices.rRoom, t.devices.rSignalHelp, 'dBm', -120, 0)}
+          <div className="settings-row"><span><span>{t.devices.loudest}</span></span></div>
+        </form>
+      )}
     </>
   );
 }

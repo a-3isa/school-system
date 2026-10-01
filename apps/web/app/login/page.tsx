@@ -2,18 +2,20 @@
 import { FormEvent, Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { post, setToken } from '@/lib/api';
-import { ErrorNote } from '@/components/ui';
+import { useI18n } from '@/lib/i18n';
+import { ErrorNote, Field } from '@/components/ui';
 
 type Mode = 'signin' | 'forgot' | 'code';
 
 function LoginForm() {
+  const { t } = useI18n();
   const router = useRouter();
   const params = useSearchParams();
   const [mode, setMode] = useState<Mode>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
-  const [error, setError] = useState<string | null>(params.get('parent') ? 'Parents use the mobile app. This dashboard is for school staff.' : null);
+  const [error, setError] = useState<string | null>(params.get('parent') ? 'parent' : null);
   const [busy, setBusy] = useState(false);
 
   const go = (role: string) => router.replace(role === 'OWNER' ? '/owner' : role === 'TEACHER' ? '/class' : '/today');
@@ -32,7 +34,7 @@ function LoginForm() {
 
   function signedIn(res: { token: string; user: { role: string } }) {
     if (res.user.role === 'PARENT') {
-      setError('Parents use the mobile app. This dashboard is for school staff.');
+      setError('parent');
       return;
     }
     setToken(res.token);
@@ -46,50 +48,69 @@ function LoginForm() {
     if (mode === 'code') void run(async () => signedIn(await post('/auth/password/reset', { email, code, password })));
   }
 
+  const back = () => { setError(null); setCode(''); setMode('signin'); };
+
   return (
     <form onSubmit={submit}>
-      <div>
-        <div className="eyebrow">School Platform</div>
-        <h1>{mode === 'signin' ? 'Sign in' : 'New password'}</h1>
-      </div>
-      <ErrorNote error={error} />
-      <div className="field">
-        <label htmlFor="email">Email</label>
-        <input id="email" className="input" type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} required disabled={mode === 'code'} />
-      </div>
+      {mode !== 'signin' && <span className="small muted" style={{ fontWeight: 600 }}>{mode === 'forgot' ? t.login.step1 : t.login.step2}</span>}
+      <h1>{mode === 'signin' ? t.login.signIn : mode === 'forgot' ? t.login.resetTitle : t.login.checkEmail}</h1>
+      {mode === 'forgot' && <p>{t.login.resetSub}</p>}
+      {mode === 'code' && <p>{t.login.checkEmailSub} <b style={{ color: 'var(--ink)', fontWeight: 500 }}><bdi dir="ltr">{email}</bdi></b></p>}
+      <ErrorNote error={error === 'parent' ? t.login.parents : error} />
+      {mode !== 'code' && (
+        <Field label={t.common.email} id="email">
+          <input id="email" className="input" type="email" dir="ltr" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} required />
+        </Field>
+      )}
       {mode === 'code' && (
-        <>
-          <p className="muted small" style={{ margin: 0 }}>If this email has an account, a 6-digit code is on its way. It works for 15 minutes.</p>
-          <div className="field">
-            <label htmlFor="code">Code from the email</label>
-            <input id="code" className="input num" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={code} onChange={(e) => setCode(e.target.value)} required />
-          </div>
-        </>
+        <Field label={t.login.code} id="code">
+          <input id="code" className="input num code-input" dir="ltr" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={code} onChange={(e) => setCode(e.target.value)} required />
+        </Field>
       )}
       {mode !== 'forgot' && (
-        <div className="field">
-          <label htmlFor="password">{mode === 'code' ? 'New password (8 characters or more)' : 'Password'}</label>
+        <Field label={mode === 'code' ? t.login.newPassword : t.login.password} id="password" help={mode === 'code' ? t.login.pwHelp : undefined}>
           <input id="password" className="input" type="password" minLength={mode === 'code' ? 8 : undefined} autoComplete={mode === 'code' ? 'new-password' : 'current-password'} value={password} onChange={(e) => setPassword(e.target.value)} required />
-        </div>
+        </Field>
       )}
       <button className="btn primary" type="submit" disabled={busy}>
-        {busy ? 'One moment…' : mode === 'signin' ? 'Sign in' : mode === 'forgot' ? 'Email me a code' : 'Save and sign in'}
+        {busy ? t.common.oneMoment : mode === 'signin' ? t.login.signIn : mode === 'forgot' ? t.login.sendCode : t.login.saveSignIn}
       </button>
-      {mode === 'signin' ? (
-        <button className="btn" type="button" onClick={() => { setError(null); setMode('forgot'); }}>Forgot password?</button>
-      ) : (
-        <button className="btn" type="button" onClick={() => { setError(null); setCode(''); setMode('signin'); }}>Back to sign in</button>
+      {mode === 'signin' && <button className="btn link" type="button" style={{ alignSelf: 'flex-start' }} onClick={() => { setError(null); setMode('forgot'); }}>{t.login.forgot}</button>}
+      {mode === 'forgot' && <button className="btn link" type="button" style={{ alignSelf: 'flex-start' }} onClick={back}>{t.login.back}</button>}
+      {mode === 'code' && (
+        <>
+          <p className="small">{t.login.noCode}</p>
+          <button className="btn link" type="button" style={{ alignSelf: 'flex-start' }} onClick={back}>{t.login.back}</button>
+        </>
       )}
     </form>
   );
 }
 
 export default function LoginPage() {
+  const { t, lang, setLang } = useI18n();
   return (
-    <div className="login">
-      <Suspense>
-        <LoginForm />
-      </Suspense>
+    <div className="signin">
+      <section className="signin-side">
+        <b>{t.common.platformName}</b>
+        <div>
+          <div className="signin-ruler" aria-hidden="true">
+            {[['45', 'var(--dash)'], ['45', 'var(--dash)'], ['20', 'transparent'], ['45', 'var(--accent)'], ['45', ''], ['20', 'transparent'], ['45', ''], ['45', '']].map(([f, c], i) => (
+              <span key={i} style={{ flex: Number(f), height: c === 'var(--accent)' ? 14 : 6, background: c || undefined, borderRadius: 3 }} />
+            ))}
+          </div>
+          <p>{t.login.tagline}</p>
+        </div>
+        <small>{t.login.help}</small>
+      </section>
+      <section className="signin-main">
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <button type="button" className="btn small" lang={lang === 'en' ? 'ar' : 'en'} onClick={() => setLang(lang === 'en' ? 'ar' : 'en')}>{lang === 'en' ? 'عربي' : 'English'}</button>
+        </div>
+        <Suspense>
+          <LoginForm />
+        </Suspense>
+      </section>
     </div>
   );
 }

@@ -2,6 +2,7 @@
 import { createContext, ReactNode, useContext, useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { api, getToken, setToken } from './api';
+import { useI18n } from './i18n';
 
 export interface Me {
   id: string;
@@ -29,6 +30,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [me, setMe] = useState<Me | null>(null);
   const router = useRouter();
   const pathname = usePathname();
+  const { t } = useI18n();
 
   const refresh = async () => setMe(await api<Me>('/auth/me'));
 
@@ -56,6 +58,6 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     router.replace('/login');
   };
 
-  if (!me) return <div className="empty">Loading…</div>;
+  if (!me) return <div className="loading">{t.common.loading}</div>;
   return <SessionContext.Provider value={{ me, refresh, logout }}>{children}</SessionContext.Provider>;
 }

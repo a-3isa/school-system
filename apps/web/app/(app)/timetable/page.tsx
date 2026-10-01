@@ -1,14 +1,14 @@
 'use client';
-import { FormEvent, useEffect, useState } from 'react';
-import { del, post } from '@/lib/api';
+import { Fragment, useEffect, useState } from 'react';
+import { del, post, todayCairo } from '@/lib/api';
 import { useAction, useApi } from '@/lib/hooks';
+import { useI18n } from '@/lib/i18n';
 import { useSession } from '@/lib/session';
-import { Card, Empty, ErrorNote, Field, PageHead, toast } from '@/components/ui';
-
-const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+import { Empty, ErrorNote, PageHead, Tabs } from '@/components/ui';
 
 export default function TimetablePage() {
   const { me } = useSession();
+  const { t, x } = useI18n();
   const isAdmin = me.role === 'SCHOOL_ADMIN';
   // A teacher sees their own week across all their classes.
   const isTeacher = me.role === 'TEACHER';
@@ -19,112 +19,99 @@ export default function TimetablePage() {
   }, [classes.data, classId]);
   const entries = useApi<any[]>(isTeacher ? '/timetable' : classId ? `/timetable?classId=${classId}` : null);
   const periods = useApi<any[]>('/periods');
-  const rooms = useApi<any[]>('/rooms');
-  const subjects = useApi<any[]>('/subjects');
+  const rooms = useApi<any[]>(isAdmin ? '/rooms' : null);
+  const subjects = useApi<any[]>(isAdmin ? '/subjects' : null);
   const teachers = useApi<any[]>(isAdmin ? '/staff?role=TEACHER' : null);
   const school = useApi('/school');
   const act = useAction();
-  const [form, setForm] = useState({ dayOfWeek: 0, periodId: '', roomId: '', subjectId: '', teacherId: '' });
+  /** The empty cell being filled in, as "day:periodId", and why the last add failed there. */
+  const [picking, setPicking] = useState<string | null>(null);
+  const [pick, setPick] = useState({ subjectId: '', roomId: '', teacherId: '' });
+  const [cellError, setCellError] = useState<{ key: string; message: string } | null>(null);
 
   const days: number[] = school.data?.schoolDays ?? [0, 1, 2, 3, 4];
+  const today = new Date(`${todayCairo()}T00:00:00Z`).getUTCDay();
+  const sortedPeriods = [...(periods.data ?? [])].sort((a, b) => a.number - b.number);
   const at = (d: number, p: string) => entries.data?.find((e) => e.dayOfWeek === d && e.periodId === p);
 
-  async function add(e: FormEvent) {
-    e.preventDefault();
-    if (await act.run(() => post('/timetable', { ...form, classId, dayOfWeek: Number(form.dayOfWeek), teacherId: form.teacherId || undefined }))) {
-      toast('Lesson added.');
+  function startPick(key: string) {
+    setPicking(key);
+    setCellError(null);
+    setPick({ subjectId: '', roomId: '', teacherId: '' });
+  }
+
+  async function add(d: number, periodId: string) {
+    const key = `${d}:${periodId}`;
+    try {
+      await post('/timetable', { classId, dayOfWeek: d, periodId, subjectId: pick.subjectId, roomId: pick.roomId, teacherId: pick.teacherId || undefined });
+      setPicking(null);
       await entries.reload();
+    } catch (e) {
+      // A clash (teacher or room already busy) is shown right in the cell.
+      setCellError({ key, message: (e as Error).message });
     }
   }
 
   return (
     <>
-      <PageHead
-        eyebrow={isTeacher ? me.name : 'School setup'}
-        title={isTeacher ? 'My timetable' : 'Timetable'}
-        sub={isTeacher ? 'Your lessons this week: class, subject and room.' : 'Which class is in which room each period. Automatic attendance uses it to know whose straps a room gateway should hear.'}
-        actions={
-          !isTeacher && <Field label="Class" id="cls">
-            <select id="cls" className="input" value={classId} onChange={(e) => setClassId(e.target.value)}>
-              {classes.data?.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
-          </Field>
-        }
-      />
+      <PageHead sub={isTeacher ? t.tt.subMine : t.tt.sub} title={isTeacher ? t.tt.mine : t.nav.timetable} />
+      {!isTeacher && <Tabs label={t.common.class} value={classId} onChange={(v) => { setClassId(v); setPicking(null); }} items={(classes.data ?? []).map((c): [string, string] => [c.id, c.name])} />}
       <ErrorNote error={act.error ?? entries.error} />
-      <Card pad={false}>
-        {periods.data?.length ? (
-          <div className="table-wrap" style={{ padding: 16 }}>
-            <div className="tt" style={{ gridTemplateColumns: `90px repeat(${days.length}, minmax(0, 1fr))` }}>
-              <div />
-              {days.map((d) => <div key={d} className="tt-head">{DAYS[d]}</div>)}
-              {periods.data.map((p) => (
-                <FragmentRow key={p.id}>
-                  <div className="small muted num">{p.number} · {p.startTime}</div>
-                  {days.map((d) => {
-                    const e = at(d, p.id);
-                    return (
-                      <div key={d} className="tt-cell">
-                        {e ? (
-                          <>
-                            <b>{isTeacher ? `${e.class?.name} · ${e.subject.name}` : e.subject.name}</b>
-                            <span className="muted">{e.room.name}{!isTeacher && e.teacher ? ` · ${e.teacher.name}` : ''}</span>
-                            {isAdmin && (
-                              <div><button className="btn small" style={{ marginTop: 4 }} onClick={async () => { if (await act.run(() => del(`/timetable/${e.id}`))) await entries.reload(); }}>Remove</button></div>
-                            )}
-                          </>
-                        ) : null}
-                      </div>
-                    );
-                  })}
-                </FragmentRow>
-              ))}
-            </div>
+      <div className="panel scroll">
+        {sortedPeriods.length ? (
+          <div className="tt" style={{ gridTemplateColumns: `92px repeat(${days.length}, minmax(150px, 1fr))` }}>
+            <span className="h" />
+            {days.map((d) => <span key={d} className={`h${d === today ? ' today' : ''}`}>{d === today ? `${t.days[d]} · ${t.tt.today}` : t.days[d]}</span>)}
+            {sortedPeriods.map((p) => (
+              <Fragment key={p.id}>
+                <span className="p"><b>{t.lessons.p(p.number)}</b><span className="ltr">{p.startTime}–{p.endTime}</span></span>
+                {days.map((d) => {
+                  const e = at(d, p.id);
+                  const key = `${d}:${p.id}`;
+                  return (
+                    <div key={d} className={`c${d === today ? ' today' : ''}`}>
+                      {e ? (
+                        <div className="lessoncell">
+                          <b>{x(isTeacher ? `${e.class?.name} · ${e.subject.name}` : e.subject.name)}</b>
+                          <span>{e.room.name}</span>
+                          {!isTeacher && e.teacher && <span>{e.teacher.name}</span>}
+                          {isAdmin && (
+                            <button type="button" className="icon-btn" aria-label={t.tt.remove} title={t.tt.remove} onClick={async () => { if (await act.run(() => del(`/timetable/${e.id}`))) await entries.reload(); }}>✕</button>
+                          )}
+                        </div>
+                      ) : isAdmin && picking === key ? (
+                        <form className="pickcell" onSubmit={(ev) => { ev.preventDefault(); void add(d, p.id); }}>
+                          <select required autoFocus aria-label={t.tt.subject} value={pick.subjectId} onChange={(ev) => setPick({ ...pick, subjectId: ev.target.value })}>
+                            <option value="">{t.tt.subject}</option>
+                            {subjects.data?.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                          </select>
+                          <select required aria-label={t.tt.room} value={pick.roomId} onChange={(ev) => setPick({ ...pick, roomId: ev.target.value })}>
+                            <option value="">{t.tt.room}</option>
+                            {rooms.data?.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+                          </select>
+                          <select aria-label={t.tt.teacher} value={pick.teacherId} onChange={(ev) => setPick({ ...pick, teacherId: ev.target.value })}>
+                            <option value="">{t.tt.teacher}</option>
+                            {teachers.data?.map((tc) => <option key={tc.id} value={tc.id}>{tc.name}</option>)}
+                          </select>
+                          {cellError?.key === key && <span className="cell-error" role="alert">✕ {cellError.message}</span>}
+                          <span className="row">
+                            <button type="submit" className="btn primary">{t.common.add}</button>
+                            <button type="button" className="btn" onClick={() => setPicking(null)}>{t.common.cancel}</button>
+                          </span>
+                        </form>
+                      ) : isAdmin ? (
+                        <button type="button" className="addcell" onClick={() => startPick(key)}>+ {t.tt.addLesson}</button>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </Fragment>
+            ))}
           </div>
         ) : (
-          <Empty>Add periods first (Classes, rooms &amp; periods).</Empty>
+          <Empty>{t.tt.addPeriodsFirst}</Empty>
         )}
-      </Card>
-      {isAdmin && classId && (
-        <Card title="Add a lesson">
-          <form className="form-row" onSubmit={add}>
-            <Field label="Day" id="d">
-              <select id="d" className="input" value={form.dayOfWeek} onChange={(e) => setForm({ ...form, dayOfWeek: Number(e.target.value) })}>
-                {days.map((d) => <option key={d} value={d}>{DAYS[d]}</option>)}
-              </select>
-            </Field>
-            <Field label="Period" id="p">
-              <select id="p" className="input" required value={form.periodId} onChange={(e) => setForm({ ...form, periodId: e.target.value })}>
-                <option value="">Choose</option>
-                {periods.data?.map((p) => <option key={p.id} value={p.id}>{p.number} · {p.startTime}</option>)}
-              </select>
-            </Field>
-            <Field label="Subject" id="s">
-              <select id="s" className="input" required value={form.subjectId} onChange={(e) => setForm({ ...form, subjectId: e.target.value })}>
-                <option value="">Choose</option>
-                {subjects.data?.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
-            </Field>
-            <Field label="Room" id="r">
-              <select id="r" className="input" required value={form.roomId} onChange={(e) => setForm({ ...form, roomId: e.target.value })}>
-                <option value="">Choose</option>
-                {rooms.data?.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
-              </select>
-            </Field>
-            <Field label="Teacher" id="t">
-              <select id="t" className="input" value={form.teacherId} onChange={(e) => setForm({ ...form, teacherId: e.target.value })}>
-                <option value="">None</option>
-                {teachers.data?.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
-              </select>
-            </Field>
-            <button className="btn primary" type="submit" disabled={act.busy}>Add lesson</button>
-          </form>
-        </Card>
-      )}
+      </div>
     </>
   );
-}
-
-function FragmentRow({ children }: { children: React.ReactNode }) {
-  return <>{children}</>;
 }

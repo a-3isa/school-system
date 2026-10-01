@@ -7,12 +7,15 @@ export function useApi<T = any>(path: string | null) {
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(!!path);
+  /** When the data last arrived, for "Updated just now". */
+  const [loadedAt, setLoadedAt] = useState<number | null>(null);
 
   const reload = useCallback(async () => {
     if (!path) return;
     setLoading(true);
     try {
       setData(await api<T>(path));
+      setLoadedAt(Date.now());
       setError(null);
     } catch (e) {
       setError((e as Error).message);
@@ -25,7 +28,16 @@ export function useApi<T = any>(path: string | null) {
     void reload();
   }, [reload]);
 
-  return { data, error, loading, reload, setData };
+  return { data, error, loading, loadedAt, reload, setData };
+}
+
+/** Calls `fn` every `ms` while `on` is true. */
+export function useEvery(ms: number, fn: () => unknown, on = true) {
+  useEffect(() => {
+    if (!on) return;
+    const t = setInterval(() => void fn(), ms);
+    return () => clearInterval(t);
+  }, [ms, fn, on]);
 }
 
 /** Runs an action, reporting failures; returns true when it worked. */

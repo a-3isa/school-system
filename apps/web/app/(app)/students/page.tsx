@@ -1,26 +1,33 @@
 'use client';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { FormEvent, useState } from 'react';
 import { post } from '@/lib/api';
 import { useAction, useApi } from '@/lib/hooks';
+import { useI18n } from '@/lib/i18n';
 import { useSession } from '@/lib/session';
-import { Card, Empty, ErrorNote, Field, PageHead, toast } from '@/components/ui';
+import { Empty, ErrorNote, Field, PageHead, Tabs, toast } from '@/components/ui';
+
+const BLANK = { code: '', firstName: '', lastName: '', nameAr: '', classId: '' };
 
 export default function StudentsPage() {
   const { me } = useSession();
+  const { t, lang } = useI18n();
+  const router = useRouter();
   const isAdmin = me.role === 'SCHOOL_ADMIN';
   const [q, setQ] = useState('');
   const [classId, setClassId] = useState('');
   const students = useApi<any[]>(`/students?active=true${q ? `&q=${encodeURIComponent(q)}` : ''}${classId ? `&classId=${classId}` : ''}`);
   const classes = useApi<any[]>('/classes');
   const act = useAction();
-  const [form, setForm] = useState({ code: '', firstName: '', lastName: '', nameAr: '', classId: '' });
+  const [adding, setAdding] = useState(false);
+  const [form, setForm] = useState(BLANK);
 
   async function add(e: FormEvent) {
     e.preventDefault();
     if (await act.run(() => post('/students', { ...form, nameAr: form.nameAr || undefined, classId: form.classId || undefined }))) {
-      toast(`${form.firstName} added.`);
-      setForm({ code: '', firstName: '', lastName: '', nameAr: '', classId: form.classId });
+      toast(t.students.added(form.firstName));
+      setForm({ ...BLANK, classId: form.classId });
       await students.reload();
     }
   }
@@ -28,66 +35,67 @@ export default function StudentsPage() {
   return (
     <>
       <PageHead
-        eyebrow="People"
-        title="Students & parents"
-        sub="One record per child, shared by every module. Each child can have up to two parent accounts."
-        actions={isAdmin && <Link className="btn" href="/students/import">Import from Excel</Link>}
+        sub={students.data ? t.students.sub(students.data.length) : undefined}
+        title={isAdmin ? t.nav.students : t.students.titleStaff}
+        actions={isAdmin && (
+          <>
+            <button type="button" className="btn primary" onClick={() => setAdding(true)}>{t.students.add}</button>
+            <Link className="btn" href="/students/import">{t.nav.import}</Link>
+          </>
+        )}
       />
-      <div className="form-row">
-        <Field label="Search" id="q">
-          <input id="q" className="input" placeholder="Name or student code" value={q} onChange={(e) => setQ(e.target.value)} />
-        </Field>
-        <Field label="Class" id="cls">
-          <select id="cls" className="input" value={classId} onChange={(e) => setClassId(e.target.value)}>
-            <option value="">All classes</option>
-            {classes.data?.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
-        </Field>
-      </div>
+      <input type="search" className="input" aria-label={t.students.search} placeholder={t.students.search} value={q} onChange={(e) => setQ(e.target.value)} />
+      <Tabs label={t.common.class} value={classId} onChange={setClassId} items={[['', t.common.allClasses], ...(classes.data ?? []).map((c): [string, string] => [c.id, c.name])]} />
+      {isAdmin && adding && (
+        <form className="form" onSubmit={add}>
+          <div className="form-title">{t.students.add}</div>
+          {act.error && <div className="full"><ErrorNote error={act.error} /></div>}
+          <Field label={t.students.firstName} id="fn"><input id="fn" className="input" required value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} /></Field>
+          <Field label={t.students.lastName} id="ln"><input id="ln" className="input" required value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} /></Field>
+          <Field label={t.students.nameAr} id="ar"><input id="ar" className="input" dir="rtl" value={form.nameAr} onChange={(e) => setForm({ ...form, nameAr: e.target.value })} /></Field>
+          <Field label={t.students.code} id="code"><input id="code" className="input mono" dir="ltr" required placeholder="NV-4A-13" value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} /></Field>
+          <Field label={t.common.class} id="fc">
+            <select id="fc" className="input" value={form.classId} onChange={(e) => setForm({ ...form, classId: e.target.value })}>
+              <option value="">{t.students.noClass}</option>
+              {classes.data?.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </Field>
+          <div className="form-actions">
+            <button className="btn primary" type="submit" disabled={act.busy}>{t.students.add}</button>
+            <button className="btn" type="button" onClick={() => setAdding(false)}>{t.common.cancel}</button>
+          </div>
+        </form>
+      )}
       <ErrorNote error={students.error} />
-      <div className="grid" style={{ gridTemplateColumns: isAdmin ? 'minmax(0, 1.6fr) minmax(0, 1fr)' : '1fr' }}>
-        <Card title={`${students.data?.length ?? '…'} students`} pad={false}>
-          {students.data?.length ? (
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr><th>Name</th><th>Code</th><th>Class</th><th>Parents</th></tr>
-                </thead>
-                <tbody>
-                  {students.data.map((s) => (
-                    <tr key={s.id}>
-                      <td><Link href={`/students/${s.id}`}>{s.firstName} {s.lastName}</Link>{s.nameAr && <div className="muted small" dir="rtl">{s.nameAr}</div>}</td>
-                      <td className="num">{s.code}</td>
-                      <td>{s.class?.name ?? '—'}</td>
-                      <td>{s.guardians.length ? s.guardians.map((g: any) => g.user.name).join(', ') : <span className="muted">None yet</span>}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <Empty>{students.loading ? 'Loading…' : 'No students match.'}</Empty>
-          )}
-        </Card>
-        {isAdmin && (
-          <Card title="Add a student">
-            <form className="stack" onSubmit={add}>
-              <ErrorNote error={act.error} />
-              <Field label="Student code" id="code"><input id="code" className="input" required value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} /></Field>
-              <div className="form-row">
-                <Field label="First name" id="fn"><input id="fn" className="input" required value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} /></Field>
-                <Field label="Last name" id="ln"><input id="ln" className="input" required value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} /></Field>
-              </div>
-              <Field label="Name in Arabic (optional)" id="ar"><input id="ar" className="input" dir="rtl" value={form.nameAr} onChange={(e) => setForm({ ...form, nameAr: e.target.value })} /></Field>
-              <Field label="Class" id="fc">
-                <select id="fc" className="input" value={form.classId} onChange={(e) => setForm({ ...form, classId: e.target.value })}>
-                  <option value="">No class yet</option>
-                  {classes.data?.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-              </Field>
-              <button className="btn primary" type="submit" disabled={act.busy}>Add student</button>
-            </form>
-          </Card>
+      <div className="panel scroll">
+        {students.data?.length ? (
+          <table style={{ minWidth: 640 }}>
+            <thead><tr><th>{t.common.name}</th><th>{t.students.code}</th><th>{t.common.class}</th><th>{t.students.parents}</th></tr></thead>
+            <tbody>
+              {students.data.map((s) => {
+                const latin = `${s.firstName} ${s.lastName}`;
+                const main = lang === 'ar' && s.nameAr ? s.nameAr : latin;
+                const other = lang === 'ar' ? (s.nameAr ? latin : null) : s.nameAr;
+                return (
+                  <tr key={s.id} className="click" onClick={() => router.push(`/students/${s.id}`)}>
+                    <td>
+                      <Link href={`/students/${s.id}`} className="strong" style={{ color: 'var(--ink)', textDecoration: 'none' }}>{main}</Link>
+                      {other && <span className="sub" dir="auto">{other}</span>}
+                    </td>
+                    <td className="mono muted"><bdi dir="ltr">{s.code}</bdi></td>
+                    <td><bdi dir="ltr">{s.class?.name ?? '—'}</bdi></td>
+                    <td>
+                      {s.guardians.length
+                        ? s.guardians.map((g: any) => `${g.user.name} (${g.relation === 'MOTHER' ? t.students.mother : t.students.father})`).join(', ')
+                        : <span style={{ color: 'var(--l)', fontWeight: 600 }}>{t.students.noParent}</span>}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        ) : (
+          <Empty>{students.loading ? t.common.loading : t.students.noMatch}</Empty>
         )}
       </div>
     </>

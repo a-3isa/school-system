@@ -7,7 +7,7 @@ import { AttendanceList } from '@/components/AttendanceList';
 function RosterRoute() {
   const { classId, periodId } = useParams<{ classId: string; periodId: string }>();
   const date = useSearchParams().get('date') ?? todayCairo();
-  return <AttendanceList classId={classId} periodId={periodId} date={date} />;
+  return <AttendanceList classId={classId} periodId={periodId} date={date} crumb />;
 }
 
 export default function RosterPage() {
