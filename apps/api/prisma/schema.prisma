@@ -1,0 +1,494 @@
+// School platform — Phase 1 data model (core, timetable, people).
+// Every school-owned row carries schoolId; queries are always scoped by it.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Plan {
+  ESSENTIALS
+  SMART
+  COMPLETE
+}
+
+enum AttendanceMode {
+  MANUAL
+  AUTOMATIC
+}
+
+enum Role {
+  OWNER // platform owner, not tied to a school
+  SCHOOL_ADMIN
+  TEACHER
+  TRANSPORT
+  NURSE
+  CANTEEN
+  ACCOUNTANT
+  PARENT
+}
+
+enum RoomKind {
+  CLASSROOM
+  LAB
+  LIBRARY
+  SPORTS
+  OTHER
+}
+
+enum GuardianRelation {
+  MOTHER
+  FATHER
+}
+
+model School {
+  id                String         @id @default(cuid())
+  name              String
+  nameAr            String?
+  timezone          String         @default("Africa/Cairo")
+  plan              Plan           @default(ESSENTIALS)
+  attendanceMode    AttendanceMode @default(MANUAL)
+  // Time (HH:mm, school time zone) when "absent today" notices go to parents.
+  absenceNoticeTime String         @default("08:15")
+  // Weekdays with lessons, 0 = Sunday … 6 = Saturday.
+  schoolDays        Int[]          @default([0, 1, 2, 3, 4])
+  createdAt         DateTime       @default(now())
+
+  modules    SchoolModule[]
+  users      User[]
+  grades     Grade[]
+  classes    Class[]
+  rooms      Room[]
+  subjects   Subject[]
+  periods    Period[]
+  timetable  TimetableEntry[]
+  students   Student[]
+  auditLogs  AuditLog[]
+  attendance AttendanceRecord[]
+  classAways ClassAway[]
+  notifications Notification[]
+  gateways   Gateway[]
+  straps     Strap[]
+  exceptions AttendanceException[]
+  // Detection rules for automatic attendance; see src/devices/rules.ts.
+  detection  Json @default("{}")
+}
+
+model SchoolModule {
+  schoolId  String
+  key       String
+  enabled   Boolean  @default(false)
+  // Feature switches inside the module, e.g. { "perPeriod": true }.
+  features  Json     @default("{}")
+  updatedAt DateTime @updatedAt
+
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@id([schoolId, key])
+}
+
+model User {
+  id           String   @id @default(cuid())
+  schoolId     String?
+  name         String
+  email        String?  @unique
+  phone        String?  @unique
+  passwordHash String?
+  role         Role
+  active       Boolean  @default(true)
+  // When a parent agreed to their child's presence and location being tracked (decision H39).
+  consentAt    DateTime?
+  createdAt    DateTime @default(now())
+
+  school      School?           @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  children    StudentGuardian[]
+  teaching    TimetableEntry[]
+  homerooms   Class[]
+  marked      AttendanceRecord[]
+  notifications Notification[]
+
+  @@index([schoolId, role])
+}
+
+model Grade {
+  id       String @id @default(cuid())
+  schoolId String
+  name     String
+  order    Int
+
+  school  School  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  classes Class[]
+
+  @@unique([schoolId, name])
+}
+
+model Class {
+  id                String  @id @default(cuid())
+  schoolId          String
+  gradeId           String
+  name              String
+  homeroomTeacherId String?
+
+  school          School           @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  grade           Grade            @relation(fields: [gradeId], references: [id], onDelete: Restrict)
+  homeroomTeacher User?            @relation(fields: [homeroomTeacherId], references: [id], onDelete: SetNull)
+  students        Student[]
+  timetable       TimetableEntry[]
+  attendance      AttendanceRecord[]
+  aways           ClassAway[]
+
+  @@unique([schoolId, name])
+}
+
+model Room {
+  id       String   @id @default(cuid())
+  schoolId String
+  name     String
+  kind     RoomKind @default(CLASSROOM)
+
+  school    School           @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  timetable TimetableEntry[]
+  gateways  Gateway[]
+
+  @@unique([schoolId, name])
+}
+
+model Subject {
+  id       String @id @default(cuid())
+  schoolId String
+  name     String
+
+  school    School           @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  timetable TimetableEntry[]
+
+  @@unique([schoolId, name])
+}
+
+// The school's bell schedule: period 1 is 08:00–08:45, and so on.
+model Period {
+  id        String @id @default(cuid())
+  schoolId  String
+  number    Int
+  startTime String // HH:mm
+  endTime   String // HH:mm
+
+  school     School             @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  timetable  TimetableEntry[]
+  attendance AttendanceRecord[]
+
+  @@unique([schoolId, number])
+}
+
+// One lesson: this class, on this weekday and period, in this room.
+model TimetableEntry {
+  id        String @id @default(cuid())
+  schoolId  String
+  classId   String
+  dayOfWeek Int // 0 = Sunday … 6 = Saturday
+  periodId  String
+  roomId    String
+  subjectId String
+  teacherId String?
+
+  school  School  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  class   Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
+  period  Period  @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  room    Room    @relation(fields: [roomId], references: [id], onDelete: Restrict)
+  subject Subject @relation(fields: [subjectId], references: [id], onDelete: Restrict)
+  teacher User?   @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+
+  @@unique([classId, dayOfWeek, periodId])
+  @@unique([roomId, dayOfWeek, periodId])
+  @@unique([teacherId, dayOfWeek, periodId])
+  @@index([schoolId, dayOfWeek])
+}
+
+model Student {
+  id           String    @id @default(cuid())
+  schoolId     String
+  code         String
+  firstName    String
+  lastName     String
+  nameAr       String?
+  classId      String?
+  dateOfBirth  DateTime?
+  photoUrl     String?
+  medicalNotes String?
+  active       Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+
+  school     School             @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  class      Class?             @relation(fields: [classId], references: [id], onDelete: SetNull)
+  guardians  StudentGuardian[]
+  attendance AttendanceRecord[]
+  absenceNotices AbsenceNotice[]
+  strap      Strap?
+  presence   GatePresence[]
+  exceptions AttendanceException[]
+
+  @@unique([schoolId, code])
+  @@index([schoolId, classId])
+}
+
+// A parent linked to a child. At most two per student (mother and father).
+model StudentGuardian {
+  studentId  String
+  userId     String
+  relation   GuardianRelation
+  // Set by the school to limit what this parent sees (e.g. separated families).
+  restricted Boolean          @default(false)
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([studentId, userId])
+  @@unique([studentId, relation])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  schoolId  String?
+  actorId   String?
+  action    String
+  entity    String
+  entityId  String?
+  data      Json?
+  createdAt DateTime @default(now())
+
+  school School? @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId, createdAt])
+}
+
+enum AttendanceStatus {
+  PRESENT
+  LATE
+  ABSENT
+  EXCUSED
+  ON_TRIP
+}
+
+enum AttendanceSource {
+  MANUAL // marked on the classroom PC or the dashboard
+  AUTOMATIC // decided from BLE strap sightings
+}
+
+// One student's attendance in one period on one day.
+model AttendanceRecord {
+  id          String           @id @default(cuid())
+  schoolId    String
+  studentId   String
+  classId     String
+  periodId    String
+  date        DateTime         @db.Date
+  status      AttendanceStatus
+  source      AttendanceSource
+  reason      String?
+  markedById  String?
+  // Automatic mode: when the strap was first seen in the room and for how long.
+  firstSeenAt DateTime?
+  secondsSeen Int?
+  updatedAt   DateTime         @updatedAt
+
+  school   School  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student  Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  class    Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
+  period   Period  @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  markedBy User?   @relation(fields: [markedById], references: [id], onDelete: SetNull)
+
+  @@unique([studentId, date, periodId])
+  @@index([schoolId, date])
+  @@index([classId, date])
+}
+
+// A class away from its rooms (trip, exam elsewhere), set in advance so
+// nobody is flagged absent. Null periods = the whole day.
+model ClassAway {
+  id          String   @id @default(cuid())
+  schoolId    String
+  classId     String
+  date        DateTime @db.Date
+  fromPeriod  Int?
+  toPeriod    Int?
+  reason      String
+  createdById String?
+  createdAt   DateTime @default(now())
+
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  class  Class  @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId, date])
+}
+
+// Push notifications to users. Sending is done by the notifications worker;
+// the row also serves as the in-app notification list.
+model Notification {
+  id        String    @id @default(cuid())
+  schoolId  String
+  userId    String
+  type      String
+  title     String
+  body      String
+  data      Json?
+  createdAt DateTime  @default(now())
+  sentAt    DateTime?
+  readAt    DateTime?
+
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([sentAt])
+}
+
+// Makes sure the "absent today" notice goes out once per student per day.
+model AbsenceNotice {
+  studentId String
+  date      DateTime @db.Date
+  sentAt    DateTime @default(now())
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@id([studentId, date])
+}
+
+enum GatewayKind {
+  GATE
+  ROOM
+  BUS
+  CANTEEN
+}
+
+// A BLE gateway (ESP32). Registered by the platform owner with a serial,
+// a claim code and a secret; a school claims it with the claim code.
+model Gateway {
+  id         String       @id @default(cuid())
+  serial     String       @unique
+  claimCode  String       @unique
+  secretHash String
+  schoolId   String?
+  name       String?
+  kind       GatewayKind?
+  roomId     String?
+  firmware   String?
+  lastSeenAt DateTime?
+  createdAt  DateTime     @default(now())
+
+  school    School?    @relation(fields: [schoolId], references: [id], onDelete: SetNull)
+  room      Room?      @relation(fields: [roomId], references: [id], onDelete: SetNull)
+  sightings Sighting[]
+
+  @@index([schoolId])
+}
+
+// A student's FSC-BP107D strap, identified by its BLE MAC address.
+model Strap {
+  id         String    @id @default(cuid())
+  schoolId   String
+  mac        String
+  studentId  String?   @unique
+  battery    Int?
+  lastSeenAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  school    School     @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student   Student?   @relation(fields: [studentId], references: [id], onDelete: SetNull)
+  sightings Sighting[]
+
+  @@unique([schoolId, mac])
+}
+
+// Raw "gateway heard strap" rows. Kept for one week (decision H38).
+model Sighting {
+  id        BigInt   @id @default(autoincrement())
+  schoolId  String
+  gatewayId String
+  strapId   String
+  rssi      Int
+  seenAt    DateTime
+
+  gateway Gateway @relation(fields: [gatewayId], references: [id], onDelete: Cascade)
+  strap   Strap   @relation(fields: [strapId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId, seenAt])
+  @@index([strapId, seenAt])
+}
+
+// Arrival and departure through the school gates, one row per child per day.
+model GatePresence {
+  studentId String
+  date      DateTime  @db.Date
+  arrivedAt DateTime?
+  lastGateAt DateTime?
+  leftAt    DateTime?
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@id([studentId, date])
+}
+
+enum ExceptionType {
+  NOT_IN_CLASS // at school (arrived through the gate) but not in the lesson
+  LEFT_LESSON // in the lesson for less than the required share
+  LEFT_EARLY // went out through the gate during the school day
+  STRAP_NOT_SEEN // present by manual mark but the strap wasn't heard
+  LOW_BATTERY
+  GATEWAY_OFFLINE // a lesson couldn't be decided automatically; mark it manually
+}
+
+enum ExceptionStatus {
+  OPEN
+  RESOLVED
+}
+
+// Things a person has to look at, shown on the dashboard.
+model AttendanceException {
+  id          String          @id @default(cuid())
+  schoolId    String
+  type        ExceptionType
+  status      ExceptionStatus @default(OPEN)
+  date        DateTime        @db.Date
+  studentId   String?
+  gatewayId   String?
+  classId     String?
+  periodId    String?
+  message     String
+  // Stops the same exception being raised twice.
+  dedupeKey   String          @unique
+  note        String?
+  resolvedById String?
+  resolvedAt  DateTime?
+  createdAt   DateTime        @default(now())
+
+  school  School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student Student? @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId, date, status])
+}
+
+// Marks a period as already decided from strap sightings.
+model EvaluatedPeriod {
+  schoolId String
+  date     DateTime @db.Date
+  periodId String
+  at       DateTime @default(now())
+
+  @@id([schoolId, date, periodId])
+}
+
+// A one-time sign-in code sent by WhatsApp. Only a hash is stored.
+model LoginCode {
+  id        String   @id @default(cuid())
+  phone     String
+  codeHash  String
+  attempts  Int      @default(0)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([phone, createdAt])
+}
