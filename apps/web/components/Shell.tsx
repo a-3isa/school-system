@@ -22,6 +22,7 @@ const SCHOOL_NAV: { group: string; items: NavItem[] }[] = [
     items: [
       { href: '/attendance', label: 'Take attendance', module: 'attendance', roles: TEACHING },
       { href: '/attendance/exceptions', label: 'Exceptions', module: 'attendance' },
+      { href: '/where', label: 'Where students are', module: 'attendance' },
     ],
   },
   { group: 'People', items: [{ href: '/students', label: 'Students & parents' }, { href: '/staff', label: 'Staff', roles: ADMIN }] },

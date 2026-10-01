@@ -88,6 +88,7 @@ The parent app needs Flutter with Dart 3.6 or newer (`flutter --version`).
 | Core: schools, module switchboard, roles, students and parents, timetable, audit log | Done, tested |
 | Manual attendance (classroom PC), trips, absence notices | Done, tested |
 | Automatic attendance: gateways, straps, sightings (HTTP and MQTT), lesson decisions, exceptions | Done, tested with simulated gateways |
+| Where students are: live place of every child (loudest gateway), a student's movements through the day | Done, tested with simulated gateways |
 | Sign-in codes by WhatsApp | Done; needs WhatsApp Business credentials to send for real |
 | Excel import | Done, tested |
 | Staff dashboard | Done, clicked through in a browser |
@@ -110,6 +111,7 @@ All routes are under `/api` and need `Authorization: Bearer <token>` except logi
 | Students & parents | `/students`, `/students/:id/guardians` (max two, can be restricted) | Staff read, admin writes |
 | Import | `GET /students/import/template`, `POST /students/import(?preview=true)` | Admin |
 | Attendance | `/attendance/my-lessons`, `/attendance/classes/:classId/periods/:periodId`, `/attendance/summary`, `/attendance/aways`, `/attendance/exceptions` | Teachers and admins |
+| Locations | `/locations`, `/locations/students/:id?date=` | School staff |
 | Devices | `/devices/gateways`, `/devices/gateways/claim`, `/devices/straps`, `/devices/rules`; owner: `/owner/gateways` | Admin / owner |
 | Gateways | `POST /gateway/sightings` (Basic auth), `POST /gateway/mqtt/auth`, `POST /gateway/mqtt/acl` | Gateways, MQTT broker |
 | Notifications | `GET /notifications`, `POST /notifications/:id/read` | Everyone |

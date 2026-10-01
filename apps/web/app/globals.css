@@ -133,3 +133,13 @@ textarea.input { height: auto; padding: 8px 12px; }
 .tt-cell { background: var(--oat); border-radius: 8px; padding: 6px 8px; font-size: 13px; min-height: 44px; }
 .tt-cell b { display: block; }
 .tt-head { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--cap); font-weight: 600; }
+
+/* Where students are */
+.people { display: flex; flex-wrap: wrap; gap: 6px; }
+.person { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: var(--oat); color: var(--ink); text-decoration: none; font-size: 13px; }
+.person:hover { background: #E6E3D8; }
+.person.dim { color: var(--muted); }
+.person .ago { color: var(--cap); font-size: 12px; }
+.visits { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.visits li { display: grid; grid-template-columns: 112px 1fr auto; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.visits li:last-child { border-bottom: 0; }

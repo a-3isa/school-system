@@ -9,6 +9,7 @@ import { localParts } from '../common/time';
 import { DevicesController, DevicesService, OwnerGatewaysController } from './devices';
 import { GatewayController, IngestService, MqttBridge } from './ingest';
 import { AttendanceEvaluator } from './evaluator';
+import { LocationsController, LocationsService } from './locations';
 
 export class ResolveDto {
   @IsOptional() @IsString() note?: string;
@@ -58,8 +59,8 @@ export class ExceptionsController {
 }
 
 @Module({
-  controllers: [DevicesController, OwnerGatewaysController, GatewayController, ExceptionsController],
-  providers: [DevicesService, IngestService, MqttBridge, AttendanceEvaluator],
+  controllers: [DevicesController, OwnerGatewaysController, GatewayController, ExceptionsController, LocationsController],
+  providers: [DevicesService, IngestService, MqttBridge, AttendanceEvaluator, LocationsService],
   exports: [AttendanceEvaluator, IngestService],
 })
 export class DevicesModule {}

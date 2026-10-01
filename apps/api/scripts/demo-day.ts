@@ -12,6 +12,7 @@
 // - the 6th child arrives at 08:20 (late for period 1)
 // - the 8th child leaves the room for 20 minutes in period 3
 // - everyone else comes in through the gate between 07:35 and 07:55
+// - after the last lesson everyone at school goes home through the gate
 // Lessons in the science lab have no gateway, so they need a teacher's mark.
 import { localParts, zonedTime } from '../src/common/time';
 
@@ -124,6 +125,23 @@ export async function playDay(api: string, ownerToken: string, adminToken: strin
       arrived++;
     }
   }
+  // Going home through the gate after the last lesson.
+  const lastEnd = at(periods[periods.length - 1].endTime);
+  let left = 0;
+  if (gate) {
+    for (const [i, s] of students.entries()) {
+      const who = plan.get(s.id);
+      const out = lastEnd + (3 + (i % 10)) * MINUTE;
+      if (!who || who.home || out > nowMs) continue;
+      const mac = macOf.get(s.id);
+      await send(gate.id, [
+        { mac, rssi: -56, at: out },
+        { mac, rssi: -53, at: out + 4000 },
+      ]);
+      left++;
+    }
+  }
+  if (left) log(`${left} went home through the gate after the last lesson.`);
   log(`Played today until ${time}: ${arrived} arrivals at the gate and ${readings} classroom readings.`);
   log('Attendance is now automatic. Within a minute every finished lesson is decided; see Today and Attendance › Exceptions.');
   if (renewed) log('The gateways got new secrets for this run. For the simulator, get one in the owner console: Gateways › New secret.');
