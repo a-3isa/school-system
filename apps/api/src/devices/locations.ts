@@ -1,7 +1,7 @@
 import { Controller, Get, Injectable, NotFoundException, Param, Query } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { RequiresModule, Roles, SchoolId, STAFF } from '../auth/auth.decorators';
+import { RequiresModule, Roles, SchoolId, SCHOOL_WIDE, STAFF } from '../auth/auth.decorators';
 import { dbDate } from '../common/dates';
 import { localParts, zonedTime } from '../common/time';
 import { rulesFor } from './rules';
@@ -131,7 +131,7 @@ export class LocationsService {
 
 /** The dashboard's "where are they now" and each student's movements. */
 @RequiresModule('attendance')
-@Roles(...STAFF)
+@Roles(...SCHOOL_WIDE)
 @Controller('locations')
 export class LocationsController {
   constructor(private readonly locations: LocationsService) {}

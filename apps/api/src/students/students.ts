@@ -3,7 +3,7 @@ import { GuardianRelation, Prisma, Role } from '@prisma/client';
 import { IsBoolean, IsDateString, IsEmail, IsEnum, IsOptional, IsString, MinLength } from 'class-validator';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit';
-import { AuthUser, CurrentUser, Roles, SchoolId, STAFF } from '../auth/auth.decorators';
+import { AuthUser, CurrentUser, Roles, SchoolId, SCHOOL_WIDE, STAFF } from '../auth/auth.decorators';
 import { hashPassword } from '../auth/auth';
 import { mapPrismaError } from '../common/validation';
 
@@ -167,13 +167,13 @@ export class StudentsService {
 export class StudentsController {
   constructor(private readonly students: StudentsService) {}
 
-  @Roles(...STAFF)
+  @Roles(...SCHOOL_WIDE)
   @Get()
   list(@SchoolId() schoolId: string, @Query('classId') classId?: string, @Query('q') q?: string, @Query('active') active?: string) {
     return this.students.list(schoolId, { classId, q, active: active === undefined ? undefined : active === 'true' });
   }
 
-  @Roles(...STAFF)
+  @Roles(...SCHOOL_WIDE)
   @Get(':id')
   get(@SchoolId() schoolId: string, @Param('id') id: string) {
     return this.students.get(schoolId, id);

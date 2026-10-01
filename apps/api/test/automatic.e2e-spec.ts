@@ -183,13 +183,12 @@ describe('Automatic attendance (e2e)', () => {
     expect(ex.body[0].message).toContain('12%');
   });
 
-  it('lets a teacher resolve today’s exceptions and leaves earlier ones to admins', async () => {
+  it('leaves exceptions to the school office, not teachers', async () => {
+    await teacher.get('/api/attendance/exceptions').expect(403);
     const [battery] = (await admin.get('/api/attendance/exceptions?type=LOW_BATTERY')).body; // raised today
-    const res = await teacher.post(`/api/attendance/exceptions/${battery.id}/resolve`, { note: 'Battery ordered' }).expect(201);
+    await teacher.post(`/api/attendance/exceptions/${battery.id}/resolve`, { note: 'Battery ordered' }).expect(403);
+    const res = await admin.post(`/api/attendance/exceptions/${battery.id}/resolve`, { note: 'Battery ordered' }).expect(201);
     expect(res.body.status).toBe('RESOLVED');
-    await prisma.attendanceException.update({ where: { id: battery.id }, data: { date: new Date('2020-01-01T00:00:00Z'), status: 'OPEN' } });
-    await teacher.post(`/api/attendance/exceptions/${battery.id}/resolve`, {}).expect(403);
-    await admin.post(`/api/attendance/exceptions/${battery.id}/resolve`, {}).expect(201);
   });
 
   it('answers the MQTT broker’s login and topic checks', async () => {

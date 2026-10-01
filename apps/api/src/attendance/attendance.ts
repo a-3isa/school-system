@@ -2,7 +2,7 @@ import { Body, Controller, Get, Injectable, Logger, Module, OnModuleDestroy, OnM
 import { AttendanceStatus, Role } from '@prisma/client';
 import { Type } from 'class-transformer';
 import { ArrayMinSize, IsArray, IsEnum, IsInt, IsOptional, IsString, Matches, Min, MinLength, ValidateNested } from 'class-validator';
-import { AuthUser, CurrentUser, RequiresModule, Roles, SchoolId, STAFF } from '../auth/auth.decorators';
+import { AuthUser, CurrentUser, RequiresModule, Roles, SchoolId, SCHOOL_WIDE, STAFF } from '../auth/auth.decorators';
 import { DATE_RE } from '../common/dates';
 import { NotificationsService } from '../notifications/notifications';
 import { AttendanceService } from './attendance.service';
@@ -58,13 +58,13 @@ export class AttendanceController {
     return this.attendance.mark(user, schoolId, classId, periodId, dto.date, dto.marks);
   }
 
-  @Roles(...STAFF)
+  @Roles(...SCHOOL_WIDE)
   @Get('summary')
   async summary(@SchoolId() schoolId: string, @Query('date') date?: string) {
     return this.attendance.summary(schoolId, date ?? (await this.attendance.today(schoolId)));
   }
 
-  @Roles(...STAFF)
+  @Roles(...SCHOOL_WIDE)
   @Get('students/:id')
   history(@SchoolId() schoolId: string, @Param('id') id: string, @Query('from') from: string, @Query('to') to: string) {
     return this.attendance.studentHistory(schoolId, id, from, to);
@@ -76,7 +76,7 @@ export class AttendanceController {
     return this.attendance.markAway(user, schoolId, dto);
   }
 
-  @Roles(...STAFF)
+  @Roles(...SCHOOL_WIDE)
   @Get('aways')
   async aways(@SchoolId() schoolId: string, @Query('date') date?: string) {
     return this.attendance.aways(schoolId, date ?? (await this.attendance.today(schoolId)));

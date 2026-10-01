@@ -3,7 +3,7 @@ import { ExceptionStatus, ExceptionType, Role } from '@prisma/client';
 import { IsOptional, IsString } from 'class-validator';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit';
-import { AuthUser, CurrentUser, RequiresModule, Roles, SchoolId, STAFF } from '../auth/auth.decorators';
+import { AuthUser, CurrentUser, RequiresModule, Roles, SchoolId, SCHOOL_WIDE, STAFF } from '../auth/auth.decorators';
 import { dbDate } from '../common/dates';
 import { localParts } from '../common/time';
 import { DevicesController, DevicesService, OwnerGatewaysController } from './devices';
@@ -17,7 +17,7 @@ export class ResolveDto {
 
 /** The dashboard's list of things someone has to look at. */
 @RequiresModule('attendance')
-@Roles(...STAFF)
+@Roles(...SCHOOL_WIDE)
 @Controller('attendance/exceptions')
 export class ExceptionsController {
   constructor(
@@ -39,7 +39,7 @@ export class ExceptionsController {
    * Anyone responsible can resolve an exception on its own day; after that it
    * needs an admin (decision C18).
    */
-  @Roles(Role.SCHOOL_ADMIN, Role.TEACHER, Role.TRANSPORT, Role.NURSE)
+  @Roles(Role.SCHOOL_ADMIN, Role.TRANSPORT, Role.NURSE)
   @Post(':id/resolve')
   async resolve(@CurrentUser() user: AuthUser, @SchoolId() schoolId: string, @Param('id') id: string, @Body() dto: ResolveDto) {
     const ex = await this.prisma.attendanceException.findFirst({ where: { id, schoolId } });

@@ -13,23 +13,33 @@ interface NavItem {
 }
 
 const ADMIN = ['SCHOOL_ADMIN'];
-const TEACHING = ['SCHOOL_ADMIN', 'TEACHER'];
+const TEACHER = ['TEACHER'];
+/** Staff who see the whole school; a teacher only sees their own lessons. */
+const SCHOOL_WIDE = ['SCHOOL_ADMIN', 'TRANSPORT', 'NURSE', 'CANTEEN', 'ACCOUNTANT'];
 
 const SCHOOL_NAV: { group: string; items: NavItem[] }[] = [
-  { group: 'Overview', items: [{ href: '/class', label: 'My class now', module: 'attendance', roles: ['TEACHER'] }, { href: '/today', label: 'Today' }] },
+  {
+    group: 'Overview',
+    items: [
+      { href: '/class', label: 'My class now', module: 'attendance', roles: TEACHER },
+      { href: '/today', label: 'Today', roles: SCHOOL_WIDE },
+    ],
+  },
   {
     group: 'Attendance',
     items: [
-      { href: '/attendance', label: 'Take attendance', module: 'attendance', roles: TEACHING },
-      { href: '/attendance/exceptions', label: 'Exceptions', module: 'attendance' },
-      { href: '/where', label: 'Where students are', module: 'attendance' },
+      { href: '/attendance', label: 'My lessons today', module: 'attendance', roles: TEACHER },
+      { href: '/attendance', label: 'Take attendance', module: 'attendance', roles: ADMIN },
+      { href: '/attendance/exceptions', label: 'Exceptions', module: 'attendance', roles: SCHOOL_WIDE },
+      { href: '/where', label: 'Where students are', module: 'attendance', roles: SCHOOL_WIDE },
     ],
   },
-  { group: 'People', items: [{ href: '/students', label: 'Students & parents' }, { href: '/staff', label: 'Staff', roles: ADMIN }] },
+  { group: 'People', items: [{ href: '/students', label: 'Students & parents', roles: SCHOOL_WIDE }, { href: '/staff', label: 'Staff', roles: ADMIN }] },
   {
     group: 'School setup',
     items: [
-      { href: '/timetable', label: 'Timetable' },
+      { href: '/timetable', label: 'My timetable', roles: TEACHER },
+      { href: '/timetable', label: 'Timetable', roles: SCHOOL_WIDE },
       { href: '/setup', label: 'Classes, rooms & periods', roles: ADMIN },
       { href: '/devices', label: 'Devices', roles: ADMIN },
       { href: '/modules', label: 'Modules & settings', roles: ADMIN },

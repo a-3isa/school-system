@@ -79,7 +79,8 @@ describe('Where students are (e2e)', () => {
 
   it('stops worrying about children not heard once school is over', async () => {
     const later = new Date(now + 90 * MIN);
-    if (localParts(later, 'Africa/Cairo').date !== today.date) return; // tomorrow already
+    // Omar was last heard 20 minutes ago: all of it has to be on the same Cairo day.
+    if (localParts(later, 'Africa/Cairo').date !== today.date || localParts(new Date(now - 20 * MIN), 'Africa/Cairo').date !== today.date) return;
     const res = await app.get(LocationsService).now(schoolId, later);
     const by = Object.fromEntries(res.students.map((s) => [s.firstName, s]));
     expect(res.schoolHours).toBe(false);

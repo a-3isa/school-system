@@ -163,7 +163,13 @@ describe('Phase 1 core (e2e)', () => {
   it('limits writes by role and records an audit trail', async () => {
     const teacher = as(await login('hana@nv.eg', 'teacher-pass'));
     await teacher.post('/api/students', { code: 'T-1', firstName: 'A', lastName: 'B' }).expect(403);
-    await teacher.get('/api/timetable').expect(200);
+    // A teacher sees only their own lessons, not the whole school.
+    await teacher.get('/api/students').expect(403);
+    await teacher.get('/api/locations').expect(403);
+    await teacher.get('/api/attendance/summary?date=2026-09-30').expect(403);
+    const mine = await teacher.get('/api/timetable').expect(200);
+    const me = (await teacher.get('/api/auth/me').expect(200)).body;
+    expect(mine.body.every((e: any) => e.teacher?.id === me.id)).toBe(true);
     const audit = await admin.get('/api/audit').expect(200);
     const actions = audit.body.map((a: any) => a.action);
     expect(actions).toEqual(expect.arrayContaining(['student.create', 'guardian.add', 'timetable.create', 'module.features']));

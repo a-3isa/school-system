@@ -10,12 +10,14 @@ const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 
 export default function TimetablePage() {
   const { me } = useSession();
   const isAdmin = me.role === 'SCHOOL_ADMIN';
-  const classes = useApi<any[]>('/classes');
+  // A teacher sees their own week across all their classes.
+  const isTeacher = me.role === 'TEACHER';
+  const classes = useApi<any[]>(isTeacher ? null : '/classes');
   const [classId, setClassId] = useState('');
   useEffect(() => {
     if (!classId && classes.data?.length) setClassId(classes.data[0].id);
   }, [classes.data, classId]);
-  const entries = useApi<any[]>(classId ? `/timetable?classId=${classId}` : null);
+  const entries = useApi<any[]>(isTeacher ? '/timetable' : classId ? `/timetable?classId=${classId}` : null);
   const periods = useApi<any[]>('/periods');
   const rooms = useApi<any[]>('/rooms');
   const subjects = useApi<any[]>('/subjects');
@@ -38,11 +40,11 @@ export default function TimetablePage() {
   return (
     <>
       <PageHead
-        eyebrow="School setup"
-        title="Timetable"
-        sub="Which class is in which room each period. Automatic attendance uses it to know whose straps a room gateway should hear."
+        eyebrow={isTeacher ? me.name : 'School setup'}
+        title={isTeacher ? 'My timetable' : 'Timetable'}
+        sub={isTeacher ? 'Your lessons this week: class, subject and room.' : 'Which class is in which room each period. Automatic attendance uses it to know whose straps a room gateway should hear.'}
         actions={
-          <Field label="Class" id="cls">
+          !isTeacher && <Field label="Class" id="cls">
             <select id="cls" className="input" value={classId} onChange={(e) => setClassId(e.target.value)}>
               {classes.data?.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
@@ -65,8 +67,8 @@ export default function TimetablePage() {
                       <div key={d} className="tt-cell">
                         {e ? (
                           <>
-                            <b>{e.subject.name}</b>
-                            <span className="muted">{e.room.name}{e.teacher ? ` · ${e.teacher.name}` : ''}</span>
+                            <b>{isTeacher ? `${e.class?.name} · ${e.subject.name}` : e.subject.name}</b>
+                            <span className="muted">{e.room.name}{!isTeacher && e.teacher ? ` · ${e.teacher.name}` : ''}</span>
                             {isAdmin && (
                               <div><button className="btn small" style={{ marginTop: 4 }} onClick={async () => { if (await act.run(() => del(`/timetable/${e.id}`))) await entries.reload(); }}>Remove</button></div>
                             )}

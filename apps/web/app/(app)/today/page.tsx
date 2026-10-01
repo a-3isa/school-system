@@ -1,5 +1,7 @@
 'use client';
 import Link from 'next/link';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { todayCairo } from '@/lib/api';
 import { useApi } from '@/lib/hooks';
 import { useSession } from '@/lib/session';
@@ -7,8 +9,13 @@ import { Badge, Card, Empty, ErrorNote, Kpi, PageHead } from '@/components/ui';
 
 export default function TodayPage() {
   const { me } = useSession();
+  const router = useRouter();
+  // Today is the whole school; a teacher's start page is their class.
+  useEffect(() => {
+    if (me.role === 'TEACHER') router.replace('/class');
+  }, [me.role, router]);
   const date = todayCairo();
-  const hasAttendance = me.modules.includes('attendance');
+  const hasAttendance = me.modules.includes('attendance') && me.role !== 'TEACHER';
   const summary = useApi(hasAttendance ? `/attendance/summary?date=${date}` : null);
   const exceptions = useApi<any[]>(hasAttendance ? `/attendance/exceptions?date=${date}&status=OPEN` : null);
   const lessons = useApi<any[]>(hasAttendance && ['SCHOOL_ADMIN', 'TEACHER'].includes(me.role) ? `/attendance/my-lessons?date=${date}` : null);
