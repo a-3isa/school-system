@@ -32,7 +32,7 @@ export default function ExceptionsPage() {
       <PageHead
         eyebrow="Attendance"
         title="Exceptions"
-        sub="Things the straps and gateways couldn’t settle on their own. Staff can resolve today’s; earlier days need an admin."
+        sub="Things the straps and gateways couldn’t settle on their own. Look at each one and resolve it with a note."
         actions={
           <div className="form-row">
             <Field label="Day" id="day">

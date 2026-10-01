@@ -14,7 +14,7 @@ export default function AttendanceHome() {
       <PageHead
         eyebrow="Attendance"
         title="Take attendance"
-        sub="Pick a lesson to mark every student. Teachers can mark and correct today; earlier days are corrected by an admin."
+        sub="Every lesson of the day with how far it’s marked. Open one to see or change its attendance, on any day."
         actions={
           <Field label="Day" id="day">
             <input id="day" type="date" className="input" value={date} onChange={(e) => setDate(e.target.value)} />
