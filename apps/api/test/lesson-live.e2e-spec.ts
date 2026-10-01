@@ -23,7 +23,8 @@ describe('The lesson happening now (e2e)', () => {
   const end = new Date(now + 30 * MIN);
   const local = localParts(start, 'Africa/Cairo');
   // The lesson must not cross midnight in Cairo.
-  const fits = local.date === localParts(end, 'Africa/Cairo').date && local.date === localParts(new Date(now - 30 * MIN), 'Africa/Cairo').date;
+  // Everything here, from Karim's arrival an hour ago to the end of the lesson, must be on one Cairo day.
+  const fits = local.date === localParts(end, 'Africa/Cairo').date && local.date === localParts(new Date(now - 60 * MIN), 'Africa/Cairo').date;
   const send = (key: string, sightings: object[]) =>
     request(app.getHttpServer()).post('/api/gateway/sightings').auth(gw[key].serial, gw[key].secret).send({ sightings }).expect(200);
   const titles = async (c: Client) => (await c.get('/api/notifications').expect(200)).body.map((n: any) => n.title);

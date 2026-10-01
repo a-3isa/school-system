@@ -71,7 +71,7 @@ async function main() {
     });
     // Demo parents get a password straight away; real parents sign up in the app with their email.
     await A('POST', `/students/${s.id}/guardians`, {
-      relation: 'MOTHER', name: `Mother of ${s.firstName}`, email: `parent${i + 1}@demo.school`, phone: `+20100${String(1000000 + i)}`, phoneChecked: true, password: 'demo-parent-1',
+      relation: 'MOTHER', name: `Mother of ${s.firstName}`, email: `parent${i + 1}@demo.school`, phone: `+20100${String(1000000 + i)}`, password: 'demo-parent-1',
     });
     await A('POST', '/devices/straps', { mac: `DC:0D:30:00:${String(Math.floor(i / 100)).padStart(2, '0')}:${String(i % 100).padStart(2, '0')}`, studentId: s.id });
   }

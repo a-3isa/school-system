@@ -32,17 +32,14 @@ export class GuardianDto {
   @IsString() @MinLength(1) name: string;
   // The parent signs up in the app with this email, and gets the school's emails at it.
   @IsEmail({}, { message: 'Enter the parent’s email: they sign up in the app with it.' }) email: string;
-  @Matches(/^\+\d{8,15}$/, { message: 'Enter the mobile number with its country code, like +201001234567.' }) phone: string;
-  // The school checked the mobile and WhatsApp number in person.
-  @IsOptional() @IsBoolean() phoneChecked?: boolean;
+  // Optional: the parent proves their mobile with a WhatsApp code when signing up, which replaces this.
+  @IsOptional() @Matches(/^\+\d{8,15}$/, { message: 'Enter the mobile number with its country code, like +201001234567.' }) phone?: string;
   // Only for demos and tests; parents choose their own password in the app.
   @IsOptional() @IsString() @MinLength(8) password?: string;
 }
 
 export class GuardianAccessDto {
-  @IsOptional() @IsBoolean() restricted?: boolean;
-  // The school checked the parent's mobile and WhatsApp number in person.
-  @IsOptional() @IsBoolean() phoneChecked?: boolean;
+  @IsBoolean() restricted: boolean;
 }
 
 const MAX_GUARDIANS = 2;
@@ -133,13 +130,10 @@ export class StudentsService {
             name: dto.name,
             email,
             phone: dto.phone,
-            phoneVerifiedAt: dto.phoneChecked ? new Date() : null,
             passwordHash: dto.password ? await hashPassword(dto.password) : null,
           },
         })
         .catch((e) => mapPrismaError(e, 'This mobile number belongs to another account.'));
-    } else if (dto.phoneChecked && !parent.phoneVerifiedAt) {
-      parent = await this.prisma.user.update({ where: { id: parent.id }, data: { phoneVerifiedAt: new Date() } });
     }
     await this.prisma.studentGuardian.create({ data: { studentId, userId: parent.id, relation: dto.relation } });
     await this.audit.log(user, 'guardian.add', 'student', studentId, { parentId: parent.id, relation: dto.relation });
@@ -150,14 +144,8 @@ export class StudentsService {
     await this.get(schoolId, studentId);
     const link = await this.prisma.studentGuardian.findUnique({ where: { studentId_userId: { studentId, userId: parentId } } });
     if (!link) throw new NotFoundException('This parent isn’t linked to the student.');
-    if (dto.restricted !== undefined) {
-      await this.prisma.studentGuardian.update({ where: { studentId_userId: { studentId, userId: parentId } }, data: { restricted: dto.restricted } });
-      await this.audit.log(user, dto.restricted ? 'guardian.restrict' : 'guardian.unrestrict', 'student', studentId, { parentId });
-    }
-    if (dto.phoneChecked !== undefined) {
-      await this.prisma.user.update({ where: { id: parentId }, data: { phoneVerifiedAt: dto.phoneChecked ? new Date() : null } });
-      await this.audit.log(user, dto.phoneChecked ? 'guardian.phoneChecked' : 'guardian.phoneUnchecked', 'student', studentId, { parentId });
-    }
+    await this.prisma.studentGuardian.update({ where: { studentId_userId: { studentId, userId: parentId } }, data: { restricted: dto.restricted } });
+    await this.audit.log(user, dto.restricted ? 'guardian.restrict' : 'guardian.unrestrict', 'student', studentId, { parentId });
     return this.get(schoolId, studentId);
   }
 

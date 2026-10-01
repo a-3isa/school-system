@@ -49,6 +49,7 @@ Navigation, grouped:
   - **Today:**
     - KPIs: students, came in through the gate, present (latest period), absent, needs attention
     - lists: lessons today with marking progress, things needing attention, attendance by period (present / late / absent / excused / on a trip)
+    - **Messages** to the school, with "Mark read": e.g. "Amr Gamal changed their mobile: checked a new mobile, +201222222222, when signing up in the app. It replaces +201111111111." 
 - **Attendance**
   - **Take attendance:** every lesson today, any date; opens any class list (manual mode adds "Mark the rest present").
   - **Exceptions:** a list of things to look at, each with a type tag and Resolve with a note:
@@ -67,11 +68,11 @@ Navigation, grouped:
 - **People**
   - **Students & parents:** a searchable, filterable table (name with Arabic name below, code, class, parents) and "Add a student".
   - **Student page:**
-    - **Parents** (at most mother and father). Each shows name, email, mobile, and two status tags: "Signed up in the app" or "Not signed up yet", and "Mobile checked" or "Mobile not checked". Actions: Mobile checked, Restrict, Remove.
-    - **Add-parent form:** relation, name, **email (required)**, mobile with country code, and a tick "Mobile and WhatsApp number checked in person". Explain under it that the parent signs up in the app with this email.
+    - **Parents** (at most mother and father). Each shows name, email, mobile, and two status tags: "Signed up in the app" or "Not signed up yet", and "Mobile checked by WhatsApp" or "Mobile not checked yet". Actions: Restrict, Remove.
+    - **Add-parent form:** relation, name, **email (required)**, mobile (optional). Explain under it that the parent signs up in the app with this email, and that their mobile is checked by WhatsApp then and saved here.
     - **Where today:** a timeline, e.g. "07:49 Gate A", "08:00–09:29 Room 204"…
     - **Attendance for the last two weeks:** date, period, status, and how (strap, or manual with the reason).
-  - **Import from Excel:** download the template, upload, a check step (summary plus a row-by-row list of problems), import. Columns include each parent's email and mobile.
+  - **Import from Excel:** download the template, upload, a check step (summary plus a row-by-row list of problems), import. Columns include each parent's email (required) and mobile (optional).
   - **Staff:** accounts table (name, role, email, active) and an add form.
 - **School setup**
   - **Timetable:** a week grid (days × periods) for a chosen class; each cell shows subject, room and teacher; add or remove lessons; clash errors inline.
@@ -93,13 +94,17 @@ Glances at notifications and wants to trust them. Parents don't use the dashboar
 
 Screens:
 - **Sign in:** email and password, with two links:
-  - **New here? Create your account:** email, then a screen "Check your email" with the 6-digit code and a new password. Explain that it must be the email the school registered, and what to do if no code arrives (ask the school to check the email).
-  - **Forgot password?:** the same two steps.
+  - **New here? Create your account:** three steps with a step indicator.
+    1. **Email:** explain it must be the email the school registered. Then "Send me a code".
+    2. **Code and mobile:** the code from the email, then the mobile number with country code (prefilled "+20"). Then "Send a WhatsApp code". Say what to do if no email arrives (ask the school to check the email).
+    3. **WhatsApp code and password:** the WhatsApp code and a new password. Then "Create account", plus "No code, or wrong number? Fix the number and send again".
+  - **Forgot password?:** email, then the code from the email and a new password.
 - **Consent:** a one-time screen explaining that the strap tracks the child at school, with "I agree" and "Not now".
 - **Child's day:**
   - the child switcher (for two children)
   - arrival time at the gate
   - each lesson: period, subject, room, time, status
+- **Account:** name and email; mobile with "Checked on WhatsApp"; **Change mobile** (new number, then the WhatsApp code, then "Your mobile is now … The school has been told."); sign out.
 - **Notifications:** a list with unread state. The types:
   - "Salma arrived at school"
   - "Salma was absent from Math in Room 204"
@@ -139,7 +144,7 @@ Screens:
 2. Components: sidebar, page header, KPI tile, table, status control (P/L/A/E), live-state badge, name chip, place panel, timeline, notice/alert, form fields, empty states, toast.
 3. Full screens, by role, in this order:
    1. Teacher: My class now (live during a lesson, with 3 children not in the room), My lessons today, My timetable
-   2. Parent app: sign in, create account (both steps), child's day, notifications
+   2. Parent app: sign in, create account (all three steps), child's day, notifications, account with change mobile
    3. Admin: Where students are, Today, Exceptions, Student page (with parents' sign-up status), then the rest
    4. Owner: Schools, Gateways
 4. Each key screen in Arabic (RTL) as well as English.

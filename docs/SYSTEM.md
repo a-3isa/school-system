@@ -28,15 +28,20 @@ This describes every part that exists in the code today. Phase 1 is attendance. 
 **Everyone signs in with email and password.** Mobile numbers and WhatsApp are not used to sign in.
 
 **How a parent gets an account:**
-1. When the parents register their child, the school enters each parent's **email** and **mobile**. It checks the mobile and WhatsApp number in person and ticks "checked".
-2. That email is what links the parent to their children. A parent with two children at the school has one account.
-3. The parent installs the app, taps **Create account** and types that email.
-4. If the school registered it, a **6-digit code** is emailed to it. The parent types the code and chooses a password. This proves the email is theirs, so nobody else can open the account just by knowing it.
-5. If the school didn't register that email, nothing is sent. The answer looks the same either way, so the app can't be used to find out who is a parent.
+1. When the parents register their child, the school enters each parent's **email**. A mobile is optional. The email is what links the parent to their children; a parent with two children at the school has one account.
+2. The parent installs the app and taps **Create account**. It takes three steps:
+   1. **Email:** they type the email the school registered, and a **6-digit code** is emailed to it.
+   2. **Mobile:** they type that code and their **mobile number**, and a 6-digit code is sent to the mobile **on WhatsApp**.
+   3. **Password:** they type the WhatsApp code and choose a password.
+3. **What's saved:** the mobile is saved as **checked**. If the school had typed a different number, the checked one replaces it and the school's admins get a message ("Amr Gamal changed their mobile… It replaces +201111111111").
+4. **Why both codes:** the email code proves the account is theirs, so knowing a parent's email isn't enough to open it. The WhatsApp code proves the mobile is real and theirs. A mobile already used by another account is refused.
+5. **If the email wasn't registered,** nothing is sent. The answer looks the same either way, so the app can't be used to find out who is a parent.
+6. **Wrong number or no WhatsApp code:** the parent fixes the number and sends the code again.
+7. **Changing the mobile later:** in the app under **Account › Change mobile**: the new number, a WhatsApp code, saved. The school is told.
 
-**Forgot password:** works the same way for parents (in the app) and staff (in the dashboard): a code by email, then a new password.
+**Forgot password:** for parents (in the app) and staff (in the dashboard), a code by email, then a new password. It only works for accounts that finished sign-up; a parent who never signed up uses Create account.
 
-**Code rules:** codes expire after 15 minutes and work once. After 5 wrong tries a code is locked, and an email can ask for at most 5 codes an hour.
+**Code rules:** email and WhatsApp codes expire after 15 minutes and work once. After 5 wrong tries a code is locked, and an email or mobile can ask for at most 5 codes an hour.
 
 **Staff accounts:** the admin creates them with an email and a first password.
 
@@ -71,12 +76,12 @@ This describes every part that exists in the code today. Phase 1 is attendance. 
 - **Staff accounts:** add teachers and other staff; reset passwords; deactivate.
 - **Students:**
   - each has a code, a name and an optional Arabic name, a class, and medical notes
-  - at most **two parents**: mother and father, each with a name, **email** (required: they sign up with it and get the school's emails at it) and **mobile** (with country code), plus the "mobile and WhatsApp checked in person" tick
+  - at most **two parents**: mother and father, each with a name, an **email** (required: they sign up with it and get the school's emails at it) and, optionally, a mobile; the parent's checked mobile from the app replaces it
   - a parent with two children at the school uses one account (found by email)
-  - each parent shows **Signed up in the app / Not signed up yet** and **Mobile checked / not checked**
+  - each parent shows **Signed up in the app / Not signed up yet** and **Mobile checked by WhatsApp / not checked yet**
   - the admin can **restrict** a parent, who then no longer sees that child, or remove the link
 - **Import from Excel:** students, parents and strap addresses in one sheet.
-  1. A check step lists every row to fix: missing fields, duplicate codes, unknown classes, a parent without an email or mobile, mobiles without a country code, straps already in use.
+  1. A check step lists every row to fix: missing fields, duplicate codes, unknown classes, a parent without an email, mobiles without a country code, straps already in use.
   2. Nothing is saved until every row is correct.
   3. Importing the same file again updates the existing students.
 - **Devices:**
@@ -155,7 +160,7 @@ All messages arrive as **app notifications**, and every one is also kept in the 
 | **My class now:** the lesson in front of them, live (section 4) | ✓ | | |
 | **My lessons today:** their lessons and how far each is marked; opens the class list. Past days are read-only. | ✓ | | |
 | **My timetable:** only their own lessons, with class, subject and room | ✓ | | |
-| **Today:** students enrolled and how many came in through the gate, present and absent per period, open exceptions, lessons today | | ✓ | |
+| **Today:** students enrolled and how many came in through the gate, present and absent per period, open exceptions, lessons today, and **Messages** to the school (e.g. a parent changed their mobile) | | ✓ | |
 | **Take attendance:** every lesson today; opens any class list, any day | | ✓ | |
 | **Exceptions:** things a person should look at, each resolved with a note:<ul><li>at school but not in the lesson</li><li>left a lesson</li><li>left early</li><li>gateway offline / room without a gateway</li><li>low battery</li></ul> | | ✓ | |
 | **Where students are:** live every 10 seconds:<ul><li>each room and the gate, with who is in it now</li><li>"needs a look": not heard for 10+ minutes during school hours</li><li>who went out through the gate</li><li>who hasn't been heard today</li></ul>Has search and a class filter. | | ✓ | |
@@ -172,10 +177,13 @@ The server enforces this: a teacher asking for school-wide data (the student lis
 
 ## 8. Parent app
 
-1. **Sign in** with email and password. A new parent taps **Create account**: email, then the code from the email, then their password. **Forgot password** works the same way.
+1. **Sign in** with email and password.
+   - **Create account** (first time): email code, then mobile with a WhatsApp code, then a password (section 1).
+   - **Forgot password:** a code by email, then a new password.
 2. **Consent** once.
 3. **The child's day:** arrival time and each lesson's status. With two children there is a switcher.
 4. **Notifications:** the list, marked read when opened.
+5. **Account:** name, email, mobile ("checked on WhatsApp"), **Change mobile**, and sign out.
 
 ## 9. Gateway firmware (ESP32)
 
@@ -206,6 +214,7 @@ The server enforces this: a teacher asking for school-wide data (the student lis
 - **Sending for real:**
   - **Push notifications:** Firebase isn't connected yet. Messages are saved and visible in the app's list, but nothing pops up on the phone.
   - **Email:** needs an email account to send from (`SMTP_URL` in `apps/api/.env`). Until then, sign-up and password codes are written in the server log.
+  - **WhatsApp:** needs a WhatsApp Business account with an approved code template (`WHATSAPP_*` in `apps/api/.env`). Until then, mobile codes are written in the server log.
   - **School emails to parents** (newsletters, announcements) come with the Messaging module, after Phase 1.
 - **Arabic:** the dashboard and app are English only. Arabic names are stored and shown.
 - **Hosting:** no production server, domain, HTTPS or MQTT broker is set up yet.

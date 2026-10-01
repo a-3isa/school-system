@@ -18,7 +18,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final pages = [DayTab(api: widget.api), NotificationsTab(api: widget.api)];
+    final pages = [DayTab(api: widget.api), NotificationsTab(api: widget.api), AccountTab(api: widget.api, me: widget.me, onSignOut: widget.onSignOut)];
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.me['schoolName'] ?? 'School', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
@@ -33,6 +33,7 @@ class _HomeScreenState extends State<HomeScreen> {
         destinations: const [
           NavigationDestination(icon: Icon(Icons.today_outlined), selectedIcon: Icon(Icons.today), label: 'Today'),
           NavigationDestination(icon: Icon(Icons.notifications_outlined), selectedIcon: Icon(Icons.notifications), label: 'Notifications'),
+          NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Account'),
         ],
       ),
     );
@@ -230,6 +231,124 @@ class _NotificationsTabState extends State<NotificationsTab> {
           );
         },
       ),
+    );
+  }
+}
+
+/// The parent's details, and changing the mobile number (checked with a WhatsApp code).
+class AccountTab extends StatefulWidget {
+  const AccountTab({super.key, required this.api, required this.me, required this.onSignOut});
+  final Api api;
+  final Map<String, dynamic> me;
+  final VoidCallback onSignOut;
+
+  @override
+  State<AccountTab> createState() => _AccountTabState();
+}
+
+class _AccountTabState extends State<AccountTab> {
+  late String? _phone = widget.me['phone'] as String?;
+  late bool _checked = widget.me['phoneVerifiedAt'] != null;
+  final _newPhone = TextEditingController(text: '+20');
+  final _code = TextEditingController();
+  bool _changing = false;
+  bool _codeSent = false;
+  bool _busy = false;
+  String? _error;
+  String? _done;
+
+  Future<void> _run(Future<void> Function() fn) async {
+    setState(() {
+      _busy = true;
+      _error = null;
+      _done = null;
+    });
+    try {
+      await fn();
+    } catch (e) {
+      setState(() => _error = e.toString());
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _send() => _run(() async {
+        await widget.api.requestPhoneChange(_newPhone.text.replaceAll(' ', ''));
+        setState(() => _codeSent = true);
+      });
+
+  Future<void> _confirm() => _run(() async {
+        final phone = _newPhone.text.replaceAll(' ', '');
+        await widget.api.confirmPhoneChange(phone, _code.text.trim());
+        setState(() {
+          _phone = phone;
+          _checked = true;
+          _changing = false;
+          _codeSent = false;
+          _code.clear();
+          _done = 'Your mobile is now $phone. The school has been told.';
+        });
+      });
+
+  @override
+  Widget build(BuildContext context) {
+    final me = widget.me;
+    return ListView(
+      padding: const EdgeInsets.all(20),
+      children: [
+        Text(me['name'] as String? ?? '', style: Theme.of(context).textTheme.headlineMedium),
+        const SizedBox(height: 4),
+        Text(me['email'] as String? ?? '', style: const TextStyle(color: Brand.muted)),
+        const SizedBox(height: 24),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Mobile', style: TextStyle(color: Brand.muted, fontSize: 13)),
+                const SizedBox(height: 4),
+                Text(_phone ?? 'Not set', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+                const SizedBox(height: 4),
+                Text(_checked ? 'Checked on WhatsApp' : 'Not checked yet', style: TextStyle(color: _checked ? Brand.ok : Brand.muted, fontSize: 13)),
+                if (_done != null) ...[const SizedBox(height: 12), Text(_done!, style: const TextStyle(color: Brand.ok))],
+                if (_error != null) ...[const SizedBox(height: 12), Text(_error!, style: const TextStyle(color: Brand.alert))],
+                const SizedBox(height: 12),
+                if (!_changing)
+                  OutlinedButton(onPressed: () => setState(() => _changing = true), child: const Text('Change mobile'))
+                else ...[
+                  TextField(
+                    controller: _newPhone,
+                    enabled: !_codeSent,
+                    keyboardType: TextInputType.phone,
+                    decoration: const InputDecoration(labelText: 'New mobile (with country code)'),
+                  ),
+                  if (_codeSent) ...[
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _code,
+                      keyboardType: TextInputType.number,
+                      maxLength: 6,
+                      decoration: const InputDecoration(labelText: 'Code from WhatsApp'),
+                    ),
+                  ],
+                  const SizedBox(height: 8),
+                  FilledButton(
+                    onPressed: _busy ? null : (_codeSent ? _confirm : _send),
+                    child: Text(_busy ? 'One moment…' : _codeSent ? 'Save new mobile' : 'Send a WhatsApp code'),
+                  ),
+                  TextButton(
+                    onPressed: _busy ? null : () => setState(() { _changing = false; _codeSent = false; _error = null; }),
+                    child: const Text('Cancel'),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 24),
+        OutlinedButton.icon(onPressed: widget.onSignOut, icon: const Icon(Icons.logout), label: const Text('Sign out')),
+      ],
     );
   }
 }

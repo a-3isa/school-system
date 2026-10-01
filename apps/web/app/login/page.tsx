@@ -43,7 +43,7 @@ function LoginForm() {
     e.preventDefault();
     if (mode === 'signin') void run(async () => signedIn(await post('/auth/login', { login: email, password })));
     if (mode === 'forgot') void run(async () => { await post('/auth/password/forgot', { email }); setPassword(''); setMode('code'); });
-    if (mode === 'code') void run(async () => signedIn(await post('/auth/password/set', { email, code, password })));
+    if (mode === 'code') void run(async () => signedIn(await post('/auth/password/reset', { email, code, password })));
   }
 
   return (

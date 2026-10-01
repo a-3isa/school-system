@@ -22,6 +22,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('New here? Create your account'));
     await tester.pumpAndSettle();
+    expect(find.text('STEP 1 OF 3'), findsOneWidget);
     expect(find.text('Create your account'), findsOneWidget);
     expect(find.text('Send me a code'), findsOneWidget);
     expect(find.text('Password'), findsNothing);

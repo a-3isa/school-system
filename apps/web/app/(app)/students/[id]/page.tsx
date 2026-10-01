@@ -17,21 +17,19 @@ export default function StudentPage() {
   const history = useApi<any[]>(me.modules.includes('attendance') ? `/attendance/students/${id}?from=${shift(today, -13)}&to=${today}` : null);
   const visits = useApi<any[]>(me.modules.includes('attendance') ? `/locations/students/${id}?date=${today}` : null);
   const act = useAction();
-  const [form, setForm] = useState({ relation: 'MOTHER', name: '', email: '', phone: '', phoneChecked: false });
+  const [form, setForm] = useState({ relation: 'MOTHER', name: '', email: '', phone: '' });
 
   async function addParent(e: FormEvent) {
     e.preventDefault();
-    const body = { relation: form.relation, name: form.name, email: form.email, phone: form.phone, phoneChecked: form.phoneChecked };
+    const body = { relation: form.relation, name: form.name, email: form.email, ...(form.phone.trim() ? { phone: form.phone.trim() } : {}) };
     if (await act.run(async () => student.setData(await post(`/students/${id}/guardians`, body)))) {
       toast('Parent added.');
-      setForm({ relation: 'FATHER', name: '', email: '', phone: '', phoneChecked: false });
+      setForm({ relation: 'FATHER', name: '', email: '', phone: '' });
     }
   }
 
   const restrict = (parentId: string, restricted: boolean) =>
     act.run(async () => student.setData(await patch(`/students/${id}/guardians/${parentId}`, { restricted })));
-  const checkPhone = (parentId: string) =>
-    act.run(async () => student.setData(await patch(`/students/${id}/guardians/${parentId}`, { phoneChecked: true })));
   const remove = (parentId: string) => act.run(async () => student.setData(await del(`/students/${id}/guardians/${parentId}`)));
 
   if (!student.data) return <ErrorNote error={student.error} />;
@@ -48,16 +46,15 @@ export default function StudentPage() {
               <div key={g.userId} className="row between">
                 <div>
                   <div>{g.user.name} <span className="muted small">· {g.relation === 'MOTHER' ? 'Mother' : 'Father'}</span></div>
-                  <div className="muted small">{g.user.email} · {g.user.phone}</div>
+                  <div className="muted small">{g.user.email}{g.user.phone ? ` · ${g.user.phone}` : ''}</div>
                   <div className="row" style={{ gap: 6, marginTop: 4 }}>
                     {g.user.emailVerifiedAt ? <Badge tone="ok">Signed up in the app</Badge> : <Badge>Not signed up yet</Badge>}
-                    {g.user.phoneVerifiedAt ? <Badge tone="ok">Mobile checked</Badge> : <Badge tone="warn">Mobile not checked</Badge>}
+                    {g.user.phoneVerifiedAt ? <Badge tone="ok">Mobile checked by WhatsApp</Badge> : <Badge tone="warn">Mobile not checked yet</Badge>}
                   </div>
                 </div>
                 {isAdmin && (
                   <div className="row">
                     {g.restricted ? <Badge tone="warn">Restricted</Badge> : null}
-                    {!g.user.phoneVerifiedAt && <button className="btn small" onClick={() => checkPhone(g.userId)}>Mobile checked</button>}
                     <button className="btn small" onClick={() => restrict(g.userId, !g.restricted)}>{g.restricted ? 'Allow' : 'Restrict'}</button>
                     <button className="btn small danger" onClick={() => remove(g.userId)}>Remove</button>
                   </div>
@@ -80,11 +77,10 @@ export default function StudentPage() {
               </div>
               <div className="form-row">
                 <Field label="Email" id="pe"><input id="pe" className="input" type="email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></Field>
-                <Field label="Mobile (WhatsApp)" id="pp"><input id="pp" className="input" required placeholder="+201001234567" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></Field>
+                <Field label="Mobile (optional)" id="pp"><input id="pp" className="input" placeholder="+201001234567" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></Field>
               </div>
-              <label className="row small"><input type="checkbox" checked={form.phoneChecked} onChange={(e) => setForm({ ...form, phoneChecked: e.target.checked })} /> Mobile and WhatsApp number checked in person</label>
               <button className="btn primary" type="submit" disabled={act.busy}>Add parent</button>
-              <span className="muted small">The parent downloads the app and signs up with this email: a code is sent there to prove it’s theirs. A parent who already has a child here is linked to the same account by email.</span>
+              <span className="muted small">The parent downloads the app and signs up with this email: a code goes to the email, then their mobile is checked with a WhatsApp code and saved here. A parent who already has a child here is linked to the same account by email.</span>
             </form>
           )}
         </Card>

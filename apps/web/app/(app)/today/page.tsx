@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { todayCairo } from '@/lib/api';
+import { dateTimeCairo, post, todayCairo } from '@/lib/api';
 import { useApi } from '@/lib/hooks';
 import { useSession } from '@/lib/session';
 import { Badge, Card, Empty, ErrorNote, Kpi, PageHead } from '@/components/ui';
@@ -18,6 +18,7 @@ export default function TodayPage() {
   const hasAttendance = me.modules.includes('attendance') && me.role !== 'TEACHER';
   const summary = useApi(hasAttendance ? `/attendance/summary?date=${date}` : null);
   const exceptions = useApi<any[]>(hasAttendance ? `/attendance/exceptions?date=${date}&status=OPEN` : null);
+  const messages = useApi<any[]>(me.role === 'TEACHER' ? null : '/notifications');
   const lessons = useApi<any[]>(hasAttendance && ['SCHOOL_ADMIN', 'TEACHER'].includes(me.role) ? `/attendance/my-lessons?date=${date}` : null);
 
   const periods: any[] = summary.data?.periods ?? [];
@@ -81,6 +82,21 @@ export default function TodayPage() {
               )}
             </Card>
           </div>
+          {!!messages.data?.length && (
+            <Card title="Messages" action={<span className="muted small">{messages.data.filter((m) => !m.readAt).length} new</span>}>
+              {messages.data.slice(0, 6).map((m) => (
+                <div key={m.id} className="row between" style={{ alignItems: 'flex-start' }}>
+                  <div>
+                    <div style={{ fontWeight: m.readAt ? 400 : 600 }}>{m.title}</div>
+                    <div className="muted small">{m.body} · {dateTimeCairo(m.createdAt)}</div>
+                  </div>
+                  {!m.readAt && (
+                    <button className="btn small" onClick={async () => { await post(`/notifications/${m.id}/read`); await messages.reload(); }}>Mark read</button>
+                  )}
+                </div>
+              ))}
+            </Card>
+          )}
           <Card title="Attendance by period" pad={false}>
             <div className="table-wrap">
               <table>

@@ -111,14 +111,13 @@ export class StudentImportService {
         seenCodes.add(r.code);
       }
       if (r.class && !classes.has(r.class.toLowerCase())) err(`There is no class called “${r.class}”. Add it first or fix the name.`);
-      // A parent needs a name, an email (they sign up in the app with it) and a mobile.
+      // A parent needs a name and an email (they sign up in the app with it); the mobile is optional.
       for (const [name, email, phone, who] of [[r.motherName, r.motherEmail, r.motherPhone, 'Mother'], [r.fatherName, r.fatherEmail, r.fatherPhone, 'Father']] as const) {
         if (!name && !email && !phone) continue;
         if (!name) err(`${who} name is missing.`);
         if (!email) err(`${who} email is missing: parents sign up in the app with it.`);
         else if (!EMAIL.test(email.trim())) err(`${who} email “${email}” isn’t a valid email address.`);
-        if (!phone) err(`${who} mobile is missing.`);
-        else if (!PHONE.test(phone.replace(/\s/g, ''))) err(`${who} mobile “${phone}” needs the country code, like +201001234567.`);
+        if (phone && !PHONE.test(phone.replace(/\s/g, ''))) err(`${who} mobile “${phone}” needs the country code, like +201001234567.`);
       }
       if (r.strap) {
         const mac = normaliseMac(r.strap);
@@ -153,8 +152,8 @@ export class StudentImportService {
         : await this.prisma.student.create({ data: { ...data, code: r.code!, schoolId } });
       const has = new Set(before?.guardians.map((g) => g.relation) ?? []);
       for (const [relation, name, email, phone] of [[GuardianRelation.MOTHER, r.motherName, r.motherEmail, r.motherPhone], [GuardianRelation.FATHER, r.fatherName, r.fatherEmail, r.fatherPhone]] as const) {
-        if (name && email && phone && !has.has(relation)) {
-          await this.students.addGuardian(user, schoolId, student.id, { relation, name, email: email.trim(), phone: phone.replace(/\s/g, '') });
+        if (name && email && !has.has(relation)) {
+          await this.students.addGuardian(user, schoolId, student.id, { relation, name, email: email.trim(), phone: phone ? phone.replace(/\s/g, '') : undefined });
         }
       }
       if (r.strap) {

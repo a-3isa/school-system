@@ -59,9 +59,9 @@ The student record and the front door.
 - **Student records:** profile, photo, national ID/birth certificate, medical notes and allergies, emergency contacts, up to **two parent accounts** per student (mother and father), siblings linked to the same parents; the school can restrict what one parent sees (e.g. separated families)
 - **Staff records:** teachers, admins, transport officers, nurse, canteen staff. Drivers and bus supervisors are stored as bus contacts, not users
 - **Users, roles & permissions:** built-in roles (Owner, School Admin, Teacher, Transport, Nurse, Canteen, Accountant, Parent, Student) plus custom roles with fine-grained permissions
-- **Authentication:** email + password for everyone. The school registers each parent's email (and checks their mobile and WhatsApp number in person); the parent then creates the account in the app with a code sent to that email. Forgot password by emailed code; device sessions
+- **Authentication:** email + password for everyone. The school registers each parent's email; the parent creates the account in the app with a code sent to that email, then proves their mobile with a code on WhatsApp (saved as checked; the school is told if it changed). Forgot password by emailed code; parents change their mobile in the app the same way; device sessions
 - **Bulk import/export:** Excel/CSV import for students, parents and staff
-- **Notifications engine:** **app push for everything parents receive** (the app is required). WhatsApp from one shared business number only for alerts to bus supervisors, who have no app. Email for account codes, school emails to parents, receipts and reports. No SMS. Arabic/English templates
+- **Notifications engine:** **app push for everything parents receive** (the app is required). WhatsApp from one shared business number for parents' mobile codes and for alerts to bus supervisors, who have no app. Email for account codes, school emails to parents, receipts and reports. No SMS. Arabic/English templates
 - **Audit log:** who changed what and when
 - **Languages:** Arabic (RTL) and English
 - **Module manager:** the on/off switchboard for modules, features and limits
@@ -309,8 +309,8 @@ Each phase ends with something a school can use and pay for. Nothing gets rebuil
 | E28 | Confirm every charge | Yes |
 | E29 | No balance | Child pays cash; cash sales are recorded too |
 | E30 | Who runs the canteen | The school |
-| F31 | WhatsApp number | One shared number for all schools (bus supervisors' alerts); parents' numbers are checked in person at registration |
-| F31a | Parent sign-in | Email + password. The school enters the parent's email first; the parent signs up in the app with a code sent to it |
+| F31 | WhatsApp number | One shared number for all schools (parents' mobile codes, bus supervisors' alerts) |
+| F31a | Parent sign-in | Email + password. The school enters the parent's email first; the parent signs up in the app with a code to that email, then a WhatsApp code to their mobile, which is saved as checked (replacing the school's, which is told) |
 | F32 | Channel for parents | App push for everything |
 | F33 | Parents without the app | Not supported; parents must install the app |
 | G34 | Parent accounts | Only the two parents |

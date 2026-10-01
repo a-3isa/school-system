@@ -55,8 +55,9 @@ npx ts-node scripts/simulate-gateway.ts --serial DEMO-R204 --secret <secret> \
   --macs DC:0D:30:00:00:00,DC:0D:30:00:00:01
 
 # 4. Parent app (demo parents: parent1@demo.school … parent24@demo.school, password demo-parent-1).
-#    A parent the school registers without a password taps "Create account" in the app; the
-#    emailed code is printed in the API log while SMTP_URL isn't set.
+#    A parent the school registers taps "Create account" in the app: a code to their email, then
+#    their mobile with a code on WhatsApp, then a password. While SMTP_URL and WHATSAPP_* aren't
+#    set, both codes are printed in the API log.
 cd apps/parent && flutter run -d chrome --dart-define=API_URL=http://localhost:3000/api
 ```
 
@@ -92,7 +93,7 @@ What every part does, in plain words: [docs/SYSTEM.md](docs/SYSTEM.md). Brief fo
 | Manual attendance (classroom PC), trips, absence notices | Done, tested |
 | Automatic attendance: gateways, straps, sightings (HTTP and MQTT), lesson decisions, exceptions | Done, tested with simulated gateways |
 | Where students are: live place of every child (loudest gateway), a student's movements through the day | Done, tested with simulated gateways |
-| Parents sign up in the app with the email the school registered (code by email), forgot password | Done; needs an SMTP account (SMTP_URL) to send for real |
+| Parents sign up in the app with the email the school registered (code by email) and their mobile (code on WhatsApp); change mobile; forgot password | Done; needs an SMTP account and WhatsApp Business to send for real |
 | Excel import | Done, tested |
 | Staff dashboard | Done, clicked through in a browser |
 | Parent app | Done; push notifications via Firebase still to add |
@@ -104,7 +105,7 @@ All routes are under `/api` and need `Authorization: Bearer <token>` except logi
 
 | Area | Routes | Who |
 |---|---|---|
-| Sign in | `POST /auth/login` (email + password), `POST /auth/signup`, `POST /auth/password/forgot`, `POST /auth/password/set`, `GET /auth/me` | Everyone |
+| Sign in | `POST /auth/login` (email + password), `POST /auth/signup`, `/auth/signup/phone`, `/auth/signup/resend`, `/auth/signup/complete`, `POST /auth/password/forgot`, `/auth/password/reset`, `POST /auth/phone`, `/auth/phone/verify` (parents), `GET /auth/me` | Everyone |
 | Owner console | `GET/POST /owner/schools`, `GET /owner/schools/:id/modules`, `PUT /owner/schools/:id/modules/:key`, `PUT /owner/schools/:id/plan` | Platform owner |
 | Modules | `GET /modules`, `PATCH /modules/:key/features` | School users; admin changes features |
 | School settings | `GET/PATCH /school` (attendance mode, absence notice time, school days) | Admin edits |
