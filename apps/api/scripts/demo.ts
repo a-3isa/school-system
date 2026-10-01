@@ -5,6 +5,8 @@
 // Creates "Nile Valley School (demo)" with an admin (admin@demo.school / demo-admin-1),
 // two teachers (hana@demo.school, sherif@demo.school / demo-teacher-1), classes, rooms,
 // periods, a timetable, 24 students with parents, gateways and straps.
+import { playDay } from './demo-day';
+
 const api = (process.argv.includes('--api') ? process.argv[process.argv.indexOf('--api') + 1] : 'http://localhost:3000') + '/api';
 
 async function call(token: string | null, method: string, path: string, body?: unknown): Promise<any> {
@@ -70,12 +72,16 @@ async function main() {
     await A('POST', '/devices/straps', { mac: `DC:0D:30:00:${String(Math.floor(i / 100)).padStart(2, '0')}:${String(i % 100).padStart(2, '0')}`, studentId: s.id });
   }
 
+  const secrets: Record<string, string> = {};
   for (const [serial, name, kind, roomId] of [['DEMO-GATE-A', 'Gate A', 'GATE', undefined], ['DEMO-R204', 'Room 204', 'ROOM', r204.id], ['DEMO-R205', 'Room 205', 'ROOM', r205.id]] as const) {
     const gw = await call(owner, 'POST', '/owner/gateways', { serial });
     await A('POST', '/devices/gateways/claim', { claimCode: gw.claimCode, name, kind, roomId });
+    secrets[serial] = gw.secret;
     console.log(`Gateway ${serial}: secret ${gw.secret}`);
   }
   console.log(`Demo school ready (${school.id}). Sign in as admin@demo.school / demo-admin-1`);
+  // Today so far, as if the gateways had been running since the morning.
+  await playDay(api, owner, admin, secrets);
 }
 
 main().catch((e) => {

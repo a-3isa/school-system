@@ -173,9 +173,11 @@ export class AttendanceService {
     });
     const periods = await this.prisma.period.findMany({ where: { schoolId }, orderBy: { number: 'asc' } });
     const students = await this.prisma.student.count({ where: { schoolId, active: true } });
+    const arrived = await this.prisma.gatePresence.count({ where: { date: dbDate(date), arrivedAt: { not: null }, student: { schoolId, active: true } } });
     return {
       date,
       students,
+      arrived,
       periods: periods.map((p) => {
         const counts = Object.fromEntries(Object.values(AttendanceStatus).map((s) => [s, 0])) as Record<AttendanceStatus, number>;
         rows.filter((r) => r.periodId === p.id).forEach((r) => (counts[r.status] = r._count._all));

@@ -1,7 +1,7 @@
 'use client';
 import { FormEvent, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { del, patch, post, todayCairo } from '@/lib/api';
+import { del, patch, post, timeCairo, todayCairo } from '@/lib/api';
 import { useAction, useApi } from '@/lib/hooks';
 import { useSession } from '@/lib/session';
 import { Badge, Card, Empty, ErrorNote, Field, PageHead, STATUS_LABEL, STATUS_TONE, toast } from '@/components/ui';
@@ -15,6 +15,7 @@ export default function StudentPage() {
   const student = useApi(`/students/${id}`);
   const today = todayCairo();
   const history = useApi<any[]>(me.modules.includes('attendance') ? `/attendance/students/${id}?from=${shift(today, -13)}&to=${today}` : null);
+  const visits = useApi<any[]>(me.modules.includes('attendance') ? `/locations/students/${id}?date=${today}` : null);
   const act = useAction();
   const [form, setForm] = useState({ relation: 'MOTHER', name: '', phone: '', email: '', password: '' });
 
@@ -80,6 +81,23 @@ export default function StudentPage() {
             </form>
           )}
         </Card>
+        {visits.data && (
+          <Card title="Where today" action={<span className="muted small">from the strap</span>}>
+            {visits.data.length ? (
+              <ul className="visits">
+                {visits.data.map((v, i) => (
+                  <li key={i}>
+                    <span className="num">{timeCairo(v.from)}–{timeCairo(v.to)}</span>
+                    <span>{v.place?.name ?? 'Unknown place'}</span>
+                    {v.place?.kind === 'GATE' && <Badge>Gate</Badge>}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <span className="muted small">The strap hasn’t been heard today.</span>
+            )}
+          </Card>
+        )}
         <Card title="Attendance · last two weeks" pad={false}>
           {history.data?.length ? (
             <div className="table-wrap">

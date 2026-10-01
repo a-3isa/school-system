@@ -29,7 +29,7 @@ export default function TodayPage() {
         <>
           <ErrorNote error={summary.error} />
           <div className="grid g4">
-            <Kpi label="Students" value={summary.data?.students ?? '—'} sub="enrolled" />
+            <Kpi label="Students" value={summary.data?.students ?? '—'} sub={me.attendanceMode === 'AUTOMATIC' ? `${summary.data?.arrived ?? 0} came in through the gate` : 'enrolled'} />
             <Kpi label="Present" value={c.PRESENT + c.LATE} sub={latest ? `period ${latest.number} · ${c.LATE} late` : 'no period marked yet'} />
             <Kpi label="Absent" value={c.ABSENT} sub={latest ? `period ${latest.number}` : '—'} />
             <Kpi label="Needs attention" value={exceptions.data?.length ?? '—'} sub="open exceptions" />
