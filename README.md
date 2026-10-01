@@ -81,6 +81,8 @@ Gateways, press **New secret** on that gateway and use the secret it shows.
 
 The parent app needs Flutter with Dart 3.6 or newer (`flutter --version`).
 
+What every part does, in plain words: [docs/SYSTEM.md](docs/SYSTEM.md). Brief for a redesign: [docs/DESIGN-BRIEF.md](docs/DESIGN-BRIEF.md).
+
 ## Phase 1 status
 
 | Part | State |
