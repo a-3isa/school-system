@@ -92,9 +92,12 @@ describe('Manual attendance (e2e)', () => {
 
   it('sends one absence notice to the parent of an absent child', async () => {
     const svc = app.get(AttendanceService);
-    const sent = await svc.sendAbsenceNotices();
-    expect(sent).toBe(1);
+    // The job covers every school; other test files may have absent children too.
+    const ours = () => prisma.absenceNotice.count({ where: { student: { schoolId } } });
+    await svc.sendAbsenceNotices();
+    expect(await ours()).toBe(1);
     expect(await svc.sendAbsenceNotices()).toBe(0); // not twice
+    expect(await ours()).toBe(1);
     const notes = await parent.get('/api/notifications').expect(200);
     expect(notes.body[0]).toEqual(expect.objectContaining({ type: 'attendance.absent', title: 'Ali is absent today' }));
     await parent.post(`/api/notifications/${notes.body[0].id}/read`).expect(201);
