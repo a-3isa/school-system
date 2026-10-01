@@ -60,10 +60,10 @@ describe('Automatic attendance (e2e)', () => {
       ids[name] = (await admin.post('/api/students', { code: `A${i}`, firstName: name, lastName: 'Test', classId: ids.class })).body.id;
     }
     await admin.post('/api/students', { code: 'C1', firstName: 'Nour', lastName: 'Test', classId: ids.classC }).expect(201);
-    await admin.post(`/api/students/${ids.Ali}/guardians`, { relation: 'MOTHER', name: 'Rania', phone: '+201200000001', password: 'parent-pass' }).expect(201);
-    await admin.post(`/api/students/${ids.Salma}/guardians`, { relation: 'FATHER', name: 'Amr', phone: '+201200000002' }).expect(201);
+    await admin.post(`/api/students/${ids.Ali}/guardians`, { relation: 'MOTHER', name: 'Rania', email: 'p201200000001@test.eg', phone: '+201200000001', password: 'parent-pass' }).expect(201);
+    await admin.post(`/api/students/${ids.Salma}/guardians`, { relation: 'FATHER', name: 'Amr', email: 'p201200000002@test.eg', phone: '+201200000002' }).expect(201);
     teacher = await login(app, 'hana@auto.eg', 'teacher-pass');
-    parent = await login(app, '+201200000001', 'parent-pass');
+    parent = await login(app, 'p201200000001@test.eg', 'parent-pass');
   });
 
   afterAll(async () => {

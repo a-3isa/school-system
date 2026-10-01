@@ -49,27 +49,26 @@ class Api {
   Future<dynamic> get(String path) => _send('GET', path);
   Future<dynamic> post(String path, [Object? body]) => _send('POST', path, body ?? {});
 
-  /// Signs in with a phone number (or email) and password.
-  Future<Map<String, dynamic>> login(String login, String password) async {
-    final res = await post('/auth/login', {'login': login, 'password': password}) as Map<String, dynamic>;
-    if (res['user']['role'] != 'PARENT') {
-      throw ApiException(403, 'This app is for parents. Staff use the school dashboard.');
-    }
-    await _prefs.setString(_tokenKey, res['token'] as String);
-    return res;
-  }
-
-  /// Asks the server to send a sign-in code by WhatsApp.
-  Future<void> requestCode(String phone) => post('/auth/code', {'phone': phone});
-
-  /// Signs in with the WhatsApp code.
-  Future<void> verifyCode(String phone, String code) async {
-    final res = await post('/auth/code/verify', {'phone': phone, 'code': code}) as Map<String, dynamic>;
+  Future<void> _keep(Map<String, dynamic> res) async {
     if (res['user']['role'] != 'PARENT') {
       throw ApiException(403, 'This app is for parents. Staff use the school dashboard.');
     }
     await _prefs.setString(_tokenKey, res['token'] as String);
   }
+
+  /// Signs in with the email the school registered and the parent's password.
+  Future<void> login(String email, String password) async =>
+      _keep(await post('/auth/login', {'login': email, 'password': password}) as Map<String, dynamic>);
+
+  /// Create account: emails a code if the school registered this email.
+  Future<void> signup(String email) => post('/auth/signup', {'email': email});
+
+  /// Forgot password: emails a code.
+  Future<void> forgotPassword(String email) => post('/auth/password/forgot', {'email': email});
+
+  /// The emailed code and a new password; signs the parent in.
+  Future<void> setPassword(String email, String code, String password) async =>
+      _keep(await post('/auth/password/set', {'email': email, 'code': code, 'password': password}) as Map<String, dynamic>);
 
   Future<Map<String, dynamic>> me() async => await get('/auth/me') as Map<String, dynamic>;
   Future<void> consent() => post('/parent/consent');

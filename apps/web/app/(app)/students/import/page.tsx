@@ -40,7 +40,7 @@ export default function ImportPage() {
           <input id="file" className="input" type="file" accept=".xlsx" style={{ paddingTop: 7 }} onChange={(e) => { setFile(e.target.files?.[0] ?? null); setReport(null); }} />
         </Field>
         <div><button className="btn primary" type="button" disabled={!file || act.busy} onClick={check}>Check the file</button></div>
-        <span className="muted small">Columns: Student code, First name, Last name, Arabic name, Class, Mother name, Mother mobile, Father name, Father mobile, Strap. A student code that already exists updates that student.</span>
+        <span className="muted small">Columns: Student code, First name, Last name, Arabic name, Class, Mother name, Mother email, Mother mobile, Father name, Father email, Father mobile, Strap. A parent needs a name, an email (they sign up in the app with it) and a mobile. A student code that already exists updates that student.</span>
       </Card>
       {report && (
         <Card title="2. Check and import" action={report.imported ? <Badge tone="ok">Imported</Badge> : report.errors.length ? <Badge tone="alert">{report.errors.length} to fix</Badge> : <Badge tone="ok">Ready</Badge>}>

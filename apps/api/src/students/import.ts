@@ -17,8 +17,10 @@ const COLUMNS = [
   { key: 'nameAr', header: 'Arabic name' },
   { key: 'class', header: 'Class' },
   { key: 'motherName', header: 'Mother name' },
+  { key: 'motherEmail', header: 'Mother email' },
   { key: 'motherPhone', header: 'Mother mobile' },
   { key: 'fatherName', header: 'Father name' },
+  { key: 'fatherEmail', header: 'Father email' },
   { key: 'fatherPhone', header: 'Father mobile' },
   { key: 'strap', header: 'Strap' },
 ] as const;
@@ -26,6 +28,7 @@ const COLUMNS = [
 type Row = Partial<Record<(typeof COLUMNS)[number]['key'], string>> & { line: number };
 
 const PHONE = /^\+\d{8,15}$/;
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const norm = (s: string) => s.toLowerCase().replace(/[^a-z]/g, '');
 
 export interface ImportReport {
@@ -51,7 +54,7 @@ export class StudentImportService {
     const ws = wb.addWorksheet('Students');
     ws.columns = COLUMNS.map((c) => ({ header: c.header, key: c.key, width: 18 }));
     ws.getRow(1).font = { bold: true };
-    ws.addRow({ code: '2026-0001', firstName: 'Layla', lastName: 'Hussein', nameAr: 'ليلى حسين', class: '4-A', motherName: 'Nadia Hussein', motherPhone: '+201001234567', fatherName: 'Ibrahim Hussein', fatherPhone: '+201101234567', strap: 'DC:0D:30:AA:4A:11' });
+    ws.addRow({ code: '2026-0001', firstName: 'Layla', lastName: 'Hussein', nameAr: 'ليلى حسين', class: '4-A', motherName: 'Nadia Hussein', motherEmail: 'nadia.hussein@example.com', motherPhone: '+201001234567', fatherName: 'Ibrahim Hussein', fatherEmail: 'ibrahim.hussein@example.com', fatherPhone: '+201101234567', strap: 'DC:0D:30:AA:4A:11' });
     return Buffer.from(await wb.xlsx.writeBuffer());
   }
 
@@ -108,9 +111,14 @@ export class StudentImportService {
         seenCodes.add(r.code);
       }
       if (r.class && !classes.has(r.class.toLowerCase())) err(`There is no class called “${r.class}”. Add it first or fix the name.`);
-      for (const [name, phone, who] of [[r.motherName, r.motherPhone, 'Mother'], [r.fatherName, r.fatherPhone, 'Father']] as const) {
-        if (phone && !PHONE.test(phone.replace(/\s/g, ''))) err(`${who} mobile “${phone}” needs the country code, like +201001234567.`);
-        if (phone && !name) err(`${who} name is missing.`);
+      // A parent needs a name, an email (they sign up in the app with it) and a mobile.
+      for (const [name, email, phone, who] of [[r.motherName, r.motherEmail, r.motherPhone, 'Mother'], [r.fatherName, r.fatherEmail, r.fatherPhone, 'Father']] as const) {
+        if (!name && !email && !phone) continue;
+        if (!name) err(`${who} name is missing.`);
+        if (!email) err(`${who} email is missing: parents sign up in the app with it.`);
+        else if (!EMAIL.test(email.trim())) err(`${who} email “${email}” isn’t a valid email address.`);
+        if (!phone) err(`${who} mobile is missing.`);
+        else if (!PHONE.test(phone.replace(/\s/g, ''))) err(`${who} mobile “${phone}” needs the country code, like +201001234567.`);
       }
       if (r.strap) {
         const mac = normaliseMac(r.strap);
@@ -129,7 +137,7 @@ export class StudentImportService {
       rows: rows.length,
       create: rows.filter((r) => r.code && !existing.has(r.code)).length,
       update: rows.filter((r) => r.code && existing.has(r.code)).length,
-      parents: rows.reduce((n, r) => n + (r.motherPhone ? 1 : 0) + (r.fatherPhone ? 1 : 0), 0),
+      parents: rows.reduce((n, r) => n + (r.motherEmail ? 1 : 0) + (r.fatherEmail ? 1 : 0), 0),
       straps: rows.filter((r) => r.strap).length,
       errors,
       imported: false,
@@ -144,9 +152,9 @@ export class StudentImportService {
         ? await this.prisma.student.update({ where: { id: before.id }, data })
         : await this.prisma.student.create({ data: { ...data, code: r.code!, schoolId } });
       const has = new Set(before?.guardians.map((g) => g.relation) ?? []);
-      for (const [relation, name, phone] of [[GuardianRelation.MOTHER, r.motherName, r.motherPhone], [GuardianRelation.FATHER, r.fatherName, r.fatherPhone]] as const) {
-        if (phone && name && !has.has(relation)) {
-          await this.students.addGuardian(user, schoolId, student.id, { relation, name, phone: phone.replace(/\s/g, '') });
+      for (const [relation, name, email, phone] of [[GuardianRelation.MOTHER, r.motherName, r.motherEmail, r.motherPhone], [GuardianRelation.FATHER, r.fatherName, r.fatherEmail, r.fatherPhone]] as const) {
+        if (name && email && phone && !has.has(relation)) {
+          await this.students.addGuardian(user, schoolId, student.id, { relation, name, email: email.trim(), phone: phone.replace(/\s/g, '') });
         }
       }
       if (r.strap) {

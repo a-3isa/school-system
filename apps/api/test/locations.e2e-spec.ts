@@ -44,8 +44,8 @@ describe('Where students are (e2e)', () => {
       ids[name] = (await admin.post('/api/students', { code: `L${i}`, firstName: name, lastName: 'Test', classId: cls })).body.id;
       if (name !== 'Salma') await admin.post('/api/devices/straps', { mac: mac(i), studentId: ids[name] }).expect(201);
     }
-    await admin.post(`/api/students/${ids.Layla}/guardians`, { relation: 'MOTHER', name: 'Mona', phone: '+201400000001', password: 'parent-pass' }).expect(201);
-    parent = await login(app, '+201400000001', 'parent-pass');
+    await admin.post(`/api/students/${ids.Layla}/guardians`, { relation: 'MOTHER', name: 'Mona', email: 'p201400000001@test.eg', phone: '+201400000001', password: 'parent-pass' }).expect(201);
+    parent = await login(app, 'p201400000001@test.eg', 'parent-pass');
   });
 
   afterAll(async () => {

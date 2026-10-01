@@ -126,16 +126,16 @@ describe('Phase 1 core (e2e)', () => {
     const layla = await admin.post('/api/students', { code: '2019-0412', firstName: 'Layla', lastName: 'Hussein', classId }).expect(201);
     laylaId = layla.body.id;
     await admin.post('/api/students', { code: '2019-0412', firstName: 'X', lastName: 'Y' }).expect(409);
-    await admin.post(`/api/students/${laylaId}/guardians`, { relation: 'MOTHER', name: 'Nadia Hussein', phone: '+201000000001', password: 'parent-pass' }).expect(201);
-    await admin.post(`/api/students/${laylaId}/guardians`, { relation: 'MOTHER', name: 'Other', phone: '+201000000009' }).expect(400);
-    const both = await admin.post(`/api/students/${laylaId}/guardians`, { relation: 'FATHER', name: 'Ibrahim Hussein', phone: '+201000000002' }).expect(201);
+    await admin.post(`/api/students/${laylaId}/guardians`, { relation: 'MOTHER', name: 'Nadia Hussein', email: 'p201000000001@test.eg', phone: '+201000000001', password: 'parent-pass' }).expect(201);
+    await admin.post(`/api/students/${laylaId}/guardians`, { relation: 'MOTHER', name: 'Other', email: 'p201000000009@test.eg', phone: '+201000000009' }).expect(400);
+    const both = await admin.post(`/api/students/${laylaId}/guardians`, { relation: 'FATHER', name: 'Ibrahim Hussein', email: 'p201000000002@test.eg', phone: '+201000000002' }).expect(201);
     expect(both.body.guardians).toHaveLength(2);
 
     // A sibling reuses the mother's existing account.
     const karim = await admin.post('/api/students', { code: '2022-0133', firstName: 'Karim', lastName: 'Hussein' }).expect(201);
-    await admin.post(`/api/students/${karim.body.id}/guardians`, { relation: 'MOTHER', name: 'Nadia Hussein', phone: '+201000000001' }).expect(201);
+    await admin.post(`/api/students/${karim.body.id}/guardians`, { relation: 'MOTHER', name: 'Nadia Hussein', email: 'p201000000001@test.eg', phone: '+201000000001' }).expect(201);
 
-    const parent = as(await login('+201000000001', 'parent-pass'));
+    const parent = as(await login('p201000000001@test.eg', 'parent-pass'));
     expect((await parent.get('/api/auth/me').expect(200)).body.consentAt).toBeNull();
     await parent.post('/api/parent/consent').expect(201);
     expect((await parent.get('/api/auth/me').expect(200)).body.consentAt).not.toBeNull();

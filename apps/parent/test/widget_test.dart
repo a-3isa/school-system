@@ -9,8 +9,22 @@ void main() {
     final api = Api(await SharedPreferences.getInstance());
     await tester.pumpWidget(ParentApp(api: api));
     await tester.pumpAndSettle();
-    expect(find.text('Send code by WhatsApp'), findsOneWidget);
-    expect(find.text('Mobile number'), findsOneWidget);
+    expect(find.text('Sign in'), findsOneWidget);
+    expect(find.text('Email'), findsOneWidget);
+    expect(find.text('Password'), findsOneWidget);
+    expect(find.textContaining('WhatsApp'), findsNothing);
+  });
+
+  testWidgets('new parents create their account with the email the school registered', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final api = Api(await SharedPreferences.getInstance());
+    await tester.pumpWidget(ParentApp(api: api));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('New here? Create your account'));
+    await tester.pumpAndSettle();
+    expect(find.text('Create your account'), findsOneWidget);
+    expect(find.text('Send me a code'), findsOneWidget);
+    expect(find.text('Password'), findsNothing);
   });
 
   test('Cairo date and summer time', () {

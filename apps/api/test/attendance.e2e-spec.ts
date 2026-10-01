@@ -45,12 +45,12 @@ describe('Manual attendance (e2e)', () => {
     laylaId = (await admin.post('/api/students', { code: 'S1', firstName: 'Layla', lastName: 'Hussein', classId })).body.id;
     aliId = (await admin.post('/api/students', { code: 'S2', firstName: 'Ali', lastName: 'Ramadan', classId })).body.id;
     omarId = (await admin.post('/api/students', { code: 'S3', firstName: 'Omar', lastName: 'Kamal', classId: class2Id })).body.id;
-    await admin.post(`/api/students/${aliId}/guardians`, { relation: 'MOTHER', name: 'Rania', phone: '+201100000001', password: 'parent-pass' }).expect(201);
-    await admin.post(`/api/students/${laylaId}/guardians`, { relation: 'MOTHER', name: 'Nadia', phone: '+201100000002', password: 'parent-pass' }).expect(201);
+    await admin.post(`/api/students/${aliId}/guardians`, { relation: 'MOTHER', name: 'Rania', email: 'p201100000001@test.eg', phone: '+201100000001', password: 'parent-pass' }).expect(201);
+    await admin.post(`/api/students/${laylaId}/guardians`, { relation: 'MOTHER', name: 'Nadia', email: 'p201100000002@test.eg', phone: '+201100000002', password: 'parent-pass' }).expect(201);
 
     teacher = await login(app, 'hana@att.eg', 'teacher-pass');
     other = await login(app, 'sherif@att.eg', 'teacher-pass');
-    parent = await login(app, '+201100000001', 'parent-pass');
+    parent = await login(app, 'p201100000001@test.eg', 'parent-pass');
   });
 
   afterAll(async () => {

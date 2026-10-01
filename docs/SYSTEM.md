@@ -25,16 +25,24 @@ This describes every part that exists in the code today. Phase 1 is attendance. 
 - **Parent**
 - Roles reserved for later phases: Transport, Nurse, Canteen, Accountant
 
-**How each role signs in:**
-- **Staff** use an email and password.
-- **Parents** use their mobile number. A 6-digit code arrives on WhatsApp.
-  - The code expires after 5 minutes and works once.
-  - After 5 wrong tries the code is locked, and a number can ask for at most 5 codes an hour.
-  - A password set by the school also works as a fallback.
+**Everyone signs in with email and password.** Mobile numbers and WhatsApp are not used to sign in.
+
+**How a parent gets an account:**
+1. When the parents register their child, the school enters each parent's **email** and **mobile**. It checks the mobile and WhatsApp number in person and ticks "checked".
+2. That email is what links the parent to their children. A parent with two children at the school has one account.
+3. The parent installs the app, taps **Create account** and types that email.
+4. If the school registered it, a **6-digit code** is emailed to it. The parent types the code and chooses a password. This proves the email is theirs, so nobody else can open the account just by knowing it.
+5. If the school didn't register that email, nothing is sent. The answer looks the same either way, so the app can't be used to find out who is a parent.
+
+**Forgot password:** works the same way for parents (in the app) and staff (in the dashboard): a code by email, then a new password.
+
+**Code rules:** codes expire after 15 minutes and work once. After 5 wrong tries a code is locked, and an email can ask for at most 5 codes an hour.
+
+**Staff accounts:** the admin creates them with an email and a first password.
 
 **Safety rules:**
 - Each request checks the account in the database. A deactivated account is locked out at once, even if it is still signed in somewhere.
-- A user only ever sees their own school's data.
+- A user only ever sees their own school's data, and a **teacher only their own lessons** (see section 7).
 - **Consent:** a parent must agree to tracking the first time they open the app, before they see anything.
 
 ## 2. Owner console (you)
@@ -63,11 +71,12 @@ This describes every part that exists in the code today. Phase 1 is attendance. 
 - **Staff accounts:** add teachers and other staff; reset passwords; deactivate.
 - **Students:**
   - each has a code, a name and an optional Arabic name, a class, and medical notes
-  - at most **two parents**: mother and father
-  - a parent with two children at the school uses one account
+  - at most **two parents**: mother and father, each with a name, **email** (required: they sign up with it and get the school's emails at it) and **mobile** (with country code), plus the "mobile and WhatsApp checked in person" tick
+  - a parent with two children at the school uses one account (found by email)
+  - each parent shows **Signed up in the app / Not signed up yet** and **Mobile checked / not checked**
   - the admin can **restrict** a parent, who then no longer sees that child, or remove the link
 - **Import from Excel:** students, parents and strap addresses in one sheet.
-  1. A check step lists every row to fix: missing fields, duplicate codes, unknown classes, phone numbers without a country code, straps already in use.
+  1. A check step lists every row to fix: missing fields, duplicate codes, unknown classes, a parent without an email or mobile, mobiles without a country code, straps already in use.
   2. Nothing is saved until every row is correct.
   3. Importing the same file again updates the existing students.
 - **Devices:**
@@ -139,27 +148,31 @@ All messages arrive as **app notifications**, and every one is also kept in the 
 - **All of these numbers can be changed per school.**
 - **Raw readings** are kept for 7 days, then deleted. Attendance records are kept.
 
-## 7. Dashboard pages
+## 7. Who sees which screens
 
-| Page | Who | What it shows |
-|---|---|---|
-| **My class now** | Teachers | The lesson in front of them, live (section 4) |
-| **Today** | Everyone | Students enrolled and how many came in through the gate, present and absent per period, open exceptions, lessons today |
-| **Take attendance** | Teachers, admins | Today's lessons and how far each has been marked; opens a lesson's list |
-| **Exceptions** | Staff | Things a person should look at:<ul><li>at school but not in the lesson</li><li>left a lesson</li><li>left early</li><li>gateway offline / room without a gateway</li><li>low battery</li></ul>Each can be resolved with a note. |
-| **Where students are** | Staff | Live every 10 seconds:<ul><li>each room and the gate, with who is in it now</li><li>"needs a look": not heard for 10+ minutes during school hours</li><li>who went out through the gate</li><li>who hasn't been heard today</li></ul>Has search and a class filter. |
-| **Students & parents** | Staff (admins edit) | Search and filter; add a student; each student's page has parents, **where today** (place by place with times) and the last two weeks of attendance |
-| **Import from Excel** | Admins | Template, check, import |
-| **Staff** | Admins | Accounts |
-| **Classes, rooms & periods**, **Timetable** | Admins (teachers view the timetable) | Setup |
-| **Devices** | Admins | Gateways (claim, last seen), straps (assign, battery), detection rules |
-| **Modules & settings** | Admins | Attendance mode, school days, absence message time, module features |
-| **Audit log** | Admins | Every change |
-| **Owner: Schools, Gateways** | You | Section 2 |
+| Screen | Teacher | School admin | Owner |
+|---|:-:|:-:|:-:|
+| **My class now:** the lesson in front of them, live (section 4) | ✓ | | |
+| **My lessons today:** their lessons and how far each is marked; opens the class list. Past days are read-only. | ✓ | | |
+| **My timetable:** only their own lessons, with class, subject and room | ✓ | | |
+| **Today:** students enrolled and how many came in through the gate, present and absent per period, open exceptions, lessons today | | ✓ | |
+| **Take attendance:** every lesson today; opens any class list, any day | | ✓ | |
+| **Exceptions:** things a person should look at, each resolved with a note:<ul><li>at school but not in the lesson</li><li>left a lesson</li><li>left early</li><li>gateway offline / room without a gateway</li><li>low battery</li></ul> | | ✓ | |
+| **Where students are:** live every 10 seconds:<ul><li>each room and the gate, with who is in it now</li><li>"needs a look": not heard for 10+ minutes during school hours</li><li>who went out through the gate</li><li>who hasn't been heard today</li></ul>Has search and a class filter. | | ✓ | |
+| **Students & parents:** search, add, each student's page (parents, where today, two weeks of attendance) | | ✓ | |
+| **Import from Excel:** template, check, import | | ✓ | |
+| **Staff:** accounts | | ✓ | |
+| **Timetable** (whole school), **Classes, rooms & periods** | | ✓ | |
+| **Devices:** gateways, straps, detection rules | | ✓ | |
+| **Modules & settings:** attendance mode, school days, absence message time | | ✓ | |
+| **Audit log** | | ✓ | |
+| **Schools, Gateways** (section 2) | | | ✓ |
+
+The server enforces this: a teacher asking for school-wide data (the student list, where students are, the day's summary, exceptions) is refused, not just hidden from the menu. Parents can't use the dashboard; they use the app.
 
 ## 8. Parent app
 
-1. **Sign in** with a mobile number and a WhatsApp code (password as a fallback).
+1. **Sign in** with email and password. A new parent taps **Create account**: email, then the code from the email, then their password. **Forgot password** works the same way.
 2. **Consent** once.
 3. **The child's day:** arrival time and each lesson's status. With two children there is a switcher.
 4. **Notifications:** the list, marked read when opened.
@@ -192,8 +205,8 @@ All messages arrive as **app notifications**, and every one is also kept in the 
   - The detection numbers (−70 / −85 dBm, 70%, 10 minutes) need tuning in real rooms.
 - **Sending for real:**
   - **Push notifications:** Firebase isn't connected yet. Messages are saved and visible in the app's list, but nothing pops up on the phone.
-  - **WhatsApp:** needs a WhatsApp Business account. Until then, sign-in codes are written in the server log.
-  - **Email:** isn't used yet.
+  - **Email:** needs an email account to send from (`SMTP_URL` in `apps/api/.env`). Until then, sign-up and password codes are written in the server log.
+  - **School emails to parents** (newsletters, announcements) come with the Messaging module, after Phase 1.
 - **Arabic:** the dashboard and app are English only. Arabic names are stored and shown.
 - **Hosting:** no production server, domain, HTTPS or MQTT broker is set up yet.
 - **Parents and live location:** they don't see their child's live location. Only staff do, until you decide otherwise.

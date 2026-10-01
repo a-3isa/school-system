@@ -1,6 +1,6 @@
 import { BadRequestException, Body, Controller, Delete, ForbiddenException, Get, Injectable, NotFoundException, Param, Patch, Post, Query } from '@nestjs/common';
 import { GuardianRelation, Prisma, Role } from '@prisma/client';
-import { IsBoolean, IsDateString, IsEmail, IsEnum, IsOptional, IsString, MinLength } from 'class-validator';
+import { IsBoolean, IsDateString, IsEmail, IsEnum, IsOptional, IsString, Matches, MinLength } from 'class-validator';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit';
 import { AuthUser, CurrentUser, Roles, SchoolId, SCHOOL_WIDE, STAFF } from '../auth/auth.decorators';
@@ -30,21 +30,26 @@ export class UpdateStudentDto {
 export class GuardianDto {
   @IsEnum(GuardianRelation) relation: GuardianRelation;
   @IsString() @MinLength(1) name: string;
-  @IsString() @MinLength(6) phone: string;
-  @IsOptional() @IsEmail() email?: string;
-  // Temporary password; parents will sign in with a WhatsApp code later.
+  // The parent signs up in the app with this email, and gets the school's emails at it.
+  @IsEmail({}, { message: 'Enter the parent’s email: they sign up in the app with it.' }) email: string;
+  @Matches(/^\+\d{8,15}$/, { message: 'Enter the mobile number with its country code, like +201001234567.' }) phone: string;
+  // The school checked the mobile and WhatsApp number in person.
+  @IsOptional() @IsBoolean() phoneChecked?: boolean;
+  // Only for demos and tests; parents choose their own password in the app.
   @IsOptional() @IsString() @MinLength(8) password?: string;
 }
 
 export class GuardianAccessDto {
-  @IsBoolean() restricted: boolean;
+  @IsOptional() @IsBoolean() restricted?: boolean;
+  // The school checked the parent's mobile and WhatsApp number in person.
+  @IsOptional() @IsBoolean() phoneChecked?: boolean;
 }
 
 const MAX_GUARDIANS = 2;
 
 const studentInclude = {
   class: { select: { id: true, name: true } },
-  guardians: { include: { user: { select: { id: true, name: true, phone: true, email: true } } } },
+  guardians: { include: { user: { select: { id: true, name: true, phone: true, email: true, phoneVerifiedAt: true, emailVerifiedAt: true } } } },
 } satisfies Prisma.StudentInclude;
 
 @Injectable()
@@ -105,7 +110,7 @@ export class StudentsService {
 
   /**
    * Links a parent to a student. A parent who already has an account (a
-   * sibling at the same school) is reused by phone number.
+   * sibling at the same school) is found by email.
    */
   async addGuardian(user: AuthUser, schoolId: string, studentId: string, dto: GuardianDto) {
     const student = await this.get(schoolId, studentId);
@@ -114,9 +119,10 @@ export class StudentsService {
       throw new BadRequestException(`This student already has a ${dto.relation.toLowerCase()}.`);
     }
 
-    let parent = await this.prisma.user.findUnique({ where: { phone: dto.phone } });
+    const email = dto.email.trim().toLowerCase();
+    let parent = await this.prisma.user.findUnique({ where: { email } });
     if (parent && (parent.role !== Role.PARENT || parent.schoolId !== schoolId)) {
-      throw new BadRequestException('This phone number belongs to another account.');
+      throw new BadRequestException('This email belongs to another account.');
     }
     if (!parent) {
       parent = await this.prisma.user
@@ -125,24 +131,33 @@ export class StudentsService {
             schoolId,
             role: Role.PARENT,
             name: dto.name,
+            email,
             phone: dto.phone,
-            email: dto.email?.toLowerCase(),
+            phoneVerifiedAt: dto.phoneChecked ? new Date() : null,
             passwordHash: dto.password ? await hashPassword(dto.password) : null,
           },
         })
-        .catch((e) => mapPrismaError(e, 'This email belongs to another account.'));
+        .catch((e) => mapPrismaError(e, 'This mobile number belongs to another account.'));
+    } else if (dto.phoneChecked && !parent.phoneVerifiedAt) {
+      parent = await this.prisma.user.update({ where: { id: parent.id }, data: { phoneVerifiedAt: new Date() } });
     }
     await this.prisma.studentGuardian.create({ data: { studentId, userId: parent.id, relation: dto.relation } });
     await this.audit.log(user, 'guardian.add', 'student', studentId, { parentId: parent.id, relation: dto.relation });
     return this.get(schoolId, studentId);
   }
 
-  async setGuardianAccess(user: AuthUser, schoolId: string, studentId: string, parentId: string, restricted: boolean) {
+  async setGuardianAccess(user: AuthUser, schoolId: string, studentId: string, parentId: string, dto: GuardianAccessDto) {
     await this.get(schoolId, studentId);
     const link = await this.prisma.studentGuardian.findUnique({ where: { studentId_userId: { studentId, userId: parentId } } });
     if (!link) throw new NotFoundException('This parent isn’t linked to the student.');
-    await this.prisma.studentGuardian.update({ where: { studentId_userId: { studentId, userId: parentId } }, data: { restricted } });
-    await this.audit.log(user, restricted ? 'guardian.restrict' : 'guardian.unrestrict', 'student', studentId, { parentId });
+    if (dto.restricted !== undefined) {
+      await this.prisma.studentGuardian.update({ where: { studentId_userId: { studentId, userId: parentId } }, data: { restricted: dto.restricted } });
+      await this.audit.log(user, dto.restricted ? 'guardian.restrict' : 'guardian.unrestrict', 'student', studentId, { parentId });
+    }
+    if (dto.phoneChecked !== undefined) {
+      await this.prisma.user.update({ where: { id: parentId }, data: { phoneVerifiedAt: dto.phoneChecked ? new Date() : null } });
+      await this.audit.log(user, dto.phoneChecked ? 'guardian.phoneChecked' : 'guardian.phoneUnchecked', 'student', studentId, { parentId });
+    }
     return this.get(schoolId, studentId);
   }
 
@@ -200,7 +215,7 @@ export class StudentsController {
   @Roles(Role.SCHOOL_ADMIN)
   @Patch(':id/guardians/:parentId')
   access(@CurrentUser() user: AuthUser, @SchoolId() schoolId: string, @Param('id') id: string, @Param('parentId') parentId: string, @Body() dto: GuardianAccessDto) {
-    return this.students.setGuardianAccess(user, schoolId, id, parentId, dto.restricted);
+    return this.students.setGuardianAccess(user, schoolId, id, parentId, dto);
   }
 
   @Roles(Role.SCHOOL_ADMIN)

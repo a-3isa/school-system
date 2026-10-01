@@ -53,13 +53,13 @@ describe('The lesson happening now (e2e)', () => {
       ids[name] = (await admin.post('/api/students', { code: `V${i}`, firstName: name, lastName: 'Test', classId })).body.id;
       await admin.post('/api/devices/straps', { mac: mac(i), studentId: ids[name] }).expect(201);
     }
-    await admin.post(`/api/students/${ids.Salma}/guardians`, { relation: 'MOTHER', name: 'Mona', phone: '+201500000001', password: 'parent-pass' }).expect(201);
-    await admin.post(`/api/students/${ids.Karim}/guardians`, { relation: 'FATHER', name: 'Amr', phone: '+201500000003', password: 'parent-pass' }).expect(201);
-    await admin.post(`/api/students/${ids.Omar}/guardians`, { relation: 'MOTHER', name: 'Rania', phone: '+201500000002', password: 'parent-pass' }).expect(201);
+    await admin.post(`/api/students/${ids.Salma}/guardians`, { relation: 'MOTHER', name: 'Mona', email: 'p201500000001@test.eg', phone: '+201500000001', password: 'parent-pass' }).expect(201);
+    await admin.post(`/api/students/${ids.Karim}/guardians`, { relation: 'FATHER', name: 'Amr', email: 'p201500000003@test.eg', phone: '+201500000003', password: 'parent-pass' }).expect(201);
+    await admin.post(`/api/students/${ids.Omar}/guardians`, { relation: 'MOTHER', name: 'Rania', email: 'p201500000002@test.eg', phone: '+201500000002', password: 'parent-pass' }).expect(201);
     teacher = await login(app, 'hana@live.eg', 'teacher-pass');
-    salmaParent = await login(app, '+201500000001', 'parent-pass');
-    omarParent = await login(app, '+201500000002', 'parent-pass');
-    karimParent = await login(app, '+201500000003', 'parent-pass');
+    salmaParent = await login(app, 'p201500000001@test.eg', 'parent-pass');
+    omarParent = await login(app, 'p201500000002@test.eg', 'parent-pass');
+    karimParent = await login(app, 'p201500000003@test.eg', 'parent-pass');
 
     // Layla and Salma came in through the gate before the lesson; Omar's strap stayed at home.
     for (const n of [0, 1]) await send('GATE', [{ mac: mac(n), rssi: -52, at: now - 25 * MIN }, { mac: mac(n), rssi: -50, at: now - 25 * MIN + 4000 }]);

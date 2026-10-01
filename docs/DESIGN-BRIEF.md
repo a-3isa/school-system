@@ -19,19 +19,15 @@ Two attendance modes per school:
 - **Manual:** teachers mark each lesson (Present / Late / Absent / Excused).
 - **Automatic:** the straps decide each lesson when it ends. Teachers only correct the children the strap got wrong, for example a forgotten strap.
 
-## The people and where they use it
+## The people, and the screens each one has
 
-1. **Teacher:** on the classroom PC at the front of the room, often with a class waiting. Signs in with email and password and lands on **"My class now"**, the lesson in front of them. Needs to see in two seconds who isn't in the room, and fix a forgotten strap with one tap. Large tap targets; readable from a step back; no clutter.
-2. **School admin:** at a desk, all day. Watches today's attendance, deals with exceptions, finds where a child is, sets up the school (classes, rooms, timetable, staff, students, devices).
-3. **Owner** (the platform operator): creates schools, chooses plans, switches modules, registers gateways.
-4. **Parent:** on a phone, Arabic or English, glances at notifications. "Salma arrived at school 07:42", "Salma was absent from Math in Room 204", "Salma is in Math in Room 204". Wants their child's day at a glance and to trust the messages.
+Each role sees only its own screens. Design each role's navigation separately; nobody sees an item they can't use.
 
-## Screens to design
+### 1. Teacher: classroom PC at the front of the room, often with a class waiting
+Signs in with email and password. Needs to see in two seconds who isn't in the room, and fix a forgotten strap with one tap. Large tap targets; readable from a step back; no clutter. **A teacher never sees school-wide data:** no other classes, no student list, no settings.
 
-### Dashboard (desktop first, must work on a tablet)
-- **Sign in:** email and password.
-- **Shell:** sidebar navigation grouped by role. Show the school name and the signed-in person. Teachers see only: My class now, Today, Take attendance, Exceptions, Where students are, Students, Timetable.
-- **My class now** (teacher, the most important screen):
+Navigation has exactly three items:
+- **My class now** (the start page, and the most important screen in the product):
   - **Header:** class, subject, room, period and time, e.g. "4-A · Math · Room 204 · Period 3 · 09:50–10:35".
   - **Summary line:** "9 of 12 are in the room now", updated every 15 seconds.
   - **One row per child:** name and code, then a live state:
@@ -41,65 +37,79 @@ Two attendance modes per school:
     - **Not heard today**
   - **Each row also has:** the status control P / L / A / E (preset from the strap; the children not in the room come first, preset to A), what's recorded ("Decided when the lesson ends" or "Present · by Hana Nabil · Strap forgotten"), and a reason dropdown.
   - **Save button** with a count ("Save 1").
-  - **Empty state:** no lesson now; show the next lesson.
-- **Today:**
-  - **KPIs:** students and how many came in through the gate, present (latest period), absent, needs attention.
-  - **Lists:** today's lessons with marking progress, things needing attention, and attendance by period (present / late / absent / excused / on a trip).
-- **Take attendance:** today's lessons for the teacher (or all lessons for an admin), each with progress and an Open button. A past day is read-only for teachers.
-- **Lesson roster:** the same as My class now, for any lesson and date. In manual mode it has "Mark the rest present".
-- **Exceptions:** a list of things a person should look at, each with a type tag and Resolve with a note:
-  - "Salma Gamal came in at 08:20 but hasn't been in 4-A Math in Room 204 (period 3)"
-  - "Ali was in 4-A Science for only 40% of the lesson"
-  - "Gateway in Room 205 offline, mark manually"
-  - "Science lab has no gateway"
-  - "Low strap battery"
-  - "Left early"
-- **Where students are** (live map without a map), refreshing every 10 seconds:
-  - **KPIs:**
-    - heard in the last 10 minutes
-    - not heard for 10+ minutes (only during school hours)
-    - out of school
-    - not heard today
-  - **A "Needs a look" table:** name, class, last heard, where.
-  - **A panel for each place:** each room and the gate, with the children in it as name chips. A chip shows "4 min ago" when not fresh.
-  - **Panels for:** "Went out through the gate" (with times), "Gone for the day", "Not heard today".
-  - **Controls:** search and class filter.
-- **Students & parents:** searchable, filterable table (name with Arabic name below, code, class, parents) and an "Add a student" form.
-- **Student page:**
-  - parents (at most mother and father), with Restrict and Remove, and an add-parent form
-  - **Where today:** a timeline, e.g. "07:49–07:49 Gate A", "08:00–09:29 Room 204"…
-  - attendance for the last two weeks (date, period, status, how: strap or manual with reason)
-- **Import from Excel:**
-  1. Download the template.
-  2. Upload the file.
-  3. Check step: a summary plus a row-by-row list of problems.
-  4. Import.
-- **Staff:** accounts table (name, role, email, active) and an add form.
-- **Classes, rooms & periods:** four small editors.
-- **Timetable:** a week grid (days × periods) per class, room or teacher. Each cell shows subject, room and teacher. Clash errors appear inline.
-- **Devices:**
-  - **Gateways:** claim by code; name; kind (gate or room); room; last seen; firmware.
-  - **Straps:** address, student, battery, last seen.
-  - **Detection rules form.**
-- **Modules & settings:** attendance mode (Manual / Automatic), school days, time of the daily absence message, module feature switches.
-- **Audit log:** who did what and when.
-- **Owner console:**
-  - **Schools:** a list with plan (Essentials / Smart / Complete) and module switches.
-  - **Gateways:** register by serial; show the claim code and the one-time secret; "New secret".
+  - **Between lessons:** "No lesson right now. Next: 4-A Math in Room 204 at 09:50."
+- **My lessons today:** the teacher's lessons, each with marking progress (8 / 12, Done) and an Open button. A lesson opens the same class list as My class now. A past day is read-only, with a note that only an admin can correct it.
+- **My timetable:** a week grid of only their own lessons. Each cell shows class, subject and room.
 
-### Parent app (phone)
-- **Sign in:** mobile number, then "Send code by WhatsApp", then the 6-digit code; a password option as a fallback.
+### 2. School admin: at a desk, all day
+Watches today's attendance, deals with exceptions, finds where a child is, registers students and parents, and sets up the school.
+
+Navigation, grouped:
+- **Overview**
+  - **Today:**
+    - KPIs: students, came in through the gate, present (latest period), absent, needs attention
+    - lists: lessons today with marking progress, things needing attention, attendance by period (present / late / absent / excused / on a trip)
+- **Attendance**
+  - **Take attendance:** every lesson today, any date; opens any class list (manual mode adds "Mark the rest present").
+  - **Exceptions:** a list of things to look at, each with a type tag and Resolve with a note:
+    - "Salma Gamal came in at 08:20 but hasn't been in 4-A Math in Room 204 (period 3)"
+    - "Ali was in 4-A Science for only 40% of the lesson"
+    - "Gateway in Room 205 offline, mark manually"
+    - "Science lab has no gateway"
+    - "Low strap battery"
+    - "Left early"
+  - **Where students are** (a live map without a map), refreshing every 10 seconds:
+    - **KPIs:** heard in the last 10 minutes, not heard for 10+ minutes (only during school hours), out of school, not heard today
+    - **A "Needs a look" table:** name, class, last heard, where
+    - **A panel for each place:** each room and the gate, with the children in it as name chips; a chip shows "4 min ago" when not fresh
+    - **More panels:** "Went out through the gate" (with times), "Gone for the day", "Not heard today"
+    - **Controls:** search and class filter
+- **People**
+  - **Students & parents:** a searchable, filterable table (name with Arabic name below, code, class, parents) and "Add a student".
+  - **Student page:**
+    - **Parents** (at most mother and father). Each shows name, email, mobile, and two status tags: "Signed up in the app" or "Not signed up yet", and "Mobile checked" or "Mobile not checked". Actions: Mobile checked, Restrict, Remove.
+    - **Add-parent form:** relation, name, **email (required)**, mobile with country code, and a tick "Mobile and WhatsApp number checked in person". Explain under it that the parent signs up in the app with this email.
+    - **Where today:** a timeline, e.g. "07:49 Gate A", "08:00–09:29 Room 204"…
+    - **Attendance for the last two weeks:** date, period, status, and how (strap, or manual with the reason).
+  - **Import from Excel:** download the template, upload, a check step (summary plus a row-by-row list of problems), import. Columns include each parent's email and mobile.
+  - **Staff:** accounts table (name, role, email, active) and an add form.
+- **School setup**
+  - **Timetable:** a week grid (days × periods) for a chosen class; each cell shows subject, room and teacher; add or remove lessons; clash errors inline.
+  - **Classes, rooms & periods:** four small editors.
+  - **Devices:**
+    - **Gateways:** claim by code; name; kind (gate or room); room; last seen; firmware.
+    - **Straps:** address, student, battery, last seen.
+    - **Detection rules form.**
+  - **Modules & settings:** attendance mode (Manual / Automatic), school days, time of the daily absence message, module feature switches.
+  - **Audit log:** who did what and when.
+
+### 3. Owner (the platform operator): runs the platform for many schools
+Navigation:
+- **Schools:** a list with plan (Essentials / Smart / Complete), create a school with its first admin, module switches per school.
+- **Gateways:** register by serial; show the claim code and the one-time secret; "New secret".
+
+### 4. Parent: on a phone, Arabic or English
+Glances at notifications and wants to trust them. Parents don't use the dashboard.
+
+Screens:
+- **Sign in:** email and password, with two links:
+  - **New here? Create your account:** email, then a screen "Check your email" with the 6-digit code and a new password. Explain that it must be the email the school registered, and what to do if no code arrives (ask the school to check the email).
+  - **Forgot password?:** the same two steps.
 - **Consent:** a one-time screen explaining that the strap tracks the child at school, with "I agree" and "Not now".
 - **Child's day:**
   - the child switcher (for two children)
   - arrival time at the gate
   - each lesson: period, subject, room, time, status
 - **Notifications:** a list with unread state. The types:
-  - arrived
-  - absent from a lesson
-  - back in the lesson
-  - left early
-  - absent today
+  - "Salma arrived at school"
+  - "Salma was absent from Math in Room 204"
+  - "Salma is in Math in Room 204"
+  - "Salma left school early"
+  - "Salma is absent today"
+
+### Shared
+- **Dashboard sign-in** (teachers, admins, owner): email and password, with **Forgot password?** (email, then the code from the email and a new password).
+- **Shell:** a sidebar grouped as above, showing the school name and the signed-in person with their role.
 
 ## Constraints
 
@@ -127,12 +137,9 @@ Two attendance modes per school:
 
 1. A design direction: colour tokens (light and dark), type scale for Arabic and English, spacing, radius, and the status colour system.
 2. Components: sidebar, page header, KPI tile, table, status control (P/L/A/E), live-state badge, name chip, place panel, timeline, notice/alert, form fields, empty states, toast.
-3. Full screens, in this order:
-   1. My class now: live during a lesson, with 3 children not in the room
-   2. Where students are
-   3. Today
-   4. Exceptions
-   5. Student page
-   6. Parent app: child's day, notifications, sign-in
-   7. The rest
+3. Full screens, by role, in this order:
+   1. Teacher: My class now (live during a lesson, with 3 children not in the room), My lessons today, My timetable
+   2. Parent app: sign in, create account (both steps), child's day, notifications
+   3. Admin: Where students are, Today, Exceptions, Student page (with parents' sign-up status), then the rest
+   4. Owner: Schools, Gateways
 4. Each key screen in Arabic (RTL) as well as English.
