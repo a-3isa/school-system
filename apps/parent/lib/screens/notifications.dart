@@ -18,7 +18,7 @@ class NotificationsTab extends StatelessWidget {
     final c = context.c;
     final items = data.notifications;
     final today = todayCairo();
-    final yesterday = todayCairo(DateTime.now().subtract(const Duration(days: 1)));
+    final yesterday = todayCairo(clock().subtract(const Duration(days: 1)));
     final groups = <String, List<Map<String, dynamic>>>{};
     for (final n in items) {
       groups.putIfAbsent(dateCairo(n['createdAt'] as String), () => []).add(n);

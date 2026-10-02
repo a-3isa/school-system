@@ -80,6 +80,9 @@ void main() {
   });
 
   testWidgets('shows the child’s day: arrival, and every lesson with its status', (tester) async {
+    // 10:00 in Cairo: periods 1 and 2 are over, period 6 is still to come.
+    clock = () => DateTime.utc(2026, 10, 1, 7);
+    addTearDown(() => clock = DateTime.now);
     await start(tester, {'lang': 'en', 'token': 't'}, school());
     expect(find.text('Arrived safely at school'), findsOneWidget);
     expect(find.text('07:42'), findsOneWidget);

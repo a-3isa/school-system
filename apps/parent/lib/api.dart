@@ -8,6 +8,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 ///   flutter run --dart-define=API_URL=https://api.example.com/api
 const apiUrl = String.fromEnvironment('API_URL', defaultValue: 'http://localhost:3000/api');
 
+/// The time now. Tests set a fixed time so lessons are reliably past or to come.
+DateTime Function() clock = DateTime.now;
+
 class ApiException implements Exception {
   ApiException(this.status, this.message);
   final int status;
@@ -128,7 +131,7 @@ class Api {
 
 /// Today's date in Cairo as YYYY-MM-DD (Egypt is UTC+2, or UTC+3 in summer time).
 String todayCairo([DateTime? now]) {
-  final utc = (now ?? DateTime.now()).toUtc();
+  final utc = (now ?? clock()).toUtc();
   final offset = cairoOffset(utc);
   final local = utc.add(Duration(hours: offset));
   return '${local.year.toString().padLeft(4, '0')}-${local.month.toString().padLeft(2, '0')}-${local.day.toString().padLeft(2, '0')}';
@@ -159,7 +162,7 @@ String timeCairo(String iso) {
 
 /// The time now in Cairo as HH:mm, to compare with period times.
 String nowCairo([DateTime? now]) {
-  final utc = (now ?? DateTime.now()).toUtc();
+  final utc = (now ?? clock()).toUtc();
   final local = utc.add(Duration(hours: cairoOffset(utc)));
   return '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
 }
