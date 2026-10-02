@@ -49,7 +49,7 @@ const RELATION_NAME: Record<GuardianRelation, string> = { MOTHER: 'mother', FATH
 
 const studentInclude = {
   class: { select: { id: true, name: true } },
-  guardians: { include: { user: { select: { id: true, name: true, phone: true, email: true, phoneVerifiedAt: true, emailVerifiedAt: true } } } },
+  guardians: { include: { user: { select: { id: true, name: true, phone: true, email: true, phoneVerifiedAt: true, emailVerifiedAt: true } } }, orderBy: { relation: 'asc' } },
 } satisfies Prisma.StudentInclude;
 
 @Injectable()

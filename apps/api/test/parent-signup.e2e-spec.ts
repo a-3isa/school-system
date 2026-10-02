@@ -16,7 +16,7 @@ describe('Parents sign up in the app (e2e)', () => {
   const http = () => request(app.getHttpServer());
   const emailCode = (to: string) => app.get(EmailService).last(to)?.text.match(/\b(\d{6})\b/)?.[1];
   const whatsappCode = (to: string) => app.get(WhatsAppService).outbox.get(to);
-  const guardian = async () => (await admin.get(`/api/students/${studentId}`)).body.guardians[0].user;
+  const guardian = async () => (await admin.get(`/api/students/${studentId}`)).body.guardians.find((g: any) => g.relation === 'MOTHER').user;
 
   beforeAll(async () => {
     app = await startApp();

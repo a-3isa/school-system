@@ -161,7 +161,7 @@ export class ClassesController {
         homeroomTeacher: { select: { id: true, name: true } },
         students: {
           where: { active: true },
-          select: { id: true, code: true, firstName: true, lastName: true, nameAr: true, guardians: { select: { relation: true, user: { select: { id: true, name: true } } } } },
+          select: { id: true, code: true, firstName: true, lastName: true, nameAr: true, guardians: { select: { relation: true, user: { select: { id: true, name: true } } }, orderBy: { relation: 'asc' } } },
           orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
         },
       },
