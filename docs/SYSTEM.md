@@ -74,7 +74,15 @@ This describes every part that exists in the code today. Phase 1 is attendance. 
 - **Timetable:** for each day and period, which class is in which room, with which subject and teacher. Clashes are refused with a clear message: the same class, room or teacher twice at once.
 - **Staff accounts:** add teachers and other staff; reset passwords; deactivate.
 - **Students:**
-  - each has a code, a name and an optional Arabic name, a class, and medical notes
+  - added on their own screen (**Add a student**), in sections:
+    - **student:** name, full Arabic name, code (the next one is suggested), gender, date of birth (with the age on 1 October), nationality, the 14-digit **national number** for an Egyptian (it must agree with the birth date and gender; typing it fills them in) or a passport number, place of birth, religion (for religious education)
+    - **at school:** class, the date they joined, previous school, home address
+    - **health:** blood type, allergies, conditions and medication; an **emergency contact** besides the parents
+    - **parents:** the first one is required; up to a mother, a father and a guardian at once
+    - **photo and papers:** photos or scans (JPG, PNG, WebP or PDF, 5 MB each; big phone photos are shrunk first). The **student's photo** and **birth certificate** are required; the vaccination record, parents' IDs, previous school reports, transfer letter, passport and others are optional
+  - name, code, gender, date of birth, nationality, the national number (Egyptians), a parent, the photo and the birth certificate are required; two students can't share a national number
+  - the student page shows the photo, the details (**Edit details**) and the papers; the admin adds more papers there. Every staff member sees the photo; the nurse also the vaccination record; the other papers are for the admin
+  - students imported from Excel or added before this keep working; their page lists the papers still needed
   - **at least one and at most three**: a mother, a father and a **guardian** (another adult responsible for the child, e.g. for an orphan). A student is always added with their first parent or guardian, and the last one can't be removed. Each has a name, an **email** (required: they sign up with it and get the school's emails at it) and, optionally, a mobile; the parent's checked mobile from the app replaces it
   - a parent with two children at the school uses one account (found by email)
   - each parent shows **Signed up in the app / Not signed up yet** and **Mobile checked by WhatsApp / not checked yet**
@@ -169,7 +177,7 @@ All messages arrive as **app notifications**, and every one is also kept in the 
 | **Take attendance:** every lesson; opens the same attendance screen for any lesson, any day | | ✓ | |
 | **Exceptions:** things a person should look at, each resolved with a note:<ul><li>at school but not in the lesson</li><li>left a lesson</li><li>left early</li><li>gateway offline / room without a gateway</li><li>low battery</li></ul> | | ✓ | |
 | **Where students are** (only with straps): live every 10 seconds:<ul><li>each room and the gate, with who is in it now</li><li>"needs a look": not heard for 10+ minutes during school hours</li><li>who went out through the gate</li><li>who hasn't been heard today</li></ul>Has search and a class filter. | | ✓ | |
-| **Students:** search, add (with the first parent or guardian), each student's page (parents and guardian, class, where today, two weeks of attendance) | | ✓ | |
+| **Students:** search; **Add a student** (details, health, emergency contact, parents, photo and papers); each student's page (photo, details and Edit details, papers, parents and guardian, class, where today, two weeks of attendance) | | ✓ | |
 | **Parents:** search by name, email, mobile or child; each parent's page (details, sign-up and tracking consent, their children with class; link another child) | | ✓ | |
 | **Classes:** each class's page (grade, homeroom teacher, students with their parents). Student, parent and class pages link to each other. | | ✓ | |
 | **Import from Excel:** template, check, import | | ✓ | |

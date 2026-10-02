@@ -61,6 +61,7 @@ model School {
   createdAt         DateTime       @default(now())
 
   modules    SchoolModule[]
+  studentFiles StudentFile[]
   users      User[]
   grades     Grade[]
   classes    Class[]
@@ -222,8 +223,26 @@ model Student {
   nameAr       String?
   classId      String?
   dateOfBirth  DateTime?
+  gender       Gender?
+  // ISO 3166 country code, e.g. EG.
+  nationality  String?
+  // The 14-digit Egyptian national number (on the computerised birth certificate).
+  nationalId   String?
+  passportNo   String?
+  // For religious education classes.
+  religion     Religion?
+  placeOfBirth String?
+  address      String?
+  previousSchool String?
+  enrolledOn   DateTime? @db.Date
   photoUrl     String?
+  bloodType    String?
+  allergies    String?
   medicalNotes String?
+  // Someone to call when the parents can't be reached.
+  emergencyName     String?
+  emergencyRelation String?
+  emergencyPhone    String?
   active       Boolean   @default(true)
   createdAt    DateTime  @default(now())
 
@@ -235,12 +254,45 @@ model Student {
   strap      Strap?
   presence   GatePresence[]
   exceptions AttendanceException[]
+  files      StudentFile[]
 
   @@unique([schoolId, code])
+  @@unique([schoolId, nationalId])
   @@index([schoolId, classId])
 }
 
-// A parent linked to a child. At most two per student (mother and father).
+// A photo or scan the school keeps for a student: their photo, birth
+// certificate, vaccination record… Uploaded first, then attached when the
+// student is saved (studentId is empty until then).
+model StudentFile {
+  id           String   @id @default(cuid())
+  schoolId     String
+  studentId    String?
+  kind         String
+  mime         String
+  size         Int
+  data         Bytes
+  uploadedById String?
+  createdAt    DateTime @default(now())
+
+  school  School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student Student? @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId, studentId])
+}
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+enum Religion {
+  MUSLIM
+  CHRISTIAN
+  OTHER
+}
+
+// A parent or guardian linked to a child: a mother, a father and one guardian at most.
 model StudentGuardian {
   studentId  String
   userId     String

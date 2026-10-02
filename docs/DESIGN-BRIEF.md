@@ -62,8 +62,11 @@ Navigation, grouped:
     - **More panels:** "Went out through the gate" (with times), "Gone for the day", "Not heard today"
     - **Controls:** search and class filter
 - **People**
-  - **Students:** a searchable, filterable table (name with Arabic name below, code, class) and "Add a student", which also asks for the first parent or guardian: every student has at least one.
+  - **Students:** a searchable, filterable table (name with Arabic name below, code, class) and "Add a student".
+  - **Add a student:** one long form in sections: student (name, Arabic name, suggested code, nationality, national number that fills in the birth date and gender, gender, date of birth with the age on 1 October, place of birth, religion), at school (class, joined on, previous school, address), health and emergency contact, parents (first required, add up to three), and photo and papers (one row per paper with a thumbnail and "Choose photo or scan"; the photo and birth certificate are required).
   - **Student page:**
+    - **Header** with the student's photo.
+    - **Details** with "Edit details", and **Photo and papers** (thumbnails, "Still needed" when the photo or birth certificate is missing).
     - **Parents** (mother, father and one guardian at most; at least one). Each name opens the parent's page; the class opens the class page. Each shows name, email, mobile, and two status tags: "Signed up in the app" or "Not signed up yet", and "Mobile checked by WhatsApp" or "Mobile not checked yet". Actions: Restrict, Remove.
     - **Add-parent form:** relation, name, **email (required)**, mobile (optional). Explain under it that the parent signs up in the app with this email, and that their mobile is checked by WhatsApp then and saved here.
     - **Where today** (straps only): a timeline, e.g. "07:49 Gate A", "08:00–09:29 Room 204"…

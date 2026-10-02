@@ -9,6 +9,7 @@ import * as bcrypt from 'bcryptjs';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { configureApp } from '../src/main';
+import { KID, kid, PNG } from './helpers';
 
 describe('Phase 1 core (e2e)', () => {
   let app: INestApplication;
@@ -25,6 +26,11 @@ describe('Phase 1 core (e2e)', () => {
     put: (url: string, body?: object) => request(app.getHttpServer()).put(url).set('Authorization', `Bearer ${token}`).send(body),
     patch: (url: string, body?: object) => request(app.getHttpServer()).patch(url).set('Authorization', `Bearer ${token}`).send(body),
     delete: (url: string) => request(app.getHttpServer()).delete(url).set('Authorization', `Bearer ${token}`),
+    upload: (url: string, fields: Record<string, string>, file: Buffer, name = 'file.png') => {
+      let r = request(app.getHttpServer()).post(url).set('Authorization', `Bearer ${token}`);
+      for (const [k, v] of Object.entries(fields)) r = r.field(k, v);
+      return r.attach('file', file, name);
+    },
   });
 
   let owner: ReturnType<typeof as>;
@@ -125,14 +131,15 @@ describe('Phase 1 core (e2e)', () => {
   });
 
   let laylaId: string;
+  let omarFile: [string, string];
 
   it('manages students, who always have a parent or guardian', async () => {
     const nadia = { relation: 'MOTHER', name: 'Nadia Hussein', email: 'p201000000001@test.eg', phone: '+201000000001', password: 'parent-pass' };
-    await admin.post('/api/students', { code: '2019-0412', firstName: 'Layla', lastName: 'Hussein', classId }).expect(400); // no parent
-    const layla = await admin.post('/api/students', { code: '2019-0412', firstName: 'Layla', lastName: 'Hussein', classId, parent: nadia }).expect(201);
+    await admin.post('/api/students', { ...(await kid(admin)), code: '2019-0412', firstName: 'Layla', lastName: 'Hussein', classId }).expect(400); // no parent
+    const layla = await admin.post('/api/students', { ...(await kid(admin)), code: '2019-0412', firstName: 'Layla', lastName: 'Hussein', classId, parent: nadia }).expect(201);
     laylaId = layla.body.id;
     expect(layla.body.guardians).toEqual([expect.objectContaining({ relation: 'MOTHER', user: expect.objectContaining({ name: 'Nadia Hussein' }) })]);
-    await admin.post('/api/students', { code: '2019-0412', firstName: 'X', lastName: 'Y', parent: { relation: 'MOTHER', name: 'X', email: 'x@test.eg' } }).expect(409);
+    await admin.post('/api/students', { ...(await kid(admin)), code: '2019-0412', firstName: 'X', lastName: 'Y', parent: { relation: 'MOTHER', name: 'X', email: 'x@test.eg' } }).expect(409);
     expect(await prisma.user.findUnique({ where: { email: 'x@test.eg' } })).toBeNull(); // nothing left behind
     await admin.post(`/api/students/${laylaId}/guardians`, { relation: 'MOTHER', name: 'Other', email: 'p201000000009@test.eg', phone: '+201000000009' }).expect(400);
     const both = await admin.post(`/api/students/${laylaId}/guardians`, { relation: 'FATHER', name: 'Ibrahim Hussein', email: 'p201000000002@test.eg', phone: '+201000000002' }).expect(201);
@@ -145,7 +152,7 @@ describe('Phase 1 core (e2e)', () => {
     await admin.delete(`/api/students/${laylaId}/guardians/${samiraId}`).expect(200);
 
     // A sibling reuses the mother's existing account.
-    const karim = await admin.post('/api/students', { code: '2022-0133', firstName: 'Karim', lastName: 'Hussein', parent: { ...nadia, password: undefined } }).expect(201);
+    const karim = await admin.post('/api/students', { ...(await kid(admin)), code: '2022-0133', firstName: 'Karim', lastName: 'Hussein', parent: { ...nadia, password: undefined } }).expect(201);
     // The only parent can't be removed.
     const res = await admin.delete(`/api/students/${karim.body.id}/guardians/${karim.body.guardians[0].userId}`).expect(400);
     expect(res.body.message).toContain('at least one parent or guardian');
@@ -181,11 +188,87 @@ describe('Phase 1 core (e2e)', () => {
     expect(after.body.map((k: any) => k.firstName)).toEqual(['Karim']);
   });
 
+  it('records who a new student is, and checks the national number', async () => {
+    const base = { firstName: 'Omar', lastName: 'Saeed', classId, gender: 'MALE', nationality: 'EG', parent: { relation: 'FATHER', name: 'Saeed Ali', email: 'saeed@test.eg' }, files: [] as string[] };
+    // An Egyptian student needs a national number, and it must agree with the date of birth and gender.
+    const missing = await admin.post('/api/students', { ...base, code: 'E-1', dateOfBirth: '2017-03-15' }).expect(400);
+    expect(missing.body.message).toContain('national number');
+    const wrongDay = await admin.post('/api/students', { ...base, code: 'E-1', dateOfBirth: '2017-03-16', nationalId: '31703150101234' }).expect(400);
+    expect(wrongDay.body.message).toContain('born on 2017-03-15');
+    const wrongGender = await admin.post('/api/students', { ...base, code: 'E-1', gender: 'FEMALE', dateOfBirth: '2017-03-15', nationalId: '31703150101234' }).expect(400);
+    expect(wrongGender.body.message).toContain('boy');
+    await admin.post('/api/students', { ...base, code: 'E-1', dateOfBirth: '2017-03-15', nationalId: '3170315' }).expect(400);
+    await admin.post('/api/students', { ...base, code: 'E-1', dateOfBirth: '2030-01-01', nationalId: '33001010101234' }).expect(400); // not born yet
+
+    // The photo and birth certificate are uploaded first, checked by their content, and required.
+    const up = (kind: string, file: Buffer, name?: string) => admin.upload('/api/students/files', { kind }, file, name);
+    const pdf = Buffer.from('%PDF-1.4\n%%EOF\n');
+    expect((await up('PHOTO', pdf, 'photo.pdf').expect(400)).body.message).toContain('must be an image');
+    expect((await up('BIRTH_CERTIFICATE', Buffer.from('hello'), 'cert.png').expect(400)).body.message).toContain('JPG');
+    await up('DIPLOMA', PNG).expect(400);
+    await up('PHOTO', Buffer.alloc(6 * 1024 * 1024, 0xff)).expect(413);
+    const photo = (await up('PHOTO', PNG).expect(201)).body;
+    expect(photo).toEqual(expect.objectContaining({ kind: 'PHOTO', mime: 'image/png' }));
+    const noCert = await admin.post('/api/students', { ...base, code: 'E-1', dateOfBirth: '2017-03-15', nationalId: '31703150101234', files: [photo.id] }).expect(400);
+    expect(noCert.body.message).toBe('Add the birth certificate.');
+    const cert = (await up('BIRTH_CERTIFICATE', pdf, 'cert.pdf').expect(201)).body;
+    const vaccines = (await up('VACCINATION_RECORD', PNG).expect(201)).body;
+
+    // Everything the office records, with both parents at once.
+    const omar = await admin.post('/api/students', {
+      ...base, code: 'E-1', dateOfBirth: '2017-03-15', nationalId: '31703150101234', nameAr: 'عمر سعيد علي حسن',
+      religion: 'MUSLIM', placeOfBirth: 'Cairo', address: '12 Nile St, Maadi', previousSchool: 'Sunrise School',
+      bloodType: 'O+', allergies: 'Peanuts', emergencyName: 'Hoda Ali', emergencyRelation: 'Aunt', emergencyPhone: '+201011112222',
+      files: [photo.id, cert.id, vaccines.id],
+      moreParents: [{ relation: 'MOTHER', name: 'Mona Saeed', email: 'mona.saeed@test.eg' }],
+    }).expect(201);
+    expect(omar.body).toEqual(expect.objectContaining({
+      nationalId: '31703150101234', gender: 'MALE', nationality: 'EG', religion: 'MUSLIM', bloodType: 'O+', allergies: 'Peanuts',
+      emergencyPhone: '+201011112222', enrolledOn: expect.any(String),
+    }));
+    expect(omar.body.dateOfBirth.slice(0, 10)).toBe('2017-03-15');
+    expect(omar.body.guardians.map((g: any) => g.relation)).toEqual(['MOTHER', 'FATHER']);
+    expect(omar.body.files.map((f: any) => f.kind)).toEqual(['PHOTO', 'BIRTH_CERTIFICATE', 'VACCINATION_RECORD']);
+    expect(omar.body.files[0].data).toBeUndefined(); // the bytes only come from the file's own address
+    // An upload can be used once.
+    await admin.post('/api/students', { ...base, code: 'E-9', dateOfBirth: '2017-03-15', nationalId: '31703150101279', files: [photo.id, cert.id] }).expect(400);
+    // Staff see the scan; it comes back as it went in.
+    const seen = await admin.get(`/api/students/${omar.body.id}/files/${cert.id}`).expect(200);
+    expect(seen.headers['content-type']).toBe('application/pdf');
+    expect(seen.headers['x-content-type-options']).toBe('nosniff');
+    // A required paper can't be removed without a replacement; an optional one can.
+    await admin.delete(`/api/students/${omar.body.id}/files/${photo.id}`).expect(400);
+    const newPhoto = (await admin.upload(`/api/students/${omar.body.id}/files`, { kind: 'PHOTO' }, PNG).expect(201)).body;
+    // Other staff see the photo, not the papers.
+    await admin.post('/api/staff', { name: 'Nadia Nurse', role: 'NURSE', email: 'nurse@nv.eg', password: 'nurse-pass-1' }).expect(201);
+    const nurse = as(await login('nurse@nv.eg', 'nurse-pass-1'));
+    await nurse.get(`/api/students/${omar.body.id}/files/${newPhoto.id}`).expect(200);
+    await nurse.get(`/api/students/${omar.body.id}/files/${vaccines.id}`).expect(200);
+    await nurse.get(`/api/students/${omar.body.id}/files/${cert.id}`).expect(403);
+    await nurse.upload(`/api/students/${omar.body.id}/files`, { kind: 'OTHER' }, PNG).expect(403);
+    await admin.delete(`/api/students/${omar.body.id}/files/${photo.id}`).expect(200);
+    await admin.delete(`/api/students/${omar.body.id}/files/${vaccines.id}`).expect(200);
+
+    // Two students can't share a national number; a failed add leaves no parent behind.
+    const twin = await admin.post('/api/students', { ...base, ...(await kid(admin)), nationality: 'EG', gender: 'MALE', code: 'E-2', dateOfBirth: '2017-03-15', nationalId: '31703150101234', parent: { relation: 'FATHER', name: 'X', email: 'x2@test.eg' } }).expect(409);
+    expect(twin.body.message).toContain('E-1');
+    expect(await prisma.user.findUnique({ where: { email: 'x2@test.eg' } })).toBeNull();
+    // The same parent twice is refused.
+    await admin.post('/api/students', { ...base, ...(await kid(admin)), nationality: 'EG', gender: 'MALE', code: 'E-3', dateOfBirth: '2017-03-15', nationalId: '31703150101250', moreParents: [{ relation: 'GUARDIAN', name: 'Saeed Ali', email: 'saeed@test.eg' }] }).expect(400);
+
+    // Edits are checked the same way; blank text clears a field.
+    await admin.patch(`/api/students/${omar.body.id}`, { dateOfBirth: '2016-03-15' }).expect(400);
+    const edited = await admin.patch(`/api/students/${omar.body.id}`, { allergies: '', bloodType: 'A+' }).expect(200);
+    expect(edited.body).toEqual(expect.objectContaining({ allergies: null, bloodType: 'A+' }));
+    omarFile = [omar.body.id, cert.id];
+  });
+
   it('keeps each school’s data separate', async () => {
     await owner.post('/api/owner/schools', { name: 'Other School', plan: 'SMART', admin: { name: 'B', email: 'b@other.eg', password: 'other-pass' } }).expect(201);
     const other = as(await login('b@other.eg', 'other-pass'));
     await other.get(`/api/students/${laylaId}`).expect(404);
     await other.get(`/api/classes/${classId}`).expect(404);
+    await other.get(`/api/students/${omarFile[0]}/files/${omarFile[1]}`).expect(404);
     expect((await other.get('/api/parents').expect(200)).body).toEqual([]);
     expect((await other.get('/api/students').expect(200)).body).toEqual([]);
     await other.post('/api/timetable', { classId, dayOfWeek: 0, periodId: period1, roomId, subjectId }).expect(400);
@@ -193,7 +276,7 @@ describe('Phase 1 core (e2e)', () => {
 
   it('limits writes by role and records an audit trail', async () => {
     const teacher = as(await login('hana@nv.eg', 'teacher-pass'));
-    await teacher.post('/api/students', { code: 'T-1', firstName: 'A', lastName: 'B' }).expect(403);
+    await teacher.post('/api/students', { ...KID, code: 'T-1', firstName: 'A', lastName: 'B' }).expect(403);
     // A teacher sees only their own lessons, not the whole school.
     await teacher.get('/api/students').expect(403);
     await teacher.get('/api/locations').expect(403);
@@ -207,7 +290,7 @@ describe('Phase 1 core (e2e)', () => {
   });
 
   it('validates input', async () => {
-    const res = await admin.post('/api/students', { code: 'X', firstName: 'A', lastName: 'B', hacker: true }).expect(400);
+    const res = await admin.post('/api/students', { ...(await kid(admin)), code: 'X', firstName: 'A', lastName: 'B', hacker: true }).expect(400);
     expect(JSON.stringify(res.body.message)).toContain('hacker');
   });
 });
