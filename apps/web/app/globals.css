@@ -24,6 +24,8 @@
   --line: #DDD6C7;
   --line-soft: #E8E2D5;
   --line-strong: #B9B2A2;
+  --scroll-thumb: #C9C2B2;
+  --scroll-thumb-hover: #9A9384;
   --dash: #CFC7B5;
   --seg: #E3DDCF;
   --accent: #26457F;
@@ -64,6 +66,8 @@
     --line: #2C322E;
     --line-soft: #232825;
     --line-strong: #4A514C;
+    --scroll-thumb: #3A403C;
+    --scroll-thumb-hover: #5C645F;
     --dash: #3A403C;
     --seg: #232825;
     --accent: #8FA9DE;
@@ -110,6 +114,21 @@ button, input, select, textarea { font: inherit; color: inherit; }
 @keyframes fade { from { opacity: .35; } to { opacity: 1; } }
 
 /* ---------- shell ---------- */
+/* Scrollbars: thin and rounded, in the page's own colours. The sidebar's
+   only shows while the pointer is over it. */
+* { scrollbar-width: thin; scrollbar-color: var(--scroll-thumb) transparent; }
+.side { scrollbar-color: transparent transparent; }
+.side:hover, .side:focus-within { scrollbar-color: var(--scroll-thumb) transparent; }
+/* Safari, which only knows the older way. */
+@supports not (scrollbar-color: auto) {
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track, ::-webkit-scrollbar-corner { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--scroll-thumb); border: 3px solid transparent; border-radius: 999px; background-clip: padding-box; }
+  ::-webkit-scrollbar-thumb:hover { background-color: var(--scroll-thumb-hover); }
+  .side::-webkit-scrollbar-thumb { background: transparent; }
+  .side:hover::-webkit-scrollbar-thumb { background: var(--scroll-thumb); background-clip: padding-box; }
+}
+
 .app { display: grid; grid-template-columns: 248px minmax(0, 1fr); min-height: 100vh; }
 .app.solo { grid-template-columns: minmax(0, 1fr); }
 .side { background: var(--side); border-inline-end: 1px solid var(--line); padding: 20px 12px; display: flex; flex-direction: column; gap: 20px; position: sticky; top: 0; height: 100vh; overflow-y: auto; }

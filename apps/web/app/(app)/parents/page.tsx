@@ -42,8 +42,8 @@ export default function ParentsPage() {
                         ))
                       : <span className="muted">{t.parents.noChildren}</span>}
                   </td>
-                  <td style={{ overflowWrap: 'anywhere' }}><bdi dir="ltr">{p.email ?? '—'}</bdi></td>
-                  <td className="num"><bdi dir="ltr">{p.phone ?? '—'}</bdi></td>
+                  <td style={{ whiteSpace: 'nowrap' }}><bdi dir="ltr">{p.email ?? '—'}</bdi></td>
+                  <td className="num" style={{ whiteSpace: 'nowrap' }}><bdi dir="ltr">{p.phone ?? '—'}</bdi></td>
                 </tr>
               ))}
             </tbody>
