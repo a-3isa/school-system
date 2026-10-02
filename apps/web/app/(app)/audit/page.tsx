@@ -13,7 +13,7 @@ const AREA: Record<string, Filter> = {
 };
 
 export default function AuditPage() {
-  const { t, x } = useI18n();
+  const { t } = useI18n();
   const log = useApi<any[]>('/audit');
   const [filter, setFilter] = useState<Filter>('all');
   const area = (action: string) => AREA[action.split('.')[0]] ?? 'setup';
@@ -27,13 +27,13 @@ export default function AuditPage() {
       <div className="panel scroll">
         {rows.length ? (
           <table style={{ minWidth: 640 }}>
-            <thead><tr><th>{t.audit.when}</th><th>{t.audit.what}</th><th>{t.audit.details}</th></tr></thead>
+            <thead><tr><th>{t.audit.when}</th><th>{t.audit.who}</th><th>{t.audit.what}</th></tr></thead>
             <tbody>
               {rows.map((a) => (
                 <tr key={a.id}>
                   <td className="num muted" style={{ whiteSpace: 'nowrap' }}>{dateTimeCairo(a.createdAt)}</td>
-                  <td className="strong" style={{ fontSize: 14 }}>{t.audit.actions[a.action as keyof typeof t.audit.actions] ?? a.action}</td>
-                  <td className="small muted" style={{ maxWidth: 520, overflowWrap: 'anywhere' }}>{a.data ? x(JSON.stringify(a.data)) : ''}</td>
+                  <td className="strong" style={{ fontSize: 14 }}>{a.actorName ?? t.audit.system}</td>
+                  <td style={{ fontSize: 14 }}>{t.audit.actions[a.action as keyof typeof t.audit.actions] ?? a.action}</td>
                 </tr>
               ))}
             </tbody>

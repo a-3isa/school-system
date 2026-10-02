@@ -21,12 +21,17 @@ export class AuditController {
 
   @Roles(Role.SCHOOL_ADMIN)
   @Get()
-  list(@SchoolId() schoolId: string, @Query('entity') entity?: string) {
-    return this.prisma.auditLog.findMany({
+  async list(@SchoolId() schoolId: string, @Query('entity') entity?: string) {
+    const rows = await this.prisma.auditLog.findMany({
       where: { schoolId, ...(entity ? { entity } : {}) },
       orderBy: { createdAt: 'desc' },
       take: 200,
     });
+    // Who did it, by name; no actor means the platform did it on its own (a timed job).
+    const ids = [...new Set(rows.map((r) => r.actorId).filter((x): x is string => !!x))];
+    const users = await this.prisma.user.findMany({ where: { id: { in: ids } }, select: { id: true, name: true } });
+    const name = new Map(users.map((u) => [u.id, u.name]));
+    return rows.map((r) => ({ ...r, actorName: r.actorId ? name.get(r.actorId) ?? null : null }));
   }
 }
 

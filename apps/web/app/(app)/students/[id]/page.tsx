@@ -20,6 +20,7 @@ export default function StudentPage() {
   const today = todayCairo();
   const history = useApi<any[]>(me.modules.includes('attendance') ? `/attendance/students/${id}?from=${shift(today, -13)}&to=${today}` : null);
   const visits = useApi<any[]>(me.straps && me.modules.includes('attendance') ? `/locations/students/${id}?date=${today}` : null);
+  const live = useApi<{ students: any[] }>(me.straps && me.modules.includes('attendance') ? '/locations' : null);
   const act = useAction();
   const [form, setForm] = useState({ relation: 'MOTHER', name: '', email: '', code: '+20', phone: '' });
   const [emailMissing, setEmailMissing] = useState(false);
@@ -49,6 +50,14 @@ export default function StudentPage() {
   const latin = `${s.firstName} ${s.lastName}`;
   const name = lang === 'ar' && s.nameAr ? s.nameAr : latin;
   const alt = lang === 'ar' ? (s.nameAr ? latin : null) : s.nameAr;
+  const here = live.data?.students.find((x: any) => x.id === s.id);
+  const now = !here ? null
+    : here.state === 'here' || here.state === 'recent' ? { text: t.student.nowIn(here.place?.name ?? '—'), tone: 'var(--p)' }
+    : here.state === 'missing' ? { text: t.student.nowMissing(timeCairo(here.seenAt)), tone: 'var(--a)' }
+    : here.state === 'left' ? { text: t.student.nowLeft, tone: 'var(--t)' }
+    : here.state === 'away' ? { text: t.student.nowAway, tone: 'var(--muted)' }
+    : here.state === 'noStrap' ? { text: t.student.nowNoStrap, tone: 'var(--muted)' }
+    : { text: t.student.nowNotSeen, tone: 'var(--muted)' };
   const dayLabel = (d: string) => (d === today ? t.student.today : `${d.slice(8, 10)}/${d.slice(5, 7)}`);
 
   return (
@@ -62,6 +71,7 @@ export default function StudentPage() {
         <div className="facts">
           <span>{t.students.code}<b className="mono" style={{ fontSize: 14, fontWeight: 500 }}><bdi dir="ltr">{s.code}</bdi></b></span>
           <span>{t.common.class}<b><bdi dir="ltr">{s.class?.name ?? '—'}</bdi></b></span>
+          {now && <span>{t.student.now}<b style={{ color: now.tone, display: 'flex', alignItems: 'center', gap: 6 }}><i aria-hidden="true" style={{ width: 9, height: 9, borderRadius: '50%', background: now.tone }} />{now.text}</b></span>}
         </div>
       </header>
       <ErrorNote error={act.error} />

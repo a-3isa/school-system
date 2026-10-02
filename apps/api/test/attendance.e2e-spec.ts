@@ -62,6 +62,7 @@ describe('Manual attendance (e2e)', () => {
     const res = await teacher.get(`/api/attendance/my-lessons?date=${today}`).expect(200);
     expect(res.body).toHaveLength(1);
     expect(res.body[0]).toEqual(expect.objectContaining({ className: '4-A', period: 1, students: 2, marked: 0 }));
+    expect(res.body[0]).toHaveProperty('teacher');
   });
 
   it('lets the class’s teacher mark today and nobody else', async () => {

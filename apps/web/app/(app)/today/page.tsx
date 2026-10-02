@@ -6,7 +6,7 @@ import { dateTimeCairo, post, timeCairo, todayCairo } from '@/lib/api';
 import { useApi, useEvery } from '@/lib/hooks';
 import { useI18n } from '@/lib/i18n';
 import { useSession } from '@/lib/session';
-import { EXCEPTION_TONE, Lesson, LessonRow } from '@/components/Lessons';
+import { EXCEPTION_TONE, exceptionText, Lesson, LessonRow } from '@/components/Lessons';
 import { Empty, ErrorNote, Kpi, LiveStamp, Note, PageHead, Section, STATUS_GLYPH, STATUS_TONE, STATUSES, Tag } from '@/components/ui';
 
 export default function TodayPage() {
@@ -65,7 +65,7 @@ export default function TodayPage() {
                   open.slice(0, 4).map((e) => (
                     <div key={e.id} className="list-row">
                       <span className="row"><Tag tone={EXCEPTION_TONE[e.type]}>{t.exc.type[e.type as keyof typeof t.exc.type] ?? e.type}</Tag><span className="small cap num">{timeCairo(e.createdAt)}</span></span>
-                      <span style={{ fontSize: 14, lineHeight: 1.5 }}>{x(e.message)}</span>
+                      <span style={{ fontSize: 14, lineHeight: 1.5 }}>{x(exceptionText(t, e))}</span>
                     </div>
                   ))
                 ) : (

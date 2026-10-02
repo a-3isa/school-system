@@ -97,6 +97,7 @@ export class AttendanceEvaluator {
           message: roomGateways.length
             ? `The gateway in ${lesson.room.name} was offline. Mark ${label} manually.`
             : `${lesson.room.name} has no gateway. Mark ${label} manually.`,
+          details: { variant: roomGateways.length ? 'lessonOffline' : 'noGateway', room: lesson.room.name, cls: lesson.class.name, subject: lesson.subject.name, period: period.number },
           dedupeKey: `GATEWAY_OFFLINE:lesson:${lesson.id}:${date}`,
         });
         continue;
@@ -138,6 +139,7 @@ export class AttendanceEvaluator {
           await this.raise({
             schoolId: school.id, type: ExceptionType.LEFT_LESSON, date: day, studentId: student.id, classId: lesson.classId, periodId: period.id,
             message: `${name} was in ${label} for only ${Math.round(d.share * 100)}% of the lesson.`,
+            details: { name, cls: lesson.class.name, subject: lesson.subject.name, period: period.number, share: Math.round(d.share * 100) },
             dedupeKey: `LEFT_LESSON:${student.id}:${period.id}:${date}`,
           });
         } else if (gate?.arrivedAt && gate.arrivedAt < end && !(gate.leftAt && gate.leftAt < start)) {
@@ -145,6 +147,7 @@ export class AttendanceEvaluator {
           await this.raise({
             schoolId: school.id, type: ExceptionType.NOT_IN_CLASS, date: day, studentId: student.id, classId: lesson.classId, periodId: period.id,
             message: `${name} arrived at ${at} but wasn’t in ${label}.`,
+            details: { name, at, cls: lesson.class.name, subject: lesson.subject.name, period: period.number },
             dedupeKey: `NOT_IN_CLASS:${student.id}:${period.id}:${date}`,
           });
         }
@@ -213,6 +216,7 @@ export class AttendanceEvaluator {
           const created = await this.raise({
             schoolId: school.id, type: ExceptionType.NOT_IN_CLASS, date: day, studentId: student.id, classId: lesson.classId, periodId: period.id,
             message: `${student.firstName} ${student.lastName} came in at ${localParts(arrived.get(student.id)!, school.timezone).time} but hasn’t been in ${lesson.class.name} ${where} (period ${period.number}).`,
+            details: { variant: 'now', name: `${student.firstName} ${student.lastName}`, at: localParts(arrived.get(student.id)!, school.timezone).time, cls: lesson.class.name, subject: lesson.subject.name, room: lesson.room.name, period: period.number },
             dedupeKey: `NOT_IN_CLASS:${student.id}:${period.id}:${date}`,
           });
           if (!created.count) continue; // already told
@@ -255,6 +259,7 @@ export class AttendanceEvaluator {
       await this.raise({
         schoolId: school.id, type: ExceptionType.LEFT_EARLY, date: day, studentId: c.studentId,
         message: `${name} ${c.student.lastName} went out through the gate at ${at} before the end of the school day.`,
+        details: { name: `${name} ${c.student.lastName}`, at },
         dedupeKey: `LEFT_EARLY:${c.studentId}:${date}`,
       });
       await this.notifications.notify([
@@ -284,6 +289,7 @@ export class AttendanceEvaluator {
       await this.raise({
         schoolId: school.id, type: ExceptionType.GATEWAY_OFFLINE, date: dbDate(date), gatewayId: g.id,
         message: `Gateway “${g.name ?? g.serial}”${g.room ? ` in ${g.room.name}` : ''} isn’t reporting. Lessons there switch to manual marking.`,
+        details: { variant: 'gateway', gateway: g.name ?? g.serial, room: g.room?.name ?? null },
         dedupeKey: `GATEWAY_OFFLINE:gateway:${g.id}:${date}`,
       });
     }
@@ -299,6 +305,7 @@ export class AttendanceEvaluator {
       await this.raise({
         schoolId: school.id, type: ExceptionType.LOW_BATTERY, date: dbDate(date), studentId: s.studentId,
         message: `${s.student!.firstName} ${s.student!.lastName}’s strap battery is at ${s.battery}%. Replace the battery soon.`,
+        details: { name: `${s.student!.firstName} ${s.student!.lastName}`, battery: s.battery },
         dedupeKey: `LOW_BATTERY:${s.id}:${month}`,
       });
     }

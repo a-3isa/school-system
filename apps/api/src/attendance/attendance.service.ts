@@ -229,7 +229,7 @@ export class AttendanceService {
     dbDate(date);
     const lessons = await this.prisma.timetableEntry.findMany({
       where: { schoolId, dayOfWeek: weekday(date), ...(user.role === Role.TEACHER ? { teacherId: user.id } : {}) },
-      include: { class: { select: { id: true, name: true } }, period: true, subject: { select: { name: true } }, room: { select: { name: true } } },
+      include: { class: { select: { id: true, name: true } }, period: true, subject: { select: { name: true } }, room: { select: { name: true } }, teacher: { select: { name: true } } },
       orderBy: { period: { number: 'asc' } },
     });
     const counts = await this.prisma.attendanceRecord.groupBy({
@@ -249,6 +249,7 @@ export class AttendanceService {
       endTime: l.period.endTime,
       subject: l.subject.name,
       room: l.room.name,
+      teacher: l.teacher?.name ?? null,
       students: size.get(l.classId) ?? 0,
       marked: marked.get(`${l.classId}:${l.periodId}`) ?? 0,
     }));

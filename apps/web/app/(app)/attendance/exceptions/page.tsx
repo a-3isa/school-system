@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { dateTimeCairo, post, timeCairo, todayCairo } from '@/lib/api';
 import { useAction, useApi } from '@/lib/hooks';
 import { useI18n } from '@/lib/i18n';
-import { EXCEPTION_TONE } from '@/components/Lessons';
+import { EXCEPTION_TONE, exceptionText } from '@/components/Lessons';
 import { Empty, ErrorNote, Field, PageHead, Tabs, Tag, toast } from '@/components/ui';
 
 export default function ExceptionsPage() {
@@ -59,7 +59,7 @@ export default function ExceptionsPage() {
                     <span className="small cap num">{timeCairo(e.createdAt)}</span>
                     {e.student && <span className="small muted">{x(`${e.student.firstName} ${e.student.lastName}${e.student.class ? ` · ${e.student.class.name}` : ''}`)}</span>}
                   </span>
-                  <span style={{ fontSize: 16, lineHeight: 1.5, textWrap: 'pretty' }}>{x(e.message)}</span>
+                  <span style={{ fontSize: 16, lineHeight: 1.5, textWrap: 'pretty' }}>{x(exceptionText(t, e))}</span>
                   {e.status === 'RESOLVED' && (
                     <span className="small" style={{ color: 'var(--p)' }}>{x(t.exc.resolvedAt(dateTimeCairo(e.resolvedAt), e.note))}</span>
                   )}

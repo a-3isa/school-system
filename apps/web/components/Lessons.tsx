@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { minutes, nowCairo, todayCairo } from '@/lib/api';
 import { useI18n } from '@/lib/i18n';
 import { useSession } from '@/lib/session';
+import { Dict } from '@/lib/strings';
 import { Tone } from './ui';
 
 export interface Lesson {
@@ -14,6 +15,7 @@ export interface Lesson {
   endTime: string;
   subject: string;
   room: string;
+  teacher?: string | null;
   students: number;
   marked: number;
 }
@@ -41,7 +43,7 @@ export function LessonRow({ l, date, withButton = true }: { l: Lesson; date: str
   return (
     <div className={`lesson${running ? ' now' : ''}${withButton ? '' : ' compact'}`}>
       <span className="when"><b>{t.lessons.p(l.period)}</b><span>{l.startTime}</span></span>
-      <span className="what"><b>{x(`${l.className} · ${l.subject}`)}</b><span>{x(l.room)}</span></span>
+      <span className="what"><b>{x(`${l.className} · ${l.subject}`)}</b><span>{x([l.room, l.teacher].filter(Boolean).join(' · '))}</span></span>
       <span className="progress">
         <b className={`state-${state.cls}`}>{x(state.text)}</b>
         <span className="meter"><span style={{ width: `${state.pct}%` }} /></span>
@@ -63,3 +65,8 @@ export const EXCEPTION_TONE: Record<string, Tone> = {
   LOW_BATTERY: 'L',
   GATEWAY_OFFLINE: 'E',
 };
+
+/** An exception in the reader's language: built from its details in Arabic, the server's sentence otherwise. */
+export function exceptionText(t: Dict, e: { type: string; message: string; details?: any }) {
+  return t.exc.say(e.type, e.details ?? {}) ?? e.message;
+}

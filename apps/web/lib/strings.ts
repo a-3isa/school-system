@@ -1,6 +1,12 @@
 // Every word the dashboard shows, in English and Arabic. Short plain sentences.
 // Text from the API (names, rooms, subjects, exception messages) is shown as it comes.
 
+/** The facts behind an exception, sent by the API with its English sentence. */
+export interface ExceptionDetails {
+  variant?: string; name?: string; at?: string; cls?: string; subject?: string; room?: string | null;
+  period?: number; share?: number; battery?: number; gateway?: string;
+}
+
 export const en = {
   common: {
     platformName: 'School Platform', loading: 'Loading…', saving: 'Saving…', oneMoment: 'One moment…', saved: 'Saved.',
@@ -51,6 +57,8 @@ export const en = {
   },
   take: { subToday: 'All lessons today', subDay: 'All lessons on this day', none: 'No lessons on this day.' },
   exc: {
+    /** An exception's sentence from its details; null means "use the server's sentence". */
+    say: (_type: string, _d: ExceptionDetails): string | null => null,
     sub: 'Things a person should look at',
     openN: (n: number) => `Open · ${n}`, resolvedN: (n: number) => `Resolved · ${n}`,
     type: { NOT_IN_CLASS: 'Missing from lesson', LEFT_LESSON: 'Short stay', LEFT_EARLY: 'Left early', STRAP_NOT_SEEN: 'Strap not heard', LOW_BATTERY: 'Low battery', GATEWAY_OFFLINE: 'Room not hearing' },
@@ -74,6 +82,7 @@ export const en = {
     noClass: 'No class yet', parents: 'Parents', mother: 'Mother', father: 'Father', noParent: 'No parent yet', noMatch: 'No students match.',
   },
   student: {
+    now: 'Now', nowIn: (p: string) => `In ${p}`, nowMissing: (t: string) => `Not heard since ${t}`, nowLeft: 'Went out through the gate', nowAway: 'Gone for the day', nowNotSeen: 'Not heard today', nowNoStrap: 'No strap',
     today: 'Today', whereToday: 'Where today', fromStrap: 'From the strap', unknownPlace: 'Unknown place', notHeardToday: 'The strap hasn’t been heard today.',
     lastTwoWeeks: 'Attendance, last two weeks', status: 'Status', how: 'How', byStrap: 'Strap', manual: 'Manual', manualWhy: (r: string) => `Manual · ${r}`,
     noAttendance: 'No attendance recorded yet.',
@@ -143,7 +152,7 @@ export const en = {
   },
   audit: {
     sub: 'Who did what and when · the latest 200 changes', all: 'All', attendance: 'Attendance', people: 'People', setup: 'Setup',
-    when: 'When', what: 'What', details: 'Details', none: 'Nothing recorded yet.',
+    when: 'When', who: 'Who', what: 'What', details: 'Details', none: 'Nothing recorded yet.', system: 'The platform',
     actions: {
       'attendance.mark': 'Marked attendance', 'attendance.away': 'Marked a trip', 'exception.resolve': 'Resolved an exception',
       'student.create': 'Added a student', 'student.update': 'Changed a student', 'student.import': 'Imported from Excel',
@@ -239,6 +248,21 @@ export const ar: Dict = {
   },
   take: { subToday: 'كل حصص اليوم', subDay: 'كل حصص هذا اليوم', none: 'لا توجد حصص في هذا اليوم.' },
   exc: {
+    say: (type, d) => {
+      const lesson = d.subject && d.cls ? `${d.subject} ${d.cls} (الحصة ${d.period})` : null;
+      switch (type) {
+        case 'NOT_IN_CLASS': return d.name && d.at && lesson ? `دخول ${d.name} الساعة ${d.at} دون حضور حصة ${lesson}${d.room ? ` في ${d.room}` : ''}.` : null;
+        case 'LEFT_LESSON': return d.name && lesson ? `حضور ${d.name} ${d.share}% فقط من حصة ${lesson}.` : null;
+        case 'LEFT_EARLY': return d.name && d.at ? `خروج ${d.name} من البوابة الساعة ${d.at} قبل نهاية اليوم الدراسي.` : null;
+        case 'LOW_BATTERY': return d.name ? `بطارية سوار ${d.name} ${d.battery}%. استبدلها قريبًا.` : null;
+        case 'GATEWAY_OFFLINE':
+          if (d.variant === 'gateway') return `جهاز الاستقبال «${d.gateway}»${d.room ? ` في ${d.room}` : ''} لا يرسل. الحصص هناك تُسجل يدويًا.`;
+          if (d.variant === 'lessonOffline' && lesson) return `جهاز الاستقبال في ${d.room} كان متوقفًا. سجّل ${lesson} يدويًا.`;
+          if (d.variant === 'noGateway' && lesson) return `${d.room} بدون جهاز استقبال. سجّل ${lesson} يدويًا.`;
+          return null;
+        default: return null;
+      }
+    },
     sub: 'أمور تحتاج أن يراجعها شخص',
     openN: (n) => `مفتوحة · ${n}`, resolvedN: (n) => `تمت · ${n}`,
     type: { NOT_IN_CLASS: 'غائب عن الحصة', LEFT_LESSON: 'حضور قصير', LEFT_EARLY: 'خروج مبكر', STRAP_NOT_SEEN: 'لم يُسمع السوار', LOW_BATTERY: 'بطارية منخفضة', GATEWAY_OFFLINE: 'الغرفة لا تسمع' },
@@ -262,6 +286,7 @@ export const ar: Dict = {
     noClass: 'بدون فصل بعد', parents: 'أولياء الأمور', mother: 'الأم', father: 'الأب', noParent: 'لا يوجد ولي أمر', noMatch: 'لا يوجد طلاب مطابقون.',
   },
   student: {
+    now: 'الآن', nowIn: (p) => `في ${p}`, nowMissing: (t) => `لم يُرصد منذ ${t}`, nowLeft: 'خرج من البوابة', nowAway: 'انصرف لليوم', nowNotSeen: 'لم يُرصد اليوم', nowNoStrap: 'بدون سوار',
     today: 'اليوم', whereToday: 'أين كان اليوم', fromStrap: 'من السوار', unknownPlace: 'مكان غير معروف', notHeardToday: 'لم يُسمع السوار اليوم.',
     lastTwoWeeks: 'الحضور، آخر أسبوعين', status: 'الحالة', how: 'الطريقة', byStrap: 'السوار', manual: 'يدوي', manualWhy: (r) => `يدوي · ${r}`,
     noAttendance: 'لم يُسجل حضور بعد.',
@@ -331,7 +356,7 @@ export const ar: Dict = {
   },
   audit: {
     sub: 'من فعل ماذا ومتى · آخر 200 تغيير', all: 'الكل', attendance: 'الحضور', people: 'الأشخاص', setup: 'الإعداد',
-    when: 'الوقت', what: 'ماذا', details: 'التفاصيل', none: 'لم يُسجل شيء بعد.',
+    when: 'الوقت', who: 'من', what: 'ماذا', details: 'التفاصيل', none: 'لم يُسجل شيء بعد.', system: 'المنصة',
     actions: {
       'attendance.mark': 'سجّل الحضور', 'attendance.away': 'سجّل رحلة', 'exception.resolve': 'عالج تنبيهًا',
       'student.create': 'أضاف طالبًا', 'student.update': 'عدّل بيانات طالب', 'student.import': 'استورد من Excel',

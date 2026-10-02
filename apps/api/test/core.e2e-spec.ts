@@ -177,6 +177,7 @@ describe('Phase 1 core (e2e)', () => {
     const audit = await admin.get('/api/audit').expect(200);
     const actions = audit.body.map((a: any) => a.action);
     expect(actions).toEqual(expect.arrayContaining(['student.create', 'guardian.add', 'timetable.create', 'module.features']));
+    expect(audit.body.find((a: any) => a.action === 'student.create').actorName).toEqual(expect.any(String));
   });
 
   it('validates input', async () => {

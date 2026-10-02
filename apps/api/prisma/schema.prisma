@@ -461,6 +461,8 @@ model AttendanceException {
   classId     String?
   periodId    String?
   message     String
+  // The facts in the message (names, room, period, time), so apps can say it in other languages.
+  details     Json?
   // Stops the same exception being raised twice.
   dedupeKey   String          @unique
   note        String?

@@ -162,6 +162,9 @@ describe('Automatic attendance (e2e)', () => {
     const byType = (t: string) => res.body.filter((e: any) => e.type === t);
     expect(byType('NOT_IN_CLASS').map((e: any) => e.student.firstName).sort()).toEqual(['Ali', 'Salma']);
     expect(byType('GATEWAY_OFFLINE')[0].message).toBe('Lab 1 has no gateway. Mark 4-C Math (period 1) manually.');
+    // The facts behind the message, so the dashboard can say it in Arabic.
+    expect(byType('GATEWAY_OFFLINE')[0].details).toEqual({ variant: 'noGateway', room: 'Lab 1', cls: '4-C', subject: 'Math', period: 1 });
+    expect(byType('NOT_IN_CLASS')[0].details).toEqual(expect.objectContaining({ cls: '4-A', subject: 'Math', period: 1, at: expect.any(String) }));
     expect(res.body).toHaveLength(3);
   });
 
