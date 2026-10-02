@@ -358,7 +358,7 @@ export class AttendanceService {
 
   /**
    * A child's whole day for the parent app: when they came in, where the strap
-   * was last heard in the past 10 minutes, and every lesson on the timetable
+   * was last heard in the past minute, and every lesson on the timetable
    * with its room and, once taken, its attendance.
    */
   async childToday(parentId: string, studentId: string, date: string, now = new Date()) {
@@ -396,7 +396,7 @@ export class AttendanceService {
     ]);
     const tracking = !!(mod?.features as Record<string, boolean> | undefined)?.automatic && !!parent?.consentAt;
     if (tracking && student.strap && date === localParts(now, school.timezone).date) {
-      const heard = await this.locations.lastHeard(student.schoolId, rulesFor(school.detection).room.minRssi, new Date(now.getTime() - 10 * 60_000), now, [student.strap.id]);
+      const heard = await this.locations.lastHeard(student.schoolId, rulesFor(school.detection).room.minRssi, new Date(now.getTime() - 60_000), now, [student.strap.id]);
       const h = heard.get(student.strap.id);
       if (h) {
         const p = (await this.locations.placesOf(student.schoolId)).get(h.gatewayId);
