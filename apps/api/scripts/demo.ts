@@ -4,8 +4,9 @@
 //
 // Creates "Nile Valley School (demo)" with an admin (admin@demo.school / demo-admin-1),
 // two teachers (hana@demo.school, sherif@demo.school / demo-teacher-1), classes, rooms,
-// periods, a timetable, 24 students with parents (parent1@demo.school … parent24@demo.school /
-// demo-parent-1), gateways and straps.
+// periods, a timetable, 24 students with parents (parent1@demo.school … parent23@demo.school;
+// some mothers have two children) and one guardian (guardian24@demo.school), all with the
+// password demo-parent-1, gateways and straps.
 import { playDay } from './demo-day';
 
 const api = (process.argv.includes('--api') ? process.argv[process.argv.indexOf('--api') + 1] : 'http://localhost:3000') + '/api';
@@ -67,12 +68,16 @@ async function main() {
   }
 
   for (let i = 0; i < 24; i++) {
-    const s = await A('POST', '/students', {
-      code: `2026-${String(i + 1).padStart(4, '0')}`, firstName: FIRST[i % FIRST.length], lastName: LAST[(i * 3) % LAST.length], classId: i < 12 ? c4a.id : c4b.id,
-    });
+    // Every student comes with a parent. Some brothers and sisters share a mother
+    // (one in 4-A, one in 4-B), and the last child is looked after by a guardian.
     // Demo parents get a password straight away; real parents sign up in the app with their email.
-    await A('POST', `/students/${s.id}/guardians`, {
-      relation: 'MOTHER', name: `Mother of ${s.firstName}`, email: `parent${i + 1}@demo.school`, phone: `+20100${String(1000000 + i)}`, password: 'demo-parent-1',
+    const sibling = i >= 12 && i % 4 === 0 ? i - 12 : i;
+    const first = FIRST[(sibling === i ? i : i + 5) % FIRST.length];
+    const parent = i === 23
+      ? { relation: 'GUARDIAN', name: `Grandmother of ${first}`, email: `guardian${i + 1}@demo.school`, password: 'demo-parent-1' }
+      : { relation: 'MOTHER', name: `Mother of ${FIRST[sibling % FIRST.length]}`, email: `parent${sibling + 1}@demo.school`, phone: `+20100${String(1000000 + sibling)}`, password: 'demo-parent-1' };
+    const s = await A('POST', '/students', {
+      code: `2026-${String(i + 1).padStart(4, '0')}`, firstName: first, lastName: LAST[(sibling * 3) % LAST.length], classId: i < 12 ? c4a.id : c4b.id, parent,
     });
     await A('POST', '/devices/straps', { mac: `DC:0D:30:00:${String(Math.floor(i / 100)).padStart(2, '0')}:${String(i % 100).padStart(2, '0')}`, studentId: s.id });
   }

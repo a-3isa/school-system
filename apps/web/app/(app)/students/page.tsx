@@ -6,7 +6,8 @@ import { post } from '@/lib/api';
 import { useAction, useApi } from '@/lib/hooks';
 import { useI18n } from '@/lib/i18n';
 import { useSession } from '@/lib/session';
-import { Empty, ErrorNote, Field, PageHead, Tabs, toast } from '@/components/ui';
+import { Empty, ErrorNote, Field, PageHead, Pill, Tabs, toast } from '@/components/ui';
+import { BLANK_PARENT, ParentFields, parentBody } from '@/components/ParentFields';
 
 const BLANK = { code: '', firstName: '', lastName: '', nameAr: '', classId: '' };
 
@@ -22,12 +23,22 @@ export default function StudentsPage() {
   const act = useAction();
   const [adding, setAdding] = useState(false);
   const [form, setForm] = useState(BLANK);
+  const [parent, setParent] = useState(BLANK_PARENT);
+  const [emailMissing, setEmailMissing] = useState(false);
 
   async function add(e: FormEvent) {
     e.preventDefault();
-    if (await act.run(() => post('/students', { ...form, nameAr: form.nameAr || undefined, classId: form.classId || undefined }))) {
+    // Every student comes with a parent or guardian.
+    const first = parentBody(parent);
+    if (!first) {
+      setEmailMissing(true);
+      return;
+    }
+    const created = await act.run(() => post<any>('/students', { ...form, nameAr: form.nameAr || undefined, classId: form.classId || undefined, parent: first }));
+    if (created) {
       toast(t.students.added(form.firstName));
       setForm({ ...BLANK, classId: form.classId });
+      setParent(BLANK_PARENT);
       await students.reload();
     }
   }
@@ -60,6 +71,10 @@ export default function StudentsPage() {
               {classes.data?.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </Field>
+          <div className="form-title">{t.students.firstParent}</div>
+          <p className="full small muted" style={{ margin: 0, lineHeight: 1.5 }}>{t.students.firstParentHelp}</p>
+          <ParentFields prefix="np" value={parent} emailMissing={emailMissing} onChange={(f) => { setParent(f); setEmailMissing(false); }} />
+          <p className="full small muted" style={{ margin: 0, lineHeight: 1.5 }}>{t.student.signupHelp}</p>
           <div className="form-actions">
             <button className="btn primary" type="submit" disabled={act.busy}>{t.students.add}</button>
             <button className="btn" type="button" onClick={() => setAdding(false)}>{t.common.cancel}</button>
@@ -69,8 +84,8 @@ export default function StudentsPage() {
       <ErrorNote error={students.error} />
       <div className="panel scroll">
         {students.data?.length ? (
-          <table style={{ minWidth: 640 }}>
-            <thead><tr><th>{t.common.name}</th><th>{t.students.code}</th><th>{t.common.class}</th><th>{t.students.parents}</th></tr></thead>
+          <table style={{ minWidth: 520 }}>
+            <thead><tr><th>{t.common.name}</th><th>{t.students.code}</th><th>{t.common.class}</th></tr></thead>
             <tbody>
               {students.data.map((s) => {
                 const latin = `${s.firstName} ${s.lastName}`;
@@ -81,13 +96,11 @@ export default function StudentsPage() {
                     <td>
                       <Link href={`/students/${s.id}`} className="strong" style={{ color: 'var(--ink)', textDecoration: 'none' }}>{main}</Link>
                       {other && <span className="sub" dir="auto">{other}</span>}
+                      {!s.guardians.length && <span className="sub"><Pill tone="L" glyph="!">{t.students.noParent}</Pill></span>}
                     </td>
                     <td className="mono muted"><bdi dir="ltr">{s.code}</bdi></td>
-                    <td><bdi dir="ltr">{s.class?.name ?? '—'}</bdi></td>
                     <td>
-                      {s.guardians.length
-                        ? s.guardians.map((g: any) => `${g.user.name} (${g.relation === 'MOTHER' ? t.students.mother : t.students.father})`).join(', ')
-                        : <span style={{ color: 'var(--l)', fontWeight: 600 }}>{t.students.noParent}</span>}
+                      {s.class ? <Link href={`/classes/${s.class.id}`} onClick={(e) => e.stopPropagation()}><bdi dir="ltr">{s.class.name}</bdi></Link> : '—'}
                     </td>
                   </tr>
                 );

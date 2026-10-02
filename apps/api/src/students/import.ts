@@ -22,6 +22,10 @@ const COLUMNS = [
   { key: 'fatherName', header: 'Father name' },
   { key: 'fatherEmail', header: 'Father email' },
   { key: 'fatherPhone', header: 'Father mobile' },
+  // Another responsible adult, for a child without a mother or father at the school.
+  { key: 'guardianName', header: 'Guardian name' },
+  { key: 'guardianEmail', header: 'Guardian email' },
+  { key: 'guardianPhone', header: 'Guardian mobile' },
   { key: 'strap', header: 'Strap' },
 ] as const;
 
@@ -100,6 +104,11 @@ export class StudentImportService {
     const classes = new Map((await this.prisma.class.findMany({ where: { schoolId } })).map((c) => [c.name.toLowerCase(), c.id]));
     const existing = new Map((await this.prisma.student.findMany({ where: { schoolId }, include: { guardians: true, strap: true } })).map((s) => [s.code, s]));
     const straps = new Map((await this.prisma.strap.findMany({ where: { schoolId } })).map((s) => [s.mac, s]));
+    // Emails already used by someone who isn't a parent at this school can't be linked.
+    const emails = rows.flatMap((r) => [r.motherEmail, r.fatherEmail, r.guardianEmail]).filter((e): e is string => !!e).map((e) => e.trim().toLowerCase());
+    const taken = new Set(
+      (await this.prisma.user.findMany({ where: { email: { in: emails }, NOT: { role: Role.PARENT, schoolId } }, select: { email: true } })).map((u) => u.email),
+    );
     const seenCodes = new Set<string>();
     const seenMacs = new Set<string>();
 
@@ -112,12 +121,18 @@ export class StudentImportService {
       }
       if (r.class && !classes.has(r.class.toLowerCase())) err(`There is no class called “${r.class}”. Add it first or fix the name.`);
       // A parent needs a name and an email (they sign up in the app with it); the mobile is optional.
-      for (const [name, email, phone, who] of [[r.motherName, r.motherEmail, r.motherPhone, 'Mother'], [r.fatherName, r.fatherEmail, r.fatherPhone, 'Father']] as const) {
+      for (const [name, email, phone, who] of [[r.motherName, r.motherEmail, r.motherPhone, 'Mother'], [r.fatherName, r.fatherEmail, r.fatherPhone, 'Father'], [r.guardianName, r.guardianEmail, r.guardianPhone, 'Guardian']] as const) {
         if (!name && !email && !phone) continue;
         if (!name) err(`${who} name is missing.`);
         if (!email) err(`${who} email is missing: parents sign up in the app with it.`);
         else if (!EMAIL.test(email.trim())) err(`${who} email “${email}” isn’t a valid email address.`);
+        else if (taken.has(email.trim().toLowerCase())) err(`${who} email “${email}” belongs to another account.`);
         if (phone && !PHONE.test(phone.replace(/\s/g, ''))) err(`${who} mobile “${phone}” needs the country code, like +201001234567.`);
+      }
+      // Every student has at least one parent or guardian.
+      const before = r.code ? existing.get(r.code) : undefined;
+      if (!before?.guardians.length && !(r.motherEmail || r.fatherEmail || r.guardianEmail)) {
+        err('Each student needs at least one parent or guardian: fill the mother, father or guardian columns.');
       }
       if (r.strap) {
         const mac = normaliseMac(r.strap);
@@ -136,7 +151,7 @@ export class StudentImportService {
       rows: rows.length,
       create: rows.filter((r) => r.code && !existing.has(r.code)).length,
       update: rows.filter((r) => r.code && existing.has(r.code)).length,
-      parents: rows.reduce((n, r) => n + (r.motherEmail ? 1 : 0) + (r.fatherEmail ? 1 : 0), 0),
+      parents: rows.reduce((n, r) => n + (r.motherEmail ? 1 : 0) + (r.fatherEmail ? 1 : 0) + (r.guardianEmail ? 1 : 0), 0),
       straps: rows.filter((r) => r.strap).length,
       errors,
       imported: false,
@@ -151,7 +166,11 @@ export class StudentImportService {
         ? await this.prisma.student.update({ where: { id: before.id }, data })
         : await this.prisma.student.create({ data: { ...data, code: r.code!, schoolId } });
       const has = new Set(before?.guardians.map((g) => g.relation) ?? []);
-      for (const [relation, name, email, phone] of [[GuardianRelation.MOTHER, r.motherName, r.motherEmail, r.motherPhone], [GuardianRelation.FATHER, r.fatherName, r.fatherEmail, r.fatherPhone]] as const) {
+      for (const [relation, name, email, phone] of [
+        [GuardianRelation.MOTHER, r.motherName, r.motherEmail, r.motherPhone],
+        [GuardianRelation.FATHER, r.fatherName, r.fatherEmail, r.fatherPhone],
+        [GuardianRelation.GUARDIAN, r.guardianName, r.guardianEmail, r.guardianPhone],
+      ] as const) {
         if (name && email && !has.has(relation)) {
           await this.students.addGuardian(user, schoolId, student.id, { relation, name, email: email.trim(), phone: phone ? phone.replace(/\s/g, '') : undefined });
         }

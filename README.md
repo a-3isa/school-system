@@ -54,7 +54,7 @@ npm run dev -w apps/web                             # http://localhost:3001
 npx ts-node scripts/simulate-gateway.ts --serial DEMO-R204 --secret <secret> \
   --macs DC:0D:30:00:00:00,DC:0D:30:00:00:01
 
-# 4. Parent app (demo parents: parent1@demo.school … parent24@demo.school, password demo-parent-1).
+# 4. Parent app (demo parents: parent1@demo.school … parent23@demo.school, some with two children, and guardian24@demo.school; password demo-parent-1).
 #    A parent the school registers taps "Create account" in the app: a code to their email, then
 #    their mobile with a code on WhatsApp, then a password. While SMTP_URL and WHATSAPP_* aren't
 #    set, both codes are printed in the API log.

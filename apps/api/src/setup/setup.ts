@@ -3,7 +3,7 @@ import { AttendanceMode, Role, RoomKind } from '@prisma/client';
 import { ArrayMaxSize, ArrayMinSize, IsArray, IsEnum, IsInt, IsOptional, IsString, Matches, Max, Min, MinLength } from 'class-validator';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit';
-import { AuthUser, CurrentUser, Roles, SchoolId, STAFF } from '../auth/auth.decorators';
+import { AuthUser, CurrentUser, Roles, SchoolId, SCHOOL_WIDE, STAFF } from '../auth/auth.decorators';
 import { mapPrismaError, TIME_RE, toMinutes } from '../common/validation';
 
 // ---------- DTOs ----------
@@ -148,6 +148,26 @@ export class ClassesController {
       include: { grade: true, homeroomTeacher: { select: { id: true, name: true } }, _count: { select: { students: true } } },
       orderBy: [{ grade: { order: 'asc' } }, { name: 'asc' }],
     });
+  }
+
+  /** A class with its students, for the class page. */
+  @Roles(...SCHOOL_WIDE)
+  @Get(':id')
+  async get(@SchoolId() schoolId: string, @Param('id') id: string) {
+    const cls = await this.prisma.class.findFirst({
+      where: { id, schoolId },
+      include: {
+        grade: true,
+        homeroomTeacher: { select: { id: true, name: true } },
+        students: {
+          where: { active: true },
+          select: { id: true, code: true, firstName: true, lastName: true, nameAr: true, guardians: { select: { relation: true, user: { select: { id: true, name: true } } }, orderBy: { relation: 'asc' } } },
+          orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
+        },
+      },
+    });
+    if (!cls) throw new NotFoundException('Class not found.');
+    return cls;
   }
 
   @Roles(Role.SCHOOL_ADMIN)

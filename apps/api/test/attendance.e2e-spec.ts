@@ -42,9 +42,9 @@ describe('Manual attendance (e2e)', () => {
     await admin.post('/api/timetable', { classId, dayOfWeek: dow, periodId: p1, roomId, subjectId, teacherId: t.id }).expect(201);
     await admin.post('/api/timetable', { classId, dayOfWeek: (dow + 6) % 7, periodId: p1, roomId, subjectId, teacherId: t.id }).expect(201);
 
-    laylaId = (await admin.post('/api/students', { code: 'S1', firstName: 'Layla', lastName: 'Hussein', classId })).body.id;
-    aliId = (await admin.post('/api/students', { code: 'S2', firstName: 'Ali', lastName: 'Ramadan', classId })).body.id;
-    omarId = (await admin.post('/api/students', { code: 'S3', firstName: 'Omar', lastName: 'Kamal', classId: class2Id })).body.id;
+    laylaId = (await admin.post('/api/students', { code: 'S1', firstName: 'Layla', lastName: 'Hussein', classId, parent: { relation: 'GUARDIAN', name: 'Guardian', email: `g-S1@at.test.eg` } })).body.id;
+    aliId = (await admin.post('/api/students', { code: 'S2', firstName: 'Ali', lastName: 'Ramadan', classId, parent: { relation: 'GUARDIAN', name: 'Guardian', email: `g-S2@at.test.eg` } })).body.id;
+    omarId = (await admin.post('/api/students', { code: 'S3', firstName: 'Omar', lastName: 'Kamal', classId: class2Id, parent: { relation: 'GUARDIAN', name: 'Guardian', email: `g-S3@at.test.eg` } })).body.id;
     await admin.post(`/api/students/${aliId}/guardians`, { relation: 'MOTHER', name: 'Rania', email: 'p201100000001@test.eg', phone: '+201100000001', password: 'parent-pass' }).expect(201);
     await admin.post(`/api/students/${laylaId}/guardians`, { relation: 'MOTHER', name: 'Nadia', email: 'p201100000002@test.eg', phone: '+201100000002', password: 'parent-pass' }).expect(201);
 

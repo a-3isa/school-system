@@ -126,18 +126,42 @@ describe('Phase 1 core (e2e)', () => {
 
   let laylaId: string;
 
-  it('manages students and at most two parents', async () => {
-    const layla = await admin.post('/api/students', { code: '2019-0412', firstName: 'Layla', lastName: 'Hussein', classId }).expect(201);
+  it('manages students, who always have a parent or guardian', async () => {
+    const nadia = { relation: 'MOTHER', name: 'Nadia Hussein', email: 'p201000000001@test.eg', phone: '+201000000001', password: 'parent-pass' };
+    await admin.post('/api/students', { code: '2019-0412', firstName: 'Layla', lastName: 'Hussein', classId }).expect(400); // no parent
+    const layla = await admin.post('/api/students', { code: '2019-0412', firstName: 'Layla', lastName: 'Hussein', classId, parent: nadia }).expect(201);
     laylaId = layla.body.id;
-    await admin.post('/api/students', { code: '2019-0412', firstName: 'X', lastName: 'Y' }).expect(409);
-    await admin.post(`/api/students/${laylaId}/guardians`, { relation: 'MOTHER', name: 'Nadia Hussein', email: 'p201000000001@test.eg', phone: '+201000000001', password: 'parent-pass' }).expect(201);
+    expect(layla.body.guardians).toEqual([expect.objectContaining({ relation: 'MOTHER', user: expect.objectContaining({ name: 'Nadia Hussein' }) })]);
+    await admin.post('/api/students', { code: '2019-0412', firstName: 'X', lastName: 'Y', parent: { relation: 'MOTHER', name: 'X', email: 'x@test.eg' } }).expect(409);
+    expect(await prisma.user.findUnique({ where: { email: 'x@test.eg' } })).toBeNull(); // nothing left behind
     await admin.post(`/api/students/${laylaId}/guardians`, { relation: 'MOTHER', name: 'Other', email: 'p201000000009@test.eg', phone: '+201000000009' }).expect(400);
     const both = await admin.post(`/api/students/${laylaId}/guardians`, { relation: 'FATHER', name: 'Ibrahim Hussein', email: 'p201000000002@test.eg', phone: '+201000000002' }).expect(201);
     expect(both.body.guardians).toHaveLength(2);
+    // A grandmother looks after her too; one guardian at most.
+    const three = await admin.post(`/api/students/${laylaId}/guardians`, { relation: 'GUARDIAN', name: 'Samira Hussein', email: 'samira@test.eg' }).expect(201);
+    expect(three.body.guardians).toHaveLength(3);
+    await admin.post(`/api/students/${laylaId}/guardians`, { relation: 'GUARDIAN', name: 'Uncle', email: 'uncle@test.eg' }).expect(400);
+    const samiraId = three.body.guardians.find((g: any) => g.relation === 'GUARDIAN').userId;
+    await admin.delete(`/api/students/${laylaId}/guardians/${samiraId}`).expect(200);
 
     // A sibling reuses the mother's existing account.
-    const karim = await admin.post('/api/students', { code: '2022-0133', firstName: 'Karim', lastName: 'Hussein' }).expect(201);
-    await admin.post(`/api/students/${karim.body.id}/guardians`, { relation: 'MOTHER', name: 'Nadia Hussein', email: 'p201000000001@test.eg', phone: '+201000000001' }).expect(201);
+    const karim = await admin.post('/api/students', { code: '2022-0133', firstName: 'Karim', lastName: 'Hussein', parent: { ...nadia, password: undefined } }).expect(201);
+    // The only parent can't be removed.
+    const res = await admin.delete(`/api/students/${karim.body.id}/guardians/${karim.body.guardians[0].userId}`).expect(400);
+    expect(res.body.message).toContain('at least one parent or guardian');
+
+    // The parent's page: their children, each with its class.
+    const nadiaId = karim.body.guardians[0].userId;
+    const page = await admin.get(`/api/parents/${nadiaId}`).expect(200);
+    expect(page.body).toEqual(expect.objectContaining({ name: 'Nadia Hussein', email: 'p201000000001@test.eg' }));
+    expect(page.body.children.map((c: any) => c.student.firstName).sort()).toEqual(['Karim', 'Layla']);
+    expect(page.body.children.find((c: any) => c.student.firstName === 'Layla').student.class).toEqual({ id: classId, name: '4-A' });
+    const found = await admin.get('/api/parents?q=karim').expect(200);
+    expect(found.body.map((p: any) => p.name)).toEqual(['Nadia Hussein']);
+    // The class page: its students, each with their parents.
+    const cls = await admin.get(`/api/classes/${classId}`).expect(200);
+    expect(cls.body.students.map((st: any) => st.firstName)).toEqual(['Layla']);
+    expect(cls.body.students[0].guardians.map((g: any) => g.relation).sort()).toEqual(['FATHER', 'MOTHER']);
 
     const parent = as(await login('p201000000001@test.eg', 'parent-pass'));
     expect((await parent.get('/api/auth/me').expect(200)).body.consentAt).toBeNull();
@@ -148,9 +172,10 @@ describe('Phase 1 core (e2e)', () => {
     await parent.get('/api/students').expect(403);
     await parent.get('/api/timetable').expect(403);
     await parent.get('/api/classes').expect(403);
+    await parent.get('/api/parents').expect(403);
+    await parent.get(`/api/parents/${nadiaId}`).expect(403);
 
     // The school restricts Layla for this parent.
-    const nadiaId = both.body.guardians.find((g: any) => g.relation === 'MOTHER').userId;
     await admin.patch(`/api/students/${laylaId}/guardians/${nadiaId}`, { restricted: true }).expect(200);
     const after = await parent.get('/api/parent/children').expect(200);
     expect(after.body.map((k: any) => k.firstName)).toEqual(['Karim']);
@@ -160,6 +185,8 @@ describe('Phase 1 core (e2e)', () => {
     await owner.post('/api/owner/schools', { name: 'Other School', plan: 'SMART', admin: { name: 'B', email: 'b@other.eg', password: 'other-pass' } }).expect(201);
     const other = as(await login('b@other.eg', 'other-pass'));
     await other.get(`/api/students/${laylaId}`).expect(404);
+    await other.get(`/api/classes/${classId}`).expect(404);
+    expect((await other.get('/api/parents').expect(200)).body).toEqual([]);
     expect((await other.get('/api/students').expect(200)).body).toEqual([]);
     await other.post('/api/timetable', { classId, dayOfWeek: 0, periodId: period1, roomId, subjectId }).expect(400);
   });

@@ -43,7 +43,7 @@ describe('Where students are (e2e)', () => {
       await admin.post('/api/devices/gateways/claim', { claimCode: g.claimCode, name, kind, roomId: kind === 'ROOM' ? rooms[key as 'R1' | 'R2'] : undefined }).expect(201);
     }
     for (const [i, name] of ['Layla', 'Ali', 'Omar', 'Yara', 'Karim', 'Salma'].entries()) {
-      ids[name] = (await admin.post('/api/students', { code: `L${i}`, firstName: name, lastName: 'Test', classId: cls })).body.id;
+      ids[name] = (await admin.post('/api/students', { code: `L${i}`, firstName: name, lastName: 'Test', classId: cls, parent: { relation: 'GUARDIAN', name: 'Guardian', email: `g-L${i}@lo.test.eg` } })).body.id;
       if (name !== 'Salma') await admin.post('/api/devices/straps', { mac: mac(i), studentId: ids[name] }).expect(201);
     }
     await admin.post(`/api/students/${ids.Layla}/guardians`, { relation: 'MOTHER', name: 'Mona', email: 'p201400000001@test.eg', phone: '+201400000001', password: 'parent-pass' }).expect(201);

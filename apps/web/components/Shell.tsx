@@ -40,6 +40,8 @@ const SCHOOL_NAV: { group: NavKey; items: NavItem[] }[] = [
     group: 'people',
     items: [
       { href: '/students', key: 'students', roles: SCHOOL_WIDE },
+      { href: '/parents', key: 'parents', roles: SCHOOL_WIDE },
+      { href: '/classes', key: 'classes', roles: SCHOOL_WIDE },
       { href: '/students/import', key: 'import', roles: ADMIN },
       { href: '/staff', key: 'staff', roles: ADMIN },
     ],
