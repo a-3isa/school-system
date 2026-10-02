@@ -223,7 +223,7 @@ export class AttendanceEvaluator {
               type: 'attendance.lessonAbsent',
               title: `${student.firstName} was absent from ${where}`,
               body: `${student.firstName} came in through the gate at ${localParts(arrived.get(student.id)!, school.timezone).time} but hasn’t been in ${where} since it started at ${period.startTime}. The school has been told.`,
-              data: { studentId: student.id, date, periodId: period.id },
+              data: { studentId: student.id, date, periodId: period.id, subject: lesson.subject.name, room: lesson.room.name },
             })),
           );
         }

@@ -96,7 +96,7 @@ What every part does, in plain words: [docs/SYSTEM.md](docs/SYSTEM.md). Brief fo
 | Parents sign up in the app with the email the school registered (code by email) and their mobile (code on WhatsApp); change mobile; forgot password | Done; needs an SMTP account and WhatsApp Business to send for real |
 | Excel import | Done, tested |
 | Staff dashboard | Done, clicked through in a browser |
-| Parent app | Done; push notifications via Firebase still to add |
+| Parent app | Done, in English and Arabic, light and dark; push notifications via Firebase still to add |
 | Gateway firmware | Written; compiled by CI, not yet run on hardware |
 
 ## API routes
@@ -119,5 +119,5 @@ All routes are under `/api` and need `Authorization: Bearer <token>` except logi
 | Devices | `/devices/gateways`, `/devices/gateways/claim`, `/devices/straps`, `/devices/rules`; owner: `/owner/gateways` | Admin / owner |
 | Gateways | `POST /gateway/sightings` (Basic auth), `POST /gateway/mqtt/auth`, `POST /gateway/mqtt/acl` | Gateways, MQTT broker |
 | Notifications | `GET /notifications`, `POST /notifications/:id/read` | Everyone |
-| Parent | `GET /parent/children`, `GET /parent/children/:id/attendance`, `POST /parent/consent` | Parents |
+| Parent | `GET /parent/children`, `GET /parent/children/:id/attendance`, `GET /parent/children/:id/today` (arrival, where now, every lesson), `POST /parent/consent` | Parents |
 | Audit log | `GET /audit` | Admin |

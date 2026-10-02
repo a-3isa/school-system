@@ -93,6 +93,12 @@ export class ParentAttendanceController {
   async day(@CurrentUser() user: AuthUser, @SchoolId() schoolId: string, @Param('id') id: string, @Query('date') date?: string) {
     return this.attendance.childDay(user.id, id, date ?? (await this.attendance.today(schoolId)));
   }
+
+  /** The child's whole day: arrival, where they are now, and every lesson (taken or still to come). */
+  @Get(':id/today')
+  async today(@CurrentUser() user: AuthUser, @SchoolId() schoolId: string, @Param('id') id: string, @Query('date') date?: string) {
+    return this.attendance.childToday(user.id, id, date ?? (await this.attendance.today(schoolId)));
+  }
 }
 
 /** Runs the timed work every minute: automatic attendance, absence notices, then pushing notifications. */

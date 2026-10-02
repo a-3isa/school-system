@@ -109,6 +109,13 @@ describe('Manual attendance (e2e)', () => {
     await parent.get(`/api/parent/children/${laylaId}/attendance?date=${today}`).expect(404);
   });
 
+  it('gives a parent the whole day, lessons to come included', async () => {
+    const day = await parent.get(`/api/parent/children/${aliId}/today?date=${today}`).expect(200);
+    expect(day.body).toEqual(expect.objectContaining({ date: today, arrivedAt: null, place: null }));
+    expect(day.body.lessons).toContainEqual(expect.objectContaining({ period: 1, subject: 'Math', status: 'ABSENT' }));
+    await parent.get(`/api/parent/children/${laylaId}/today?date=${today}`).expect(404);
+  });
+
   it('marks a class away so nobody is flagged absent', async () => {
     await other.post('/api/attendance/aways', { classId: class2Id, date: today, reason: 'Museum trip' }).expect(403);
     const res = await admin.post('/api/attendance/aways', { classId: class2Id, date: today, fromPeriod: 1, toPeriod: 2, reason: 'Museum trip' }).expect(201);

@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../api.dart';
+import '../settings.dart';
+import '../strings.dart';
 import '../theme.dart';
+import '../widgets.dart';
 
-enum _Mode { signIn, signUpEmail, signUpPhone, signUpFinish, forgot, reset }
+enum _Mode { signIn, create1, create2, create3, forgot1, forgot2 }
 
 /// Parents sign in with the email the school registered and their own
 /// password. Creating the account takes three short steps:
@@ -25,12 +28,21 @@ class _LoginScreenState extends State<LoginScreen> {
   final _email = TextEditingController();
   final _password = TextEditingController();
   final _emailCode = TextEditingController();
-  final _phone = TextEditingController(text: '+20');
+  final _phone = TextEditingController();
   final _phoneCode = TextEditingController();
   _Mode _mode = _Mode.signIn;
+  /// Set once the WhatsApp code has gone out; step 2 then only fixes the number.
   String? _ticket;
   String? _error;
   bool _busy = false;
+
+  @override
+  void dispose() {
+    for (final c in [_email, _password, _emailCode, _phone, _phoneCode]) {
+      c.dispose();
+    }
+    super.dispose();
+  }
 
   Future<void> _run(Future<void> Function() fn) async {
     setState(() {
@@ -39,8 +51,10 @@ class _LoginScreenState extends State<LoginScreen> {
     });
     try {
       await fn();
+    } on WrongRole {
+      if (mounted) setState(() => _error = S.of(context).staffOnly);
     } catch (e) {
-      setState(() => _error = e.toString());
+      if (mounted) setState(() => _error = e.toString());
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -49,7 +63,7 @@ class _LoginScreenState extends State<LoginScreen> {
   void _go(_Mode mode) => setState(() {
         _mode = mode;
         _error = null;
-        if (mode == _Mode.signIn || mode == _Mode.signUpEmail || mode == _Mode.forgot) {
+        if (mode == _Mode.signIn || mode == _Mode.create1 || mode == _Mode.forgot1) {
           _emailCode.clear();
           _phoneCode.clear();
           _password.clear();
@@ -57,131 +71,184 @@ class _LoginScreenState extends State<LoginScreen> {
         }
       });
 
-  Future<void> _submit() {
-    final email = _email.text.trim();
-    return switch (_mode) {
-      _Mode.signIn => _run(() async {
-          await widget.api.login(email, _password.text);
-          widget.onSignedIn();
-        }),
-      _Mode.signUpEmail => _run(() async {
-          await widget.api.signup(email);
-          _go(_Mode.signUpPhone);
-        }),
-      _Mode.signUpPhone => _run(() async {
-          _ticket = await widget.api.signupPhone(email, _emailCode.text.trim(), _phone.text.replaceAll(' ', ''));
-          _go(_Mode.signUpFinish);
-        }),
-      _Mode.signUpFinish => _run(() async {
-          await widget.api.completeSignup(_ticket!, _phoneCode.text.trim(), _password.text);
-          widget.onSignedIn();
-        }),
-      _Mode.forgot => _run(() async {
-          await widget.api.forgotPassword(email);
-          _go(_Mode.reset);
-        }),
-      _Mode.reset => _run(() async {
-          await widget.api.resetPassword(email, _emailCode.text.trim(), _password.text);
-          widget.onSignedIn();
-        }),
-    };
-  }
+  String get _emailText => _email.text.trim();
 
-  Future<void> _resend() => _run(() async {
-        _ticket = await widget.api.resendSignupPhone(_ticket!, _phone.text.replaceAll(' ', ''));
-        _phoneCode.clear();
-        setState(() {});
+  Future<void> _signIn() => _run(() async {
+        await widget.api.login(_emailText, _password.text);
+        widget.onSignedIn();
       });
 
-  Widget _field(TextEditingController c, String label, {TextInputType? type, bool secret = false, Iterable<String>? hints, int? maxLength, bool enabled = true}) =>
-      Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: TextField(
-          controller: c,
-          enabled: enabled,
-          keyboardType: type,
-          obscureText: secret,
-          autofillHints: hints,
-          maxLength: maxLength,
-          decoration: InputDecoration(labelText: label),
-          onSubmitted: (_) => _submit(),
-        ),
-      );
+  Future<void> _create1() => _run(() async {
+        await widget.api.signup(_emailText);
+        _go(_Mode.create2);
+      });
+
+  Future<void> _create2() => _run(() async {
+        final phone = fullPhone(_phone.text);
+        _ticket = _ticket == null
+            ? await widget.api.signupPhone(_emailText, _emailCode.text.trim(), phone)
+            : await widget.api.resendSignupPhone(_ticket!, phone);
+        _phoneCode.clear();
+        setState(() => _mode = _Mode.create3);
+      });
+
+  Future<void> _create3() => _run(() async {
+        await widget.api.completeSignup(_ticket!, _phoneCode.text.trim(), _password.text);
+        widget.onSignedIn();
+      });
+
+  Future<void> _forgot1() => _run(() async {
+        await widget.api.forgotPassword(_emailText);
+        _go(_Mode.forgot2);
+      });
+
+  Future<void> _forgot2() => _run(() async {
+        await widget.api.resetPassword(_emailText, _emailCode.text.trim(), _password.text);
+        widget.onSignedIn();
+      });
 
   @override
   Widget build(BuildContext context) {
-    final step = switch (_mode) {
-      _Mode.signUpEmail => 'Step 1 of 3',
-      _Mode.signUpPhone => 'Step 2 of 3',
-      _Mode.signUpFinish => 'Step 3 of 3',
-      _ => null,
-    };
-    final title = switch (_mode) {
-      _Mode.signIn => 'Your child’s day, as it happens.',
-      _Mode.signUpEmail => 'Create your account',
-      _Mode.signUpPhone => 'Your mobile number',
-      _Mode.signUpFinish => 'Check WhatsApp',
-      _Mode.forgot => 'Forgot your password?',
-      _Mode.reset => 'Choose a new password',
-    };
-    final hint = switch (_mode) {
-      _Mode.signIn => 'Sign in with the email you gave the school.',
-      _Mode.signUpEmail => 'Use the email you gave the school when you registered your child. We’ll send a code to it.',
-      _Mode.signUpPhone => 'If the school registered ${_email.text.trim()}, a 6-digit code is on its way there (it works for 15 minutes; '
-          'if nothing arrives, ask the school to check your email). Type it below with your mobile number: we’ll check the number on WhatsApp.',
-      _Mode.signUpFinish => 'We sent a 6-digit code to ${_phone.text} on WhatsApp. Type it below and choose your password.',
-      _Mode.forgot => 'We’ll send a code to your email.',
-      _Mode.reset => 'If ${_email.text.trim()} has an account, a 6-digit code is on its way. It works for 15 minutes.',
-    };
-    final button = switch (_mode) {
-      _Mode.signIn => 'Sign in',
-      _Mode.signUpEmail || _Mode.forgot => 'Send me a code',
-      _Mode.signUpPhone => 'Send a WhatsApp code',
-      _Mode.signUpFinish => 'Create account',
-      _Mode.reset => 'Save and sign in',
-    };
+    final s = S.of(context);
+    final error = _error == null ? <Widget>[] : [ErrorBox(_error!)];
+    return AutofillGroup(
+      child: switch (_mode) {
+        _Mode.signIn => _SignIn(
+            email: _email,
+            password: _password,
+            error: _error,
+            busy: _busy,
+            onSignIn: _signIn,
+            onForgot: () => _go(_Mode.forgot1),
+            onCreate: () => _go(_Mode.create1),
+          ),
+        _Mode.create1 => FormPage(
+            step: (1, 3),
+            title: s.createAccount,
+            sub: s.regEmail,
+            onBack: () => _go(_Mode.signIn),
+            children: [
+              ...error,
+              EmailField(controller: _email, label: s.email, autofocus: true, onSubmitted: (_) => _create1()),
+              MainButton(label: s.sendMe, busy: _busy, onPressed: _create1),
+            ],
+          ),
+        _Mode.create2 => FormPage(
+            step: (2, 3),
+            title: _ticket == null ? s.checkEmail : s.mobileWa,
+            sub: _ticket == null ? s.codeSub : null,
+            em: _ticket == null ? _emailText : null,
+            onBack: () => _ticket == null ? _go(_Mode.create1) : setState(() => _mode = _Mode.create3),
+            children: [
+              ...error,
+              if (_ticket == null) CodeField(controller: _emailCode, label: s.codeFromEmail, autofocus: true),
+              PhoneField(controller: _phone, label: s.mobileWa, autofocus: _ticket != null),
+              MainButton(label: s.sendWa, busy: _busy, onPressed: _create2),
+              if (_ticket == null) HelpBox(title: s.noEmailT, text: s.noEmail),
+            ],
+          ),
+        _Mode.create3 => FormPage(
+            step: (3, 3),
+            title: s.waTitle,
+            sub: s.waSub,
+            em: prettyPhone(fullPhone(_phone.text)),
+            onBack: () => setState(() => _mode = _Mode.create2),
+            children: [
+              ...error,
+              CodeField(controller: _phoneCode, label: s.waCode, autofocus: true),
+              PasswordField(controller: _password, label: s.choosePw, isNew: true, onSubmitted: (_) => _create3()),
+              MainButton(label: s.createBtn, busy: _busy, onPressed: _create3),
+              TextButton(
+                onPressed: _busy ? null : () => setState(() => _mode = _Mode.create2),
+                child: Text(s.fixNumber, style: const TextStyle(fontSize: 14, height: 1.4)),
+              ),
+            ],
+          ),
+        _Mode.forgot1 => FormPage(
+            step: (1, 2),
+            title: s.resetTitle,
+            sub: s.resetSub,
+            onBack: () => _go(_Mode.signIn),
+            children: [
+              ...error,
+              EmailField(controller: _email, label: s.email, autofocus: true, onSubmitted: (_) => _forgot1()),
+              MainButton(label: s.sendMe, busy: _busy, onPressed: _forgot1),
+            ],
+          ),
+        _Mode.forgot2 => FormPage(
+            step: (2, 2),
+            title: s.checkEmail,
+            sub: s.codeSub,
+            em: _emailText,
+            onBack: () => _go(_Mode.forgot1),
+            children: [
+              ...error,
+              CodeField(controller: _emailCode, label: s.codeFromEmail, autofocus: true),
+              PasswordField(controller: _password, label: s.newPw, isNew: true, onSubmitted: (_) => _forgot2()),
+              MainButton(label: s.resetBtn, busy: _busy, onPressed: _forgot2),
+              HelpBox(title: s.noEmailT, text: s.noEmail, action: ResendLink(onResend: () => widget.api.forgotPassword(_emailText))),
+            ],
+          ),
+      },
+    );
+  }
+}
 
+class _SignIn extends StatelessWidget {
+  const _SignIn({required this.email, required this.password, required this.error, required this.busy, required this.onSignIn, required this.onForgot, required this.onCreate});
+  final TextEditingController email;
+  final TextEditingController password;
+  final String? error;
+  final bool busy;
+  final VoidCallback onSignIn;
+  final VoidCallback onForgot;
+  final VoidCallback onCreate;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = S.of(context);
+    final c = context.c;
+    final settings = Settings.of(context);
     return Scaffold(
       body: SafeArea(
-        child: AutofillGroup(
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(24, 48, 24, 24),
-            children: [
-              if (step != null) Text(step.toUpperCase(), style: const TextStyle(color: Brand.muted, fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 0.8)),
-              Text(title, style: Theme.of(context).textTheme.headlineMedium),
-              const SizedBox(height: 8),
-              Text(hint, style: const TextStyle(color: Brand.muted, fontSize: 15)),
-              const SizedBox(height: 28),
-              if (_error != null) ...[
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(color: Brand.alertBg, borderRadius: BorderRadius.circular(12)),
-                  child: Text(_error!, style: const TextStyle(color: Brand.alert)),
-                ),
-                const SizedBox(height: 16),
-              ],
-              _field(_email, 'Email', type: TextInputType.emailAddress, hints: const [AutofillHints.email], enabled: _mode == _Mode.signIn || _mode == _Mode.signUpEmail || _mode == _Mode.forgot),
-              if (_mode == _Mode.signUpPhone || _mode == _Mode.reset)
-                _field(_emailCode, 'Code from the email', type: TextInputType.number, hints: const [AutofillHints.oneTimeCode], maxLength: 6),
-              if (_mode == _Mode.signUpPhone || _mode == _Mode.signUpFinish)
-                _field(_phone, 'Mobile number (with country code)', type: TextInputType.phone, hints: const [AutofillHints.telephoneNumber]),
-              if (_mode == _Mode.signUpFinish)
-                _field(_phoneCode, 'Code from WhatsApp', type: TextInputType.number, hints: const [AutofillHints.oneTimeCode], maxLength: 6),
-              if (_mode == _Mode.signIn) _field(_password, 'Password', secret: true, hints: const [AutofillHints.password]),
-              if (_mode == _Mode.signUpFinish || _mode == _Mode.reset)
-                _field(_password, 'Choose a password (8 characters or more)', secret: true, hints: const [AutofillHints.newPassword]),
-              const SizedBox(height: 8),
-              FilledButton(onPressed: _busy ? null : _submit, child: Text(_busy ? 'One moment…' : button)),
-              const SizedBox(height: 8),
-              if (_mode == _Mode.signIn) ...[
-                TextButton(onPressed: _busy ? null : () => _go(_Mode.signUpEmail), child: const Text('New here? Create your account')),
-                TextButton(onPressed: _busy ? null : () => _go(_Mode.forgot), child: const Text('Forgot password?')),
-              ] else ...[
-                if (_mode == _Mode.signUpFinish)
-                  TextButton(onPressed: _busy ? null : _resend, child: const Text('No code, or wrong number? Fix the number and send again')),
-                TextButton(onPressed: _busy ? null : () => _go(_Mode.signIn), child: const Text('Back to sign in')),
-              ],
-            ],
+        child: LayoutBuilder(
+          builder: (context, box) => SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: box.maxHeight - 32),
+              child: IntrinsicHeight(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                  Align(
+                    alignment: AlignmentDirectional.centerEnd,
+                    child: TextButton(
+                      onPressed: () => settings.setLang(s.isAr ? 'en' : 'ar'),
+                      child: Text(s.otherLanguage, style: TextStyle(fontFamily: s.isAr ? Brand.font : 'IBMPlexSansArabic')),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Text(s.appName, style: TextStyle(fontSize: 13, color: c.ink2, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 8),
+                  Text(s.signIn, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w600, height: 1.2)),
+                  const SizedBox(height: 6),
+                  Text(s.signInSub, style: TextStyle(fontSize: 15, color: c.ink2, height: 1.5)),
+                  const SizedBox(height: 18),
+                  if (error != null) ...[ErrorBox(error!), const SizedBox(height: 18)],
+                  EmailField(controller: email, label: s.email),
+                  const SizedBox(height: 18),
+                  PasswordField(controller: password, label: s.password, onSubmitted: (_) => onSignIn()),
+                  const SizedBox(height: 18),
+                  MainButton(label: s.signIn, busy: busy, onPressed: onSignIn),
+                  Align(alignment: AlignmentDirectional.centerStart, child: TextButton(onPressed: busy ? null : onForgot, child: Text(s.forgot))),
+                  const Spacer(),
+                  const SizedBox(height: 24),
+                  Divider(color: c.line, height: 1),
+                  const SizedBox(height: 16),
+                  Text(s.newHere, style: TextStyle(fontSize: 14, color: c.ink2)),
+                  const SizedBox(height: 6),
+                  OutlinedButton(onPressed: busy ? null : onCreate, child: Text(s.createAccount)),
+                ]),
+              ),
+            ),
           ),
         ),
       ),

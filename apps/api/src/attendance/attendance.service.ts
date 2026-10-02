@@ -218,7 +218,7 @@ export class AttendanceService {
           type: 'attendance.lessonPresent',
           title: `${s.firstName} is in ${where}`,
           body: `The teacher marked ${s.firstName} present in ${where}. Ignore the earlier message.`,
-          data: { studentId: s.id, date, periodId },
+          data: { studentId: s.id, date, periodId, ...(slot.lesson ? { subject: slot.lesson.subject.name, room: slot.lesson.room.name } : {}) },
         })),
       );
     }
@@ -354,6 +354,56 @@ export class AttendanceService {
       status: r.status,
       firstSeenAt: r.firstSeenAt,
     }));
+  }
+
+  /**
+   * A child's whole day for the parent app: when they came in, where the strap
+   * was last heard in the past 10 minutes, and every lesson on the timetable
+   * with its room and, once taken, its attendance.
+   */
+  async childToday(parentId: string, studentId: string, date: string, now = new Date()) {
+    const link = await this.prisma.studentGuardian.findUnique({ where: { studentId_userId: { studentId, userId: parentId } } });
+    if (!link || link.restricted) throw new NotFoundException('Child not found.');
+    const day = dbDate(date);
+    const student = await this.prisma.student.findUniqueOrThrow({ where: { id: studentId }, include: { strap: true } });
+    const school = await this.school(student.schoolId);
+    const [records, lessons, presence] = await Promise.all([
+      this.prisma.attendanceRecord.findMany({ where: { studentId, date: day }, include: { period: true } }),
+      student.classId
+        ? this.prisma.timetableEntry.findMany({
+            where: { classId: student.classId, dayOfWeek: weekday(date) },
+            include: { period: true, subject: { select: { name: true } }, room: { select: { name: true } } },
+          })
+        : Promise.resolve([]),
+      this.prisma.gatePresence.findUnique({ where: { studentId_date: { studentId, date: day } } }),
+    ]);
+    const byPeriod = new Map(records.map((r) => [r.periodId, r]));
+    const rows = new Map<string, { period: number; startTime: string; endTime: string; subject: string | null; room: string | null; status: AttendanceStatus | null }>();
+    for (const l of lessons) {
+      rows.set(l.periodId, { period: l.period.number, startTime: l.period.startTime, endTime: l.period.endTime, subject: l.subject.name, room: l.room.name, status: byPeriod.get(l.periodId)?.status ?? null });
+    }
+    // A mark without a timetable lesson (a trip, a changed timetable) still shows.
+    for (const r of records) {
+      if (!rows.has(r.periodId)) rows.set(r.periodId, { period: r.period.number, startTime: r.period.startTime, endTime: r.period.endTime, subject: null, room: null, status: r.status });
+    }
+
+    let place: { name: string; kind: string | null; heardAt: Date } | null = null;
+    if (student.strap && date === localParts(now, school.timezone).date) {
+      const heard = await this.locations.lastHeard(student.schoolId, rulesFor(school.detection).room.minRssi, new Date(now.getTime() - 10 * 60_000), now, [student.strap.id]);
+      const h = heard.get(student.strap.id);
+      if (h) {
+        const p = (await this.locations.placesOf(student.schoolId)).get(h.gatewayId);
+        if (p) place = { name: p.room ?? p.name, kind: p.kind, heardAt: h.seenAt };
+      }
+    }
+
+    return {
+      date,
+      arrivedAt: presence?.arrivedAt ?? null,
+      leftAt: presence?.leftAt ?? null,
+      place,
+      lessons: [...rows.values()].sort((a, b) => a.period - b.period),
+    };
   }
 
   /**

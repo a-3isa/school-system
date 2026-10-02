@@ -1,29 +1,47 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'api.dart';
 import 'screens/consent.dart';
 import 'screens/home.dart';
 import 'screens/login.dart';
+import 'settings.dart';
 import 'theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final api = Api(await SharedPreferences.getInstance());
-  runApp(ParentApp(api: api));
+  final prefs = await SharedPreferences.getInstance();
+  runApp(ParentApp(api: Api(prefs), settings: AppSettings(prefs)));
 }
 
+/// English or Arabic (right to left), light or dark as the phone is set.
 class ParentApp extends StatelessWidget {
-  const ParentApp({super.key, required this.api});
+  const ParentApp({super.key, required this.api, required this.settings});
   final Api api;
+  final AppSettings settings;
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'School',
-      debugShowCheckedModeBanner: false,
-      theme: Brand.theme(),
-      home: Gate(api: api),
+    return Settings(
+      settings: settings,
+      child: ListenableBuilder(
+        listenable: settings,
+        builder: (context, _) {
+          final arabic = settings.lang == 'ar';
+          return MaterialApp(
+            title: arabic ? 'المدرسة' : 'School',
+            debugShowCheckedModeBanner: false,
+            locale: Locale(settings.lang),
+            supportedLocales: const [Locale('en'), Locale('ar')],
+            localizationsDelegates: GlobalMaterialLocalizations.delegates,
+            theme: Brand.theme(Brightness.light, arabic: arabic),
+            darkTheme: Brand.theme(Brightness.dark, arabic: arabic),
+            themeMode: ThemeMode.system,
+            home: Gate(api: api),
+          );
+        },
+      ),
     );
   }
 }

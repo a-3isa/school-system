@@ -1,59 +1,129 @@
 import 'package:flutter/material.dart';
 
-/// The product's look: warm ivory ground, near-black ink, clay accent.
-class Brand {
-  static const ground = Color(0xFFFAF9F5);
-  static const surface = Colors.white;
-  static const ink = Color(0xFF141413);
-  static const muted = Color(0xFF5E5D59);
-  static const line = Color(0x1F1F1E1D);
-  static const clay = Color(0xFFD97757);
-  static const okBg = Color(0xFFE4EDDA), ok = Color(0xFF35592A);
-  static const warnBg = Color(0xFFF5E9C8), warn = Color(0xFF71500A);
-  static const alertBg = Color(0xFFF7DDD3), alert = Color(0xFF973A1F);
-  static const infoBg = Color(0xFFDEE7F3), info = Color(0xFF24528F);
+/// The product's colours: warm stone, one deep blue for actions, and a colour,
+/// a glyph and a word for every status. Dark mode lifts the blue and the tints.
+@immutable
+class Palette extends ThemeExtension<Palette> {
+  const Palette({
+    required this.bg, required this.surface, required this.sunk, required this.line,
+    required this.ink, required this.ink2, required this.ink3,
+    required this.primary, required this.onPrimary, required this.unread,
+    required this.pFg, required this.pBg, required this.lFg, required this.lBg,
+    required this.aFg, required this.aBg, required this.eFg, required this.eBg,
+    required this.tFg, required this.tBg,
+  });
 
-  static ThemeData theme() {
+  final Color bg, surface, sunk, line, ink, ink2, ink3, primary, onPrimary, unread;
+  final Color pFg, pBg, lFg, lBg, aFg, aBg, eFg, eBg, tFg, tBg;
+
+  static const light = Palette(
+    bg: Color(0xFFF5F2EA), surface: Color(0xFFFFFDF8), sunk: Color(0xFFEDE8DC), line: Color(0xFFDDD6C7),
+    ink: Color(0xFF1D211F), ink2: Color(0xFF4E5550), ink3: Color(0xFF6B716C),
+    primary: Color(0xFF26457F), onPrimary: Color(0xFFFFFFFF), unread: Color(0xFFEEF1F7),
+    pFg: Color(0xFF23683F), pBg: Color(0xFFE2EFE5), lFg: Color(0xFF8A5A00), lBg: Color(0xFFF8ECD2),
+    aFg: Color(0xFFA3291F), aBg: Color(0xFFF8E3DF), eFg: Color(0xFF4A5566), eBg: Color(0xFFE6E9EE),
+    tFg: Color(0xFF3B5876), tBg: Color(0xFFE2EAF1),
+  );
+
+  static const dark = Palette(
+    bg: Color(0xFF121513), surface: Color(0xFF1A1E1C), sunk: Color(0xFF0E100F), line: Color(0xFF2C322E),
+    ink: Color(0xFFECE7DC), ink2: Color(0xFFB5B2A8), ink3: Color(0xFF8F8D85),
+    primary: Color(0xFF8FA9DE), onPrimary: Color(0xFF121513), unread: Color(0xFF1A2130),
+    pFg: Color(0xFF7FCB98), pBg: Color(0xFF1E3326), lFg: Color(0xFFE6B75A), lBg: Color(0xFF3A2E14),
+    aFg: Color(0xFFF08A7B), aBg: Color(0xFF3D1F1B), eFg: Color(0xFFAEB7C4), eBg: Color(0xFF262B32),
+    tFg: Color(0xFF9DB8D6), tBg: Color(0xFF1F2A36),
+  );
+
+  @override
+  Palette copyWith() => this;
+
+  @override
+  Palette lerp(ThemeExtension<Palette>? other, double t) => t < .5 || other is! Palette ? this : other;
+
+  /// Colours and glyph for an attendance status.
+  ({Color fg, Color bg, String glyph}) status(String status) => switch (status) {
+        'PRESENT' => (fg: pFg, bg: pBg, glyph: '✓'),
+        'LATE' => (fg: lFg, bg: lBg, glyph: '◔'),
+        'ABSENT' => (fg: aFg, bg: aBg, glyph: '×'),
+        'EXCUSED' => (fg: eFg, bg: eBg, glyph: '–'),
+        'ON_TRIP' => (fg: tFg, bg: tBg, glyph: '↗'),
+        _ => (fg: ink2, bg: sunk, glyph: '·'),
+      };
+}
+
+extension PaletteOf on BuildContext {
+  Palette get c => Theme.of(this).extension<Palette>()!;
+}
+
+class Brand {
+  static const font = 'IBMPlexSans';
+  static const fallback = ['IBMPlexSansArabic'];
+
+  static ThemeData theme(Brightness brightness, {required bool arabic}) {
+    final c = brightness == Brightness.dark ? Palette.dark : Palette.light;
+    // Arabic first when the app is in Arabic, so Arabic shapes come from the Arabic face.
+    final family = arabic ? 'IBMPlexSansArabic' : font;
+    final fallback = arabic ? const [font] : Brand.fallback;
     final base = ThemeData(
       useMaterial3: true,
-      colorScheme: ColorScheme.fromSeed(seedColor: clay, surface: ground, primary: ink),
-      scaffoldBackgroundColor: ground,
-    );
-    return base.copyWith(
-      appBarTheme: const AppBarTheme(backgroundColor: ground, foregroundColor: ink, elevation: 0, scrolledUnderElevation: 0),
-      textTheme: base.textTheme.copyWith(
-        headlineMedium: const TextStyle(fontFamily: 'serif', fontSize: 30, fontWeight: FontWeight.w500, color: ink),
-        titleMedium: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: ink),
+      brightness: brightness,
+      fontFamily: family,
+      fontFamilyFallback: fallback,
+      colorScheme: ColorScheme(
+        brightness: brightness,
+        primary: c.primary, onPrimary: c.onPrimary,
+        secondary: c.primary, onSecondary: c.onPrimary,
+        error: c.aFg, onError: c.surface,
+        surface: c.bg, onSurface: c.ink,
       ),
-      cardTheme: const CardThemeData(
-        color: surface,
-        elevation: 0,
-        margin: EdgeInsets.zero,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(16)), side: BorderSide(color: line)),
+      scaffoldBackgroundColor: c.bg,
+      extensions: [c],
+    );
+    final border = OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: c.line));
+    return base.copyWith(
+      textTheme: base.textTheme.apply(bodyColor: c.ink, displayColor: c.ink, fontFamily: family),
+      dividerColor: c.line,
+      progressIndicatorTheme: ProgressIndicatorThemeData(color: c.primary),
+      textSelectionTheme: TextSelectionThemeData(cursorColor: c.primary),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: c.surface,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 15),
+        border: border,
+        enabledBorder: border,
+        focusedBorder: border.copyWith(borderSide: BorderSide(color: c.primary, width: 2)),
+        errorBorder: border.copyWith(borderSide: BorderSide(color: c.aFg)),
+        hintStyle: TextStyle(color: c.ink3),
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          backgroundColor: ink,
-          foregroundColor: ground,
-          minimumSize: const Size.fromHeight(50),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          backgroundColor: c.primary,
+          foregroundColor: c.onPrimary,
+          disabledBackgroundColor: c.sunk,
+          disabledForegroundColor: c.ink3,
+          minimumSize: const Size.fromHeight(52),
+          textStyle: TextStyle(fontFamily: family, fontFamilyFallback: fallback, fontSize: 16, fontWeight: FontWeight.w600),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
       ),
-      inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: surface,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: c.ink,
+          minimumSize: const Size(0, 48),
+          side: BorderSide(color: c.line),
+          textStyle: TextStyle(fontFamily: family, fontFamilyFallback: fallback, fontSize: 15, fontWeight: FontWeight.w600),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: c.primary,
+          minimumSize: const Size(0, 44),
+          padding: EdgeInsets.zero,
+          alignment: AlignmentDirectional.centerStart,
+          textStyle: TextStyle(fontFamily: family, fontFamilyFallback: fallback, fontSize: 15, fontWeight: FontWeight.w600),
+        ),
       ),
     );
   }
 }
-
-/// Colours and words for an attendance status.
-({String label, Color fg, Color bg}) statusStyle(String status) => switch (status) {
-      'PRESENT' => (label: 'Present', fg: Brand.ok, bg: Brand.okBg),
-      'LATE' => (label: 'Late', fg: Brand.warn, bg: Brand.warnBg),
-      'ABSENT' => (label: 'Absent', fg: Brand.alert, bg: Brand.alertBg),
-      'EXCUSED' => (label: 'Excused', fg: Brand.info, bg: Brand.infoBg),
-      'ON_TRIP' => (label: 'On a trip', fg: Brand.info, bg: Brand.infoBg),
-      _ => (label: status, fg: Brand.muted, bg: Brand.line),
-    };

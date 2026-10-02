@@ -15,10 +15,15 @@ class ApiException implements Exception {
   String toString() => message;
 }
 
+/// Signed in with a staff account; the app is for parents.
+class WrongRole implements Exception {}
+
 class Api {
-  Api(this._prefs);
+  /// [client] is for tests; the app uses a plain one.
+  Api(this._prefs, [http.Client? client]) : _client = client ?? http.Client();
 
   final SharedPreferences _prefs;
+  final http.Client _client;
   static const _tokenKey = 'token';
 
   String? get token => _prefs.getString(_tokenKey);
@@ -34,7 +39,7 @@ class Api {
     };
     final req = http.Request(method, uri)..headers.addAll(headers);
     if (body != null) req.body = jsonEncode(body);
-    final res = await http.Response.fromStream(await req.send());
+    final res = await http.Response.fromStream(await _client.send(req));
     final data = res.body.isEmpty ? null : jsonDecode(res.body);
     if (res.statusCode >= 400) {
       final msg = data is Map && data['message'] != null
@@ -50,9 +55,7 @@ class Api {
   Future<dynamic> post(String path, [Object? body]) => _send('POST', path, body ?? {});
 
   Future<void> _keep(Map<String, dynamic> res) async {
-    if (res['user']['role'] != 'PARENT') {
-      throw ApiException(403, 'This app is for parents. Staff use the school dashboard.');
-    }
+    if (res['user']['role'] != 'PARENT') throw WrongRole();
     await _prefs.setString(_tokenKey, res['token'] as String);
   }
 
@@ -95,6 +98,8 @@ class Api {
   Future<void> consent() => post('/parent/consent');
   Future<List<dynamic>> children() async => await get('/parent/children') as List<dynamic>;
   Future<List<dynamic>> childDay(String id, String date) async => await get('/parent/children/$id/attendance?date=$date') as List<dynamic>;
+  /// The child's whole day: arrival, where the strap was heard in the last 10 minutes, and every lesson.
+  Future<Map<String, dynamic>> childToday(String id, String date) async => await get('/parent/children/$id/today?date=$date') as Map<String, dynamic>;
   Future<List<dynamic>> notifications() async => await get('/notifications') as List<dynamic>;
   Future<void> markRead(String id) => post('/notifications/$id/read');
 }
@@ -129,3 +134,13 @@ String timeCairo(String iso) {
   final local = utc.add(Duration(hours: cairoOffset(utc)));
   return '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
 }
+
+/// The time now in Cairo as HH:mm, to compare with period times.
+String nowCairo([DateTime? now]) {
+  final utc = (now ?? DateTime.now()).toUtc();
+  final local = utc.add(Duration(hours: cairoOffset(utc)));
+  return '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
+}
+
+/// The Cairo date (YYYY-MM-DD) of an ISO timestamp.
+String dateCairo(String iso) => todayCairo(DateTime.parse(iso));
