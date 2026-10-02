@@ -6,10 +6,10 @@ import { del, patch, post, timeCairo, todayCairo } from '@/lib/api';
 import { useAction, useApi } from '@/lib/hooks';
 import { useI18n } from '@/lib/i18n';
 import { useSession } from '@/lib/session';
-import { Empty, ErrorNote, Field, Pill, Section, StatusPill, toast } from '@/components/ui';
+import { Empty, ErrorNote, Pill, Section, StatusPill, toast } from '@/components/ui';
+import { BLANK_PARENT, ParentFields, parentBody, RELATIONS } from '@/components/ParentFields';
 
 const shift = (d: string, days: number) => new Date(Date.parse(`${d}T00:00:00Z`) + days * 86400000).toISOString().slice(0, 10);
-const COUNTRY_CODES = [['+20', 'EG +20'], ['+966', 'SA +966'], ['+971', 'AE +971'], ['+44', 'UK +44']];
 
 export default function StudentPage() {
   const { id } = useParams<{ id: string }>();
@@ -21,20 +21,23 @@ export default function StudentPage() {
   const history = useApi<any[]>(me.modules.includes('attendance') ? `/attendance/students/${id}?from=${shift(today, -13)}&to=${today}` : null);
   const visits = useApi<any[]>(me.straps && me.modules.includes('attendance') ? `/locations/students/${id}?date=${today}` : null);
   const act = useAction();
-  const [form, setForm] = useState({ relation: 'MOTHER', name: '', email: '', code: '+20', phone: '' });
+  const [form, setForm] = useState(BLANK_PARENT);
   const [emailMissing, setEmailMissing] = useState(false);
+  const taken: string[] = student.data?.guardians.map((g: any) => g.relation) ?? [];
+  const free = RELATIONS.filter((r) => !taken.includes(r));
+  // The form always offers a relation the student doesn't have yet.
+  const value = free.includes(form.relation as any) ? form : { ...form, relation: free[0] ?? form.relation };
 
   async function addParent(e: FormEvent) {
     e.preventDefault();
-    if (!form.email.trim() || !form.email.includes('@')) {
+    const body = parentBody(value);
+    if (!body) {
       setEmailMissing(true);
       return;
     }
-    const digits = form.phone.replace(/\D/g, '').replace(/^0+/, '');
-    const body = { relation: form.relation, name: form.name, email: form.email.trim(), ...(digits ? { phone: `${form.code}${digits}` } : {}) };
     if (await act.run(async () => student.setData(await post(`/students/${id}/guardians`, body)))) {
       toast(t.student.parentAdded);
-      setForm({ relation: form.relation === 'MOTHER' ? 'FATHER' : 'MOTHER', name: '', email: '', code: form.code, phone: '' });
+      setForm({ ...BLANK_PARENT, code: value.code });
     }
   }
 
@@ -61,7 +64,7 @@ export default function StudentPage() {
         </div>
         <div className="facts">
           <span>{t.students.code}<b className="mono" style={{ fontSize: 14, fontWeight: 500 }}><bdi dir="ltr">{s.code}</bdi></b></span>
-          <span>{t.common.class}<b><bdi dir="ltr">{s.class?.name ?? '—'}</bdi></b></span>
+          <span>{t.common.class}<b>{s.class ? <Link href={`/classes/${s.class.id}`}><bdi dir="ltr">{s.class.name}</bdi></Link> : '—'}</b></span>
         </div>
       </header>
       <ErrorNote error={act.error} />
@@ -110,20 +113,20 @@ export default function StudentPage() {
             </Section>
           )}
         </div>
-        <Section title={t.students.parents} aside={t.student.ofTwo(s.guardians.length)}>
+        <Section title={t.students.parents} aside={t.student.ofThree(s.guardians.length)}>
           <div className="panel">
             {s.guardians.map((g: any) => (
               <div key={g.userId} className="parent">
                 <div className="row between wrap" style={{ alignItems: 'flex-start', gap: 12 }}>
                   <div className="parent-who">
-                    <span><b>{g.user.name}</b><span className="small muted">{g.relation === 'MOTHER' ? t.students.mother : t.students.father}</span></span>
+                    <span><Link href={`/parents/${g.userId}`} className="strong">{g.user.name}</Link><span className="small muted">{t.students.rel[g.relation]}</span></span>
                     {g.user.email && <span style={{ overflowWrap: 'anywhere' }}><bdi dir="ltr">{g.user.email}</bdi></span>}
                     {g.user.phone && <span className="muted num"><bdi dir="ltr">{g.user.phone}</bdi></span>}
                   </div>
                   {isAdmin && (
                     <div className="row wrap" style={{ gap: 8 }}>
                       <button type="button" className="btn small" onClick={() => restrict(g.userId, !g.restricted)} disabled={act.busy}>{g.restricted ? t.student.allow : t.student.restrict}</button>
-                      <button type="button" className="btn small danger" onClick={() => remove(g.userId, g.user.name)} disabled={act.busy}>{t.student.remove}</button>
+                      <button type="button" className="btn small danger" onClick={() => remove(g.userId, g.user.name)} disabled={act.busy || s.guardians.length <= 1} title={s.guardians.length <= 1 ? t.student.lastParent : undefined}>{t.student.remove}</button>
                     </div>
                   )}
                 </div>
@@ -135,32 +138,16 @@ export default function StudentPage() {
               </div>
             ))}
             {!s.guardians.length && <Empty>{t.student.noParents}</Empty>}
-            {isAdmin && s.guardians.length < 2 && (
+            {isAdmin && s.guardians.length === 1 && <div className="list-foot">{t.student.lastParent}</div>}
+            {isAdmin && free.length > 0 && (
               <form className="parent-form" onSubmit={addParent} noValidate>
                 <div className="full strong">{t.student.addParent}</div>
-                <Field label={t.student.relation} id="rel">
-                  <select id="rel" className="input" value={form.relation} onChange={(e) => setForm({ ...form, relation: e.target.value })}>
-                    <option value="MOTHER">{t.students.mother}</option>
-                    <option value="FATHER">{t.students.father}</option>
-                  </select>
-                </Field>
-                <Field label={t.student.fullName} id="pn"><input id="pn" className="input" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></Field>
-                <Field label={t.student.emailRequired} id="pe" className="full" error={emailMissing ? t.student.emailNeeded : undefined}>
-                  <input id="pe" className="input" type="email" dir="ltr" placeholder="name@example.com" aria-invalid={emailMissing} value={form.email} onChange={(e) => { setForm({ ...form, email: e.target.value }); setEmailMissing(false); }} />
-                </Field>
-                <Field label={t.student.mobileOptional} id="pp" className="full">
-                  <span className="phone" dir="ltr">
-                    <select className="input" aria-label={t.student.countryCode} value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })}>
-                      {COUNTRY_CODES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-                    </select>
-                    <input id="pp" className="input num" dir="ltr" inputMode="tel" placeholder="100 555 0192" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
-                  </span>
-                </Field>
+                <ParentFields prefix="ap" value={value} taken={taken} emailMissing={emailMissing} onChange={(f) => { setForm(f); setEmailMissing(false); }} />
                 <p className="full small muted" style={{ margin: 0, lineHeight: 1.5 }}>{t.student.signupHelp}</p>
                 <div className="full"><button className="btn primary" type="submit" disabled={act.busy}>{t.student.addParentBtn}</button></div>
               </form>
             )}
-            {isAdmin && s.guardians.length >= 2 && <div className="list-foot">{t.student.parentsFull}</div>}
+            {isAdmin && !free.length && <div className="list-foot">{t.student.parentsFull}</div>}
           </div>
         </Section>
       </div>

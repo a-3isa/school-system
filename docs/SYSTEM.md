@@ -10,7 +10,7 @@ This describes every part that exists in the code today. Phase 1 is attendance. 
 |---|---|---|
 | **Server (API)** | Everything talks to it | A server you host (NestJS + PostgreSQL) |
 | **Dashboard** | You (owner), school admins, teachers | Any browser, including the classroom PC |
-| **Parent app** | Parents (both mother and father, each with their own account) | Phone (Flutter; Android, iPhone, web) |
+| **Parent app** | Parents and guardians (mother, father or another responsible adult, each with their own account) | Phone (Flutter; Android, iPhone, web) |
 | **Gateway firmware** | Runs by itself in each gate and room | ESP32 boards you build |
 | **Straps** | Worn by each student from Grade 1 up | FSC-BP107D BLE beacons |
 
@@ -75,11 +75,11 @@ This describes every part that exists in the code today. Phase 1 is attendance. 
 - **Staff accounts:** add teachers and other staff; reset passwords; deactivate.
 - **Students:**
   - each has a code, a name and an optional Arabic name, a class, and medical notes
-  - at most **two parents**: mother and father, each with a name, an **email** (required: they sign up with it and get the school's emails at it) and, optionally, a mobile; the parent's checked mobile from the app replaces it
+  - **at least one and at most three**: a mother, a father and a **guardian** (another adult responsible for the child, e.g. for an orphan). A student is always added with their first parent or guardian, and the last one can't be removed. Each has a name, an **email** (required: they sign up with it and get the school's emails at it) and, optionally, a mobile; the parent's checked mobile from the app replaces it
   - a parent with two children at the school uses one account (found by email)
   - each parent shows **Signed up in the app / Not signed up yet** and **Mobile checked by WhatsApp / not checked yet**
   - the admin can **restrict** a parent, who then no longer sees that child, or remove the link
-- **Import from Excel:** students, parents and strap addresses in one sheet.
+- **Import from Excel:** students, parents (mother, father, guardian columns; at least one per student) and strap addresses in one sheet.
   1. A check step lists every row to fix: missing fields, duplicate codes, unknown classes, a parent without an email, mobiles without a country code, straps already in use.
   2. Nothing is saved until every row is correct.
   3. Importing the same file again updates the existing students.
@@ -169,7 +169,9 @@ All messages arrive as **app notifications**, and every one is also kept in the 
 | **Take attendance:** every lesson; opens the same attendance screen for any lesson, any day | | ✓ | |
 | **Exceptions:** things a person should look at, each resolved with a note:<ul><li>at school but not in the lesson</li><li>left a lesson</li><li>left early</li><li>gateway offline / room without a gateway</li><li>low battery</li></ul> | | ✓ | |
 | **Where students are** (only with straps): live every 10 seconds:<ul><li>each room and the gate, with who is in it now</li><li>"needs a look": not heard for 10+ minutes during school hours</li><li>who went out through the gate</li><li>who hasn't been heard today</li></ul>Has search and a class filter. | | ✓ | |
-| **Students & parents:** search, add, each student's page (parents, where today, two weeks of attendance) | | ✓ | |
+| **Students:** search, add (with the first parent or guardian), each student's page (parents and guardian, class, where today, two weeks of attendance) | | ✓ | |
+| **Parents:** search by name, email, mobile or child; each parent's page (details, sign-up and tracking consent, their children with class; link another child) | | ✓ | |
+| **Classes:** each class's page (grade, homeroom teacher, students with their parents). Student, parent and class pages link to each other. | | ✓ | |
 | **Import from Excel:** template, check, import | | ✓ | |
 | **Staff:** accounts | | ✓ | |
 | **Timetable** (whole school), **Classes, rooms & periods** | | ✓ | |

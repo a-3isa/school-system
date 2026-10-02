@@ -43,6 +43,8 @@ enum RoomKind {
 enum GuardianRelation {
   MOTHER
   FATHER
+  // Another adult responsible for the child (a grandparent, an uncle…), e.g. for an orphan.
+  GUARDIAN
 }
 
 model School {

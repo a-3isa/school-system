@@ -58,6 +58,7 @@ describe('Excel import (e2e)', () => {
       '3: There is no class called “9-Z”. Add it first or fix the name.',
       '3: Mother email is missing: parents sign up in the app with it.',
       '4: First name is missing.',
+      '4: Each student needs at least one parent or guardian: fill the mother, father or guardian columns.',
     ]));
     // Not imported even without preview, because of the errors.
     expect((await upload(file, false)).body.imported).toBe(false);
@@ -84,6 +85,16 @@ describe('Excel import (e2e)', () => {
     const again = await upload(await sheet([['1001', 'Layla', 'Hussein-Adel', undefined, '4-A']]), false);
     expect(again.body).toEqual(expect.objectContaining({ create: 0, update: 1, imported: true }));
     expect((await admin.get(`/api/students/${layla.id}`)).body.lastName).toBe('Hussein-Adel');
+  });
+
+  it('takes a guardian when a child has no mother or father at the school', async () => {
+    const header = ['Student code', 'First name', 'Last name', 'Class', 'Guardian name', 'Guardian email', 'Guardian mobile'];
+    const bad = await upload(await sheet([['1003', 'Ziad', 'Omar', '4-A', 'Samira', 'admin@imp.eg']], header), true);
+    expect(bad.body.errors.map((e: any) => e.message)).toEqual(['Guardian email “admin@imp.eg” belongs to another account.']);
+    const ok = await upload(await sheet([['1003', 'Ziad', 'Omar', '4-A', 'Samira Omar', 'samira@example.com', '+201201234567']], header), false);
+    expect(ok.body).toEqual(expect.objectContaining({ create: 1, parents: 1, imported: true }));
+    const ziad = (await admin.get('/api/students?q=Ziad').expect(200)).body[0];
+    expect(ziad.guardians).toEqual([expect.objectContaining({ relation: 'GUARDIAN', user: expect.objectContaining({ name: 'Samira Omar' }) })]);
   });
 
   it('rejects files that aren’t spreadsheets or lack the columns', async () => {

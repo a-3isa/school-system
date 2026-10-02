@@ -1,31 +1,12 @@
 import { BadRequestException, Body, Controller, Delete, ForbiddenException, Get, Injectable, NotFoundException, Param, Patch, Post, Query } from '@nestjs/common';
 import { GuardianRelation, Prisma, Role } from '@prisma/client';
-import { IsBoolean, IsDateString, IsEmail, IsEnum, IsOptional, IsString, Matches, MinLength } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsBoolean, IsDateString, IsDefined, IsEmail, IsEnum, IsOptional, IsString, Matches, MinLength, ValidateNested } from 'class-validator';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit';
 import { AuthUser, CurrentUser, Roles, SchoolId, SCHOOL_WIDE, STAFF } from '../auth/auth.decorators';
 import { hashPassword } from '../auth/auth';
 import { mapPrismaError } from '../common/validation';
-
-export class StudentDto {
-  @IsString() @MinLength(1) code: string;
-  @IsString() @MinLength(1) firstName: string;
-  @IsString() @MinLength(1) lastName: string;
-  @IsOptional() @IsString() nameAr?: string;
-  @IsOptional() @IsString() classId?: string;
-  @IsOptional() @IsDateString() dateOfBirth?: string;
-  @IsOptional() @IsString() medicalNotes?: string;
-}
-
-export class UpdateStudentDto {
-  @IsOptional() @IsString() @MinLength(1) firstName?: string;
-  @IsOptional() @IsString() @MinLength(1) lastName?: string;
-  @IsOptional() @IsString() nameAr?: string;
-  @IsOptional() @IsString() classId?: string;
-  @IsOptional() @IsDateString() dateOfBirth?: string;
-  @IsOptional() @IsString() medicalNotes?: string;
-  @IsOptional() @IsBoolean() active?: boolean;
-}
 
 export class GuardianDto {
   @IsEnum(GuardianRelation) relation: GuardianRelation;
@@ -38,11 +19,33 @@ export class GuardianDto {
   @IsOptional() @IsString() @MinLength(8) password?: string;
 }
 
+export class StudentDto {
+  @IsString() @MinLength(1) code: string;
+  @IsString() @MinLength(1) firstName: string;
+  @IsString() @MinLength(1) lastName: string;
+  @IsOptional() @IsString() nameAr?: string;
+  @IsOptional() @IsString() classId?: string;
+  @IsOptional() @IsDateString() dateOfBirth?: string;
+  @IsOptional() @IsString() medicalNotes?: string;
+  // Every student has at least one parent or guardian from the start.
+  @IsDefined({ message: 'Add the student’s mother, father or guardian.' }) @ValidateNested() @Type(() => GuardianDto) parent: GuardianDto;
+}
+
+export class UpdateStudentDto {
+  @IsOptional() @IsString() @MinLength(1) firstName?: string;
+  @IsOptional() @IsString() @MinLength(1) lastName?: string;
+  @IsOptional() @IsString() nameAr?: string;
+  @IsOptional() @IsString() classId?: string;
+  @IsOptional() @IsDateString() dateOfBirth?: string;
+  @IsOptional() @IsString() medicalNotes?: string;
+  @IsOptional() @IsBoolean() active?: boolean;
+}
+
 export class GuardianAccessDto {
   @IsBoolean() restricted: boolean;
 }
 
-const MAX_GUARDIANS = 2;
+const RELATION_NAME: Record<GuardianRelation, string> = { MOTHER: 'mother', FATHER: 'father', GUARDIAN: 'guardian' };
 
 const studentInclude = {
   class: { select: { id: true, name: true } },
@@ -86,11 +89,15 @@ export class StudentsService {
 
   async create(user: AuthUser, schoolId: string, dto: StudentDto) {
     await this.checkClass(schoolId, dto.classId);
-    const student = await this.prisma.student
-      .create({ data: { ...dto, dateOfBirth: dto.dateOfBirth ? new Date(dto.dateOfBirth) : undefined, schoolId }, include: studentInclude })
-      .catch((e) => mapPrismaError(e, `Student code ${dto.code} is already used.`));
-    await this.audit.log(user, 'student.create', 'student', student.id, { code: dto.code, classId: dto.classId });
-    return student;
+    const { parent, ...data } = dto;
+    const { id, parentId } = await this.prisma.$transaction(async (tx) => {
+      const student = await tx.student
+        .create({ data: { ...data, dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : undefined, schoolId } })
+        .catch((e) => mapPrismaError(e, `Student code ${dto.code} is already used.`));
+      return { id: student.id, parentId: await this.link(tx, schoolId, student.id, [], parent) };
+    });
+    await this.audit.log(user, 'student.create', 'student', id, { code: dto.code, classId: dto.classId, parentId, relation: parent.relation });
+    return this.get(schoolId, id);
   }
 
   async update(user: AuthUser, schoolId: string, id: string, dto: UpdateStudentDto) {
@@ -111,18 +118,24 @@ export class StudentsService {
    */
   async addGuardian(user: AuthUser, schoolId: string, studentId: string, dto: GuardianDto) {
     const student = await this.get(schoolId, studentId);
-    if (student.guardians.length >= MAX_GUARDIANS) throw new BadRequestException('A student can have at most two parents.');
-    if (student.guardians.some((g) => g.relation === dto.relation)) {
-      throw new BadRequestException(`This student already has a ${dto.relation.toLowerCase()}.`);
-    }
+    const parentId = await this.prisma.$transaction((tx) => this.link(tx, schoolId, studentId, student.guardians.map((g) => g.relation), dto));
+    await this.audit.log(user, 'guardian.add', 'student', studentId, { parentId, relation: dto.relation });
+    return this.get(schoolId, studentId);
+  }
 
+  /** A student has at most one mother, one father and one guardian. */
+  private async link(tx: Prisma.TransactionClient, schoolId: string, studentId: string, has: GuardianRelation[], dto: GuardianDto) {
+    if (has.includes(dto.relation)) throw new BadRequestException(`This student already has a ${RELATION_NAME[dto.relation]}.`);
     const email = dto.email.trim().toLowerCase();
-    let parent = await this.prisma.user.findUnique({ where: { email } });
+    let parent = await tx.user.findUnique({ where: { email } });
     if (parent && (parent.role !== Role.PARENT || parent.schoolId !== schoolId)) {
       throw new BadRequestException('This email belongs to another account.');
     }
+    if (parent?.id && (await tx.studentGuardian.findUnique({ where: { studentId_userId: { studentId, userId: parent.id } } }))) {
+      throw new BadRequestException('This parent is already linked to the student.');
+    }
     if (!parent) {
-      parent = await this.prisma.user
+      parent = await tx.user
         .create({
           data: {
             schoolId,
@@ -135,9 +148,8 @@ export class StudentsService {
         })
         .catch((e) => mapPrismaError(e, 'This mobile number belongs to another account.'));
     }
-    await this.prisma.studentGuardian.create({ data: { studentId, userId: parent.id, relation: dto.relation } });
-    await this.audit.log(user, 'guardian.add', 'student', studentId, { parentId: parent.id, relation: dto.relation });
-    return this.get(schoolId, studentId);
+    await tx.studentGuardian.create({ data: { studentId, userId: parent.id, relation: dto.relation } });
+    return parent.id;
   }
 
   async setGuardianAccess(user: AuthUser, schoolId: string, studentId: string, parentId: string, dto: GuardianAccessDto) {
@@ -150,7 +162,10 @@ export class StudentsService {
   }
 
   async removeGuardian(user: AuthUser, schoolId: string, studentId: string, parentId: string) {
-    await this.get(schoolId, studentId);
+    const student = await this.get(schoolId, studentId);
+    if (student.guardians.some((g) => g.userId === parentId) && student.guardians.length <= 1) {
+      throw new BadRequestException('A student needs at least one parent or guardian. Add another before removing this one.');
+    }
     const { count } = await this.prisma.studentGuardian.deleteMany({ where: { studentId, userId: parentId } });
     if (!count) throw new NotFoundException('This parent isn’t linked to the student.');
     await this.audit.log(user, 'guardian.remove', 'student', studentId, { parentId });

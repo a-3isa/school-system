@@ -62,13 +62,17 @@ Navigation, grouped:
     - **More panels:** "Went out through the gate" (with times), "Gone for the day", "Not heard today"
     - **Controls:** search and class filter
 - **People**
-  - **Students & parents:** a searchable, filterable table (name with Arabic name below, code, class, parents) and "Add a student".
+  - **Students:** a searchable, filterable table (name with Arabic name below, code, class) and "Add a student", which also asks for the first parent or guardian: every student has at least one.
   - **Student page:**
-    - **Parents** (at most mother and father). Each shows name, email, mobile, and two status tags: "Signed up in the app" or "Not signed up yet", and "Mobile checked by WhatsApp" or "Mobile not checked yet". Actions: Restrict, Remove.
+    - **Parents** (mother, father and one guardian at most; at least one). Each name opens the parent's page; the class opens the class page. Each shows name, email, mobile, and two status tags: "Signed up in the app" or "Not signed up yet", and "Mobile checked by WhatsApp" or "Mobile not checked yet". Actions: Restrict, Remove.
     - **Add-parent form:** relation, name, **email (required)**, mobile (optional). Explain under it that the parent signs up in the app with this email, and that their mobile is checked by WhatsApp then and saved here.
     - **Where today** (straps only): a timeline, e.g. "07:49 Gate A", "08:00–09:29 Room 204"…
     - **Attendance for the last two weeks:** date, period, status, and how (strap, or manual with the reason).
-  - **Import from Excel:** download the template, upload, a check step (summary plus a row-by-row list of problems), import. Columns include each parent's email (required) and mobile (optional).
+  - **Parents:** a searchable table (name, children with relation and class, email, mobile).
+  - **Parent page:** details (email, mobile, sign-up and WhatsApp tags, tracking consent), their children (each opens the student page, the class opens the class page) and "Link a child".
+  - **Classes:** a table (class, grade, homeroom teacher, students).
+  - **Class page:** grade, homeroom teacher, and the students with their parents; every name links to its page.
+  - **Import from Excel:** download the template, upload, a check step (summary plus a row-by-row list of problems), import. Columns include the mother's, father's and guardian's email (required for each one given; at least one per student) and mobile (optional).
   - **Staff:** accounts table (name, role, email, active) and an add form.
 - **School setup**
   - **Timetable:** a week grid (days × periods) for a chosen class; each cell shows subject, room and teacher; add or remove lessons; clash errors inline.
