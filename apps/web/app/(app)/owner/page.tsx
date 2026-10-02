@@ -81,7 +81,7 @@ export default function OwnerPage() {
           </div>
         </form>
       )}
-      <div className="cols wide-narrow">
+      <div className={current ? 'cols wide-narrow' : 'stack'}>
         <div className="panel scroll">
           {schools.data?.length ? (
             <table style={{ minWidth: 560 }}>

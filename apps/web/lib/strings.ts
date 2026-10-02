@@ -71,7 +71,7 @@ export const en = {
   students: {
     sub: (n: number) => `${n} students`, titleStaff: 'Students', add: 'Add a student', added: (name: string) => `${name} added`,
     search: 'Search a name or student code', firstName: 'First name', lastName: 'Last name', nameAr: 'Name in Arabic', code: 'Student code',
-    noClass: 'No class yet', parents: 'Parents', mother: 'mother', father: 'father', noParent: 'No parent yet', noMatch: 'No students match.',
+    noClass: 'No class yet', parents: 'Parents', mother: 'Mother', father: 'Father', noParent: 'No parent yet', noMatch: 'No students match.',
   },
   student: {
     today: 'Today', whereToday: 'Where today', fromStrap: 'From the strap', unknownPlace: 'Unknown place', notHeardToday: 'The strap hasn’t been heard today.',

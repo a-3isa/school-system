@@ -39,7 +39,7 @@ export function LessonRow({ l, date, withButton = true }: { l: Lesson; date: str
   else state = { cls: 'part', text: `${count} · ${t.lessons.notMarked}`, pct: 0 };
 
   return (
-    <div className={`lesson${running ? ' now' : ''}`}>
+    <div className={`lesson${running ? ' now' : ''}${withButton ? '' : ' compact'}`}>
       <span className="when"><b>{t.lessons.p(l.period)}</b><span>{l.startTime}</span></span>
       <span className="what"><b>{x(`${l.className} · ${l.subject}`)}</b><span>{x(l.room)}</span></span>
       <span className="progress">

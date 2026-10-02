@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { minutes, nowCairo, put, timeCairo, todayCairo } from '@/lib/api';
 import { useAction, useApi, useEvery } from '@/lib/hooks';
 import { useI18n } from '@/lib/i18n';
@@ -24,6 +24,9 @@ export function AttendanceList({ classId, periodId, date, crumb }: { classId: st
   const periods = useApi<any[]>(isToday ? '/periods' : null);
   const save = useAction();
   const [chosen, setChosen] = useState<Record<string, Status>>({});
+  /** The row order shown last; kept once the teacher has tapped anyone, so nothing jumps under their finger. */
+  const order = useRef<string[]>([]);
+  const touchedOnce = useRef(false);
   const auto = roster.data?.mode === 'AUTOMATIC';
   // The straps say who is here only during the lesson, while the room's gateway is working.
   const live = auto && roster.data?.lessonState === 'now' && roster.data?.gatewayWorking;
@@ -71,8 +74,15 @@ export function AttendanceList({ classId, periodId, date, crumb }: { classId: st
 
   if (!roster.data) return <ErrorNote error={roster.error} />;
   const r = roster.data;
-  // Children the strap doesn't hear come first, so the teacher sees them at once.
-  const students = live ? [...r.students].sort((a: any, b: any) => Number(start(a) !== 'ABSENT') - Number(start(b) !== 'ABSENT')) : r.students;
+  // Children the strap doesn't hear come first, so the teacher sees them at once,
+  // until the teacher touches a row; from then on the order stays put.
+  const sorted: any[] = live ? [...r.students].sort((a: any, b: any) => Number(start(a) !== 'ABSENT') - Number(start(b) !== 'ABSENT')) : r.students;
+  const touched = touchedOnce.current || Object.keys(chosen).length > 0;
+  const kept = order.current;
+  const students: any[] = touched && kept.length
+    ? [...r.students].sort((a: any, b: any) => (kept.indexOf(a.id) + 1 || Infinity) - (kept.indexOf(b.id) + 1 || Infinity))
+    : sorted;
+  order.current = students.map((s: any) => s.id);
   const count = (st: Status) => r.students.filter((s: any) => shown(s) === st).length;
   const summary = [
     t.att.countPresent(count('PRESENT')),
@@ -152,7 +162,7 @@ export function AttendanceList({ classId, periodId, date, crumb }: { classId: st
                     className={`mark s-${c}`}
                     aria-checked={now === c}
                     disabled={!r.canEdit}
-                    onClick={() => setChosen({ ...chosen, [s.id]: c })}
+                    onClick={() => { touchedOnce.current = true; setChosen({ ...chosen, [s.id]: c }); }}
                   >
                     <span className="glyph" aria-hidden="true">{STATUS_GLYPH[c]}</span>
                     {t.status[c]}

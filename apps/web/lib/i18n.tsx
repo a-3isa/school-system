@@ -13,10 +13,11 @@ const DICTS: Record<Lang, Dict> = { en, ar };
  */
 const ARABIC = /[؀-ۿ]/;
 const LATIN_RUN = /\+?[A-Za-z0-9@][A-Za-z0-9@:\-–%.\/_+ ]*[A-Za-z0-9%]|[A-Za-z0-9]/g;
-const LATIN_ONLY_RANGE = /^[A-Za-z0-9:. ]*\d[A-Za-z0-9:. ]*[-–][A-Za-z0-9:. ]+$/;
+const LATIN = /[A-Za-z0-9]/;
 export function isolateLatin(s: string): string {
-  if (ARABIC.test(s)) return s.replace(LATIN_RUN, (m) => `⁦${m}⁩`);
-  return LATIN_ONLY_RANGE.test(s) ? `⁦${s}⁩` : s;
+  if (ARABIC.test(s)) return s.replace(LATIN_RUN, (m) => `\u2066${m}\u2069`);
+  // All Latin (a class, subject and room from the school, a time range): one island.
+  return LATIN.test(s) ? `\u2066${s}\u2069` : s;
 }
 
 interface I18n {

@@ -1,5 +1,18 @@
 /* Calm, warm stone surfaces with one deep blue for actions. Every status has a
-   colour, a glyph and a word, so it still reads without colour. Light only. */
+   colour, a glyph and a word, so it still reads without colour. Dark mode
+   follows the computer and lifts the blue and the status tints. */
+/* IBM Plex, served with the dashboard (SIL Open Font License, public/fonts/OFL.txt). */
+@font-face { font-family: 'IBM Plex Sans'; font-weight: 400; font-display: swap; src: url('/fonts/IBMPlexSans-Regular.ttf') format('truetype'); }
+@font-face { font-family: 'IBM Plex Sans'; font-weight: 500; font-display: swap; src: url('/fonts/IBMPlexSans-Medium.ttf') format('truetype'); }
+@font-face { font-family: 'IBM Plex Sans'; font-weight: 600; font-display: swap; src: url('/fonts/IBMPlexSans-SemiBold.ttf') format('truetype'); }
+@font-face { font-family: 'IBM Plex Sans'; font-weight: 700; font-display: swap; src: url('/fonts/IBMPlexSans-Bold.ttf') format('truetype'); }
+@font-face { font-family: 'IBM Plex Sans Arabic'; font-weight: 400; font-display: swap; src: url('/fonts/IBMPlexSansArabic-Regular.ttf') format('truetype'); }
+@font-face { font-family: 'IBM Plex Sans Arabic'; font-weight: 500; font-display: swap; src: url('/fonts/IBMPlexSansArabic-Medium.ttf') format('truetype'); }
+@font-face { font-family: 'IBM Plex Sans Arabic'; font-weight: 600; font-display: swap; src: url('/fonts/IBMPlexSansArabic-SemiBold.ttf') format('truetype'); }
+@font-face { font-family: 'IBM Plex Sans Arabic'; font-weight: 700; font-display: swap; src: url('/fonts/IBMPlexSansArabic-Bold.ttf') format('truetype'); }
+@font-face { font-family: 'IBM Plex Mono'; font-weight: 400; font-display: swap; src: url('/fonts/IBMPlexMono-Regular.ttf') format('truetype'); }
+@font-face { font-family: 'IBM Plex Mono'; font-weight: 500; font-display: swap; src: url('/fonts/IBMPlexMono-Medium.ttf') format('truetype'); }
+
 :root {
   --bg: #F5F2EA;
   --side: #EDE8DC;
@@ -18,6 +31,9 @@
   --accent-tint: #E3E8F2;
   --accent-wash: #F4F6FA;
   --on-accent: #FFFFFF;
+  --mark-ink: #3F4642;
+  --hover: rgba(255, 253, 248, .55);
+  --shadow: rgba(29, 33, 31, .14);
 
   /* status: Present, Late, Absent, Excused, On a trip */
   --p: #23683F; --p-bg: #E2EFE5; --p-dot: #2E8550;
@@ -34,6 +50,41 @@
   --arabic: 'IBM Plex Sans Arabic', 'IBM Plex Sans', system-ui, sans-serif;
   --mono: 'IBM Plex Mono', ui-monospace, monospace;
   color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #121513;
+    --side: #0E100F;
+    --surface: #1A1E1C;
+    --surface-2: #161A18;
+    --ink: #ECE7DC;
+    --muted: #B5B2A8;
+    --cap: #8F8D85;
+    --line: #2C322E;
+    --line-soft: #232825;
+    --line-strong: #4A514C;
+    --dash: #3A403C;
+    --seg: #232825;
+    --accent: #8FA9DE;
+    --accent-hover: #A9BFE8;
+    --accent-tint: #1F2A40;
+    --accent-wash: #1A2130;
+    --on-accent: #121513;
+    --mark-ink: #D3CFC5;
+    --hover: rgba(236, 231, 220, .06);
+    --shadow: rgba(0, 0, 0, .5);
+    --p: #7FCB98; --p-bg: #1E3326; --p-dot: #5FAF7C;
+    --l: #E6B75A; --l-bg: #3A2E14;
+    --a: #F08A7B; --a-bg: #3D1F1B; --a-dot: #E06A5A; --a-row: #2A1917; --a-line: #5A2A24;
+    --e: #AEB7C4; --e-bg: #262B32;
+    --t: #9DB8D6; --t-bg: #1F2A36;
+    --changed-row: #26200F;
+    --warn-ink: #E6B75A;
+    --info-ink: #AEB7C4;
+    --error-ink: #F08A7B;
+    color-scheme: dark;
+  }
 }
 
 * { box-sizing: border-box; }
@@ -70,7 +121,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 html[lang='ar'] .nav-label { letter-spacing: 0; font-size: 12px; }
 .nav a { display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 0 10px; border-radius: 6px; text-decoration: none; color: var(--ink); font-size: 14px; }
 .nav a::before { content: ''; width: 6px; height: 6px; border-radius: 50%; flex: none; background: transparent; }
-.nav a:hover { background: rgba(255, 253, 248, .55); color: var(--ink); }
+.nav a:hover { background: var(--hover); color: var(--ink); }
 .nav a[aria-current='page'] { background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); font-weight: 600; }
 .nav a[aria-current='page']::before { background: var(--accent); }
 .nav a span:first-child { flex: 1; }
@@ -195,7 +246,7 @@ input[type='search'].input { max-width: 420px; padding: 0 14px; }
 .note.error { background: var(--a-bg); color: var(--error-ink); }
 .live { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .live::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--p-dot); }
-.toast { position: fixed; bottom: 32px; inset-inline-start: calc(248px + 40px); background: var(--ink); color: var(--bg); border-radius: 8px; padding: 12px 16px; font-size: 14px; box-shadow: 0 8px 24px rgba(29, 33, 31, .14); animation: fade .2s ease-out; z-index: 50; max-width: calc(100vw - 32px); }
+.toast { position: fixed; bottom: 32px; inset-inline-start: calc(248px + 40px); background: var(--ink); color: var(--bg); border-radius: 8px; padding: 12px 16px; font-size: 14px; box-shadow: 0 8px 24px var(--shadow); animation: fade .2s ease-out; z-index: 50; max-width: calc(100vw - 32px); }
 .app.solo .toast { inset-inline-start: 40px; }
 @media (max-width: 900px) { .toast, .app.solo .toast { inset-inline-start: 16px; } }
 
@@ -237,7 +288,7 @@ input[type='search'].input { max-width: 420px; padding: 0 14px; }
 .roster .saved-by { font-size: 14px; font-weight: 600; color: var(--p); }
 .roster .unsaved { font-size: 14px; font-weight: 600; color: var(--l); }
 .marks { flex: 0 0 auto; display: flex; gap: 8px; flex-wrap: wrap; }
-.mark { min-width: 118px; height: 60px; padding: 0 16px; border-radius: 8px; border: 1px solid var(--dash); background: var(--surface); color: #3F4642; font-size: 17px; font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.mark { min-width: 118px; height: 60px; padding: 0 16px; border-radius: 8px; border: 1px solid var(--dash); background: var(--surface); color: var(--mark-ink); font-size: 17px; font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
 .mark .glyph { font-size: 14px; opacity: .55; }
 .mark:disabled { cursor: default; }
 .mark[aria-checked='true'] { font-weight: 700; border-width: 2px; }
@@ -262,6 +313,7 @@ input[type='search'].input { max-width: 420px; padding: 0 14px; }
 .lesson .what b { font-weight: 600; font-size: 16px; }
 .lesson .what span { font-size: 13px; color: var(--muted); }
 .lesson .progress { flex: 0 1 200px; display: flex; flex-direction: column; gap: 6px; }
+.lesson.compact { display: grid; grid-template-columns: 52px minmax(0, 1fr) 150px; gap: 14px; padding: 12px 18px; }
 .lesson .progress b { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .meter { height: 4px; border-radius: 2px; background: var(--line-soft); overflow: hidden; display: block; }
 .meter span { display: block; height: 100%; background: var(--p-dot); }
