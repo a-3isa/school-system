@@ -54,8 +54,10 @@ npm run dev -w apps/web                             # http://localhost:3001
 npx ts-node scripts/simulate-gateway.ts --serial DEMO-R204 --secret <secret> \
   --macs DC:0D:30:00:00:00,DC:0D:30:00:00:01
 
-# 4. Parent app (demo parents: +20100100000N, password demo-parent-1, or a WhatsApp
-#    code, which is printed in the API log while WhatsApp isn't configured)
+# 4. Parent app (demo parents: parent1@demo.school … parent24@demo.school, password demo-parent-1).
+#    A parent the school registers taps "Create account" in the app: a code to their email, then
+#    their mobile with a code on WhatsApp, then a password. While SMTP_URL and WHATSAPP_* aren't
+#    set, both codes are printed in the API log.
 cd apps/parent && flutter run -d chrome --dart-define=API_URL=http://localhost:3000/api
 ```
 
@@ -81,6 +83,8 @@ Gateways, press **New secret** on that gateway and use the secret it shows.
 
 The parent app needs Flutter with Dart 3.6 or newer (`flutter --version`).
 
+What every part does, in plain words: [docs/SYSTEM.md](docs/SYSTEM.md). Brief for a redesign: [docs/DESIGN-BRIEF.md](docs/DESIGN-BRIEF.md).
+
 ## Phase 1 status
 
 | Part | State |
@@ -89,10 +93,10 @@ The parent app needs Flutter with Dart 3.6 or newer (`flutter --version`).
 | Manual attendance (classroom PC), trips, absence notices | Done, tested |
 | Automatic attendance: gateways, straps, sightings (HTTP and MQTT), lesson decisions, exceptions | Done, tested with simulated gateways |
 | Where students are: live place of every child (loudest gateway), a student's movements through the day | Done, tested with simulated gateways |
-| Sign-in codes by WhatsApp | Done; needs WhatsApp Business credentials to send for real |
+| Parents sign up in the app with the email the school registered (code by email) and their mobile (code on WhatsApp); change mobile; forgot password | Done; needs an SMTP account and WhatsApp Business to send for real |
 | Excel import | Done, tested |
 | Staff dashboard | Done, clicked through in a browser |
-| Parent app | Done; push notifications via Firebase still to add |
+| Parent app | Done, in English and Arabic, light and dark; push notifications via Firebase still to add |
 | Gateway firmware | Written; compiled by CI, not yet run on hardware |
 
 ## API routes
@@ -101,7 +105,7 @@ All routes are under `/api` and need `Authorization: Bearer <token>` except logi
 
 | Area | Routes | Who |
 |---|---|---|
-| Sign in | `POST /auth/login`, `POST /auth/code`, `POST /auth/code/verify` (WhatsApp), `GET /auth/me` | Everyone |
+| Sign in | `POST /auth/login` (email + password), `POST /auth/signup`, `/auth/signup/phone`, `/auth/signup/resend`, `/auth/signup/complete`, `POST /auth/password/forgot`, `/auth/password/reset`, `POST /auth/phone`, `/auth/phone/verify` (parents), `GET /auth/me` | Everyone |
 | Owner console | `GET/POST /owner/schools`, `GET /owner/schools/:id/modules`, `PUT /owner/schools/:id/modules/:key`, `PUT /owner/schools/:id/plan` | Platform owner |
 | Modules | `GET /modules`, `PATCH /modules/:key/features` | School users; admin changes features |
 | School settings | `GET/PATCH /school` (attendance mode, absence notice time, school days) | Admin edits |
@@ -115,5 +119,5 @@ All routes are under `/api` and need `Authorization: Bearer <token>` except logi
 | Devices | `/devices/gateways`, `/devices/gateways/claim`, `/devices/straps`, `/devices/rules`; owner: `/owner/gateways` | Admin / owner |
 | Gateways | `POST /gateway/sightings` (Basic auth), `POST /gateway/mqtt/auth`, `POST /gateway/mqtt/acl` | Gateways, MQTT broker |
 | Notifications | `GET /notifications`, `POST /notifications/:id/read` | Everyone |
-| Parent | `GET /parent/children`, `GET /parent/children/:id/attendance`, `POST /parent/consent` | Parents |
+| Parent | `GET /parent/children`, `GET /parent/children/:id/attendance`, `GET /parent/children/:id/today` (arrival, where now, every lesson), `POST /parent/consent` | Parents |
 | Audit log | `GET /audit` | Admin |

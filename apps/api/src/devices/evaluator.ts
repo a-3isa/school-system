@@ -62,6 +62,7 @@ export class AttendanceEvaluator {
     const dayEnd = toMinutes(periods[periods.length - 1].endTime);
     if (nowMin >= dayStart && nowMin <= dayEnd) {
       await this.checkGateways(school, rules, date, now);
+      await this.checkLessonsInProgress(school, rules, date, now, periods);
     }
     await this.checkLeftEarly(school, rules, date, now, zonedTime(date, periods[periods.length - 1].endTime, school.timezone));
     await this.checkBatteries(school, rules, date);
@@ -146,6 +147,85 @@ export class AttendanceEvaluator {
             message: `${name} arrived at ${at} but wasn’t in ${label}.`,
             dedupeKey: `NOT_IN_CLASS:${student.id}:${period.id}:${date}`,
           });
+        }
+      }
+    }
+  }
+
+  /**
+   * During a lesson: a child who came in through the gate but hasn't been in
+   * the lesson's room since it started (10 minutes by default) is reported to
+   * the parents straight away, not only when the lesson ends. The teacher can
+   * still mark them present (a forgotten strap), which tells the parents again.
+   */
+  async checkLessonsInProgress(school: School, rules: DetectionRules, date: string, now: Date, periods: { id: string; number: number; startTime: string; endTime: string }[]) {
+    const day = dbDate(date);
+    const nowMs = now.getTime();
+    for (const period of periods) {
+      const start = zonedTime(date, period.startTime, school.timezone);
+      const end = zonedTime(date, period.endTime, school.timezone);
+      if (nowMs < start.getTime() + rules.room.lateAfterMinutes * MINUTE || nowMs >= end.getTime()) continue;
+      const lessons = await this.prisma.timetableEntry.findMany({
+        where: { schoolId: school.id, dayOfWeek: day.getUTCDay(), periodId: period.id },
+        include: { class: true, room: { include: { gateways: true } }, subject: true },
+      });
+      const aways = await this.prisma.classAway.findMany({ where: { schoolId: school.id, date: day } });
+      for (const lesson of lessons) {
+        if (aways.some((a) => a.classId === lesson.classId && (a.fromPeriod == null || (a.fromPeriod <= period.number && period.number <= a.toPeriod!)))) continue;
+        const roomGateways = lesson.room.gateways.filter(
+          (g) => g.kind === GatewayKind.ROOM && g.lastSeenAt && g.lastSeenAt.getTime() >= nowMs - rules.gatewayOfflineMinutes * MINUTE,
+        );
+        if (!roomGateways.length) continue; // can't tell without a working gateway in the room
+        const students = await this.prisma.student.findMany({
+          where: { schoolId: school.id, classId: lesson.classId, active: true, strap: { isNot: null } },
+          include: { strap: true, guardians: { where: { restricted: false } } },
+        });
+        if (!students.length) continue;
+        const ids = students.map((s) => s.id);
+        const [presence, marks] = await Promise.all([
+          this.prisma.gatePresence.findMany({ where: { date: day, studentId: { in: ids }, arrivedAt: { not: null, lte: now } } }),
+          this.prisma.attendanceRecord.findMany({ where: { date: day, periodId: period.id, studentId: { in: ids }, source: AttendanceSource.MANUAL } }),
+        ]);
+        // Still at school: not marked as gone, and not heard at the gate on the way out with nothing inside since.
+        const gateIds = (await this.prisma.gateway.findMany({ where: { schoolId: school.id, kind: GatewayKind.GATE }, select: { id: true } })).map((g) => g.id);
+        const stillIn = [];
+        for (const p of presence) {
+          if (p.leftAt && p.leftAt <= now) continue;
+          if (p.lastGateAt && p.lastGateAt > p.arrivedAt!) {
+            const inside = await this.prisma.sighting.count({ where: { strap: { studentId: p.studentId }, seenAt: { gt: p.lastGateAt, lte: now }, gatewayId: { notIn: gateIds } } });
+            if (!inside) continue;
+          }
+          stillIn.push(p);
+        }
+        const arrived = new Map(stillIn.map((p) => [p.studentId, p.arrivedAt!]));
+        const marked = new Set(marks.map((m) => m.studentId)); // the teacher already decided
+        const candidates = students.filter((s) => arrived.has(s.id) && !marked.has(s.id));
+        if (!candidates.length) continue;
+        const sightings = await this.prisma.sighting.findMany({
+          where: { schoolId: school.id, strapId: { in: candidates.map((s) => s.strap!.id) }, seenAt: { gte: start, lte: now } },
+          select: { strapId: true, gatewayId: true, rssi: true, seenAt: true },
+        });
+        const roomIds = new Set(roomGateways.map((g) => g.id));
+        for (const student of candidates) {
+          const d = decidePeriod(sightings.filter((x) => x.strapId === student.strap!.id), roomIds, start, now, rules.room);
+          if (d.share > 0) continue; // has been in the room
+          const where = `${lesson.subject.name} in ${lesson.room.name}`;
+          const created = await this.raise({
+            schoolId: school.id, type: ExceptionType.NOT_IN_CLASS, date: day, studentId: student.id, classId: lesson.classId, periodId: period.id,
+            message: `${student.firstName} ${student.lastName} came in at ${localParts(arrived.get(student.id)!, school.timezone).time} but hasn’t been in ${lesson.class.name} ${where} (period ${period.number}).`,
+            dedupeKey: `NOT_IN_CLASS:${student.id}:${period.id}:${date}`,
+          });
+          if (!created.count) continue; // already told
+          await this.notifications.notify(
+            student.guardians.map((g) => ({
+              schoolId: school.id,
+              userId: g.userId,
+              type: 'attendance.lessonAbsent',
+              title: `${student.firstName} was absent from ${where}`,
+              body: `${student.firstName} came in through the gate at ${localParts(arrived.get(student.id)!, school.timezone).time} but hasn’t been in ${where} since it started at ${period.startTime}. The school has been told.`,
+              data: { studentId: student.id, date, periodId: period.id, subject: lesson.subject.name, room: lesson.room.name },
+            })),
+          );
         }
       }
     }

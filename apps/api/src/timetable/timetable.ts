@@ -109,8 +109,10 @@ export class TimetableService {
 export class TimetableController {
   constructor(private readonly timetable: TimetableService) {}
 
+  /** A teacher sees only their own lessons; other staff see the whole school. */
   @Get()
-  list(@SchoolId() schoolId: string, @Query('classId') classId?: string, @Query('roomId') roomId?: string, @Query('teacherId') teacherId?: string) {
+  list(@CurrentUser() user: AuthUser, @SchoolId() schoolId: string, @Query('classId') classId?: string, @Query('roomId') roomId?: string, @Query('teacherId') teacherId?: string) {
+    if (user.role === Role.TEACHER) return this.timetable.list(schoolId, { teacherId: user.id });
     return this.timetable.list(schoolId, { classId, roomId, teacherId });
   }
 

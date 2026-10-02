@@ -1,34 +1,47 @@
 'use client';
+import { useState } from 'react';
+import { dateTimeCairo } from '@/lib/api';
 import { useApi } from '@/lib/hooks';
-import { Card, Empty, ErrorNote, PageHead } from '@/components/ui';
+import { useI18n } from '@/lib/i18n';
+import { Empty, ErrorNote, PageHead, Tabs } from '@/components/ui';
+
+type Filter = 'all' | 'attendance' | 'people' | 'setup';
+/** Which tab each kind of change belongs to, by the first part of its action. */
+const AREA: Record<string, Filter> = {
+  attendance: 'attendance', exception: 'attendance',
+  student: 'people', guardian: 'people', staff: 'people', parent: 'people',
+};
 
 export default function AuditPage() {
+  const { t, x } = useI18n();
   const log = useApi<any[]>('/audit');
+  const [filter, setFilter] = useState<Filter>('all');
+  const area = (action: string) => AREA[action.split('.')[0]] ?? 'setup';
+  const rows = (log.data ?? []).filter((a) => filter === 'all' || area(a.action) === filter);
+
   return (
     <>
-      <PageHead eyebrow="School setup" title="Audit log" sub="Every change, who made it and when. The latest 200 are shown." />
+      <PageHead sub={t.audit.sub} title={t.nav.audit} />
+      <Tabs label={t.nav.audit} value={filter} onChange={setFilter} items={[['all', t.audit.all], ['attendance', t.audit.attendance], ['people', t.audit.people], ['setup', t.audit.setup]]} />
       <ErrorNote error={log.error} />
-      <Card pad={false}>
-        {log.data?.length ? (
-          <div className="table-wrap">
-            <table>
-              <thead><tr><th>When</th><th>What</th><th>Item</th><th>Details</th></tr></thead>
-              <tbody>
-                {log.data.map((a) => (
-                  <tr key={a.id}>
-                    <td className="num small">{new Date(a.createdAt).toLocaleString('en-GB', { timeZone: 'Africa/Cairo' })}</td>
-                    <td>{a.action}</td>
-                    <td className="small">{a.entity}</td>
-                    <td className="small muted" style={{ maxWidth: 480, overflowWrap: 'anywhere' }}>{a.data ? JSON.stringify(a.data) : ''}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+      <div className="panel scroll">
+        {rows.length ? (
+          <table style={{ minWidth: 640 }}>
+            <thead><tr><th>{t.audit.when}</th><th>{t.audit.what}</th><th>{t.audit.details}</th></tr></thead>
+            <tbody>
+              {rows.map((a) => (
+                <tr key={a.id}>
+                  <td className="num muted" style={{ whiteSpace: 'nowrap' }}>{dateTimeCairo(a.createdAt)}</td>
+                  <td className="strong" style={{ fontSize: 14 }}>{t.audit.actions[a.action as keyof typeof t.audit.actions] ?? a.action}</td>
+                  <td className="small muted" style={{ maxWidth: 520, overflowWrap: 'anywhere' }}>{a.data ? x(JSON.stringify(a.data)) : ''}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         ) : (
-          <Empty>{log.loading ? 'Loading…' : 'Nothing recorded yet.'}</Empty>
+          <Empty>{log.loading ? t.common.loading : t.audit.none}</Empty>
         )}
-      </Card>
+      </div>
     </>
   );
 }

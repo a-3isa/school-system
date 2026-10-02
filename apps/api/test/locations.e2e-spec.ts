@@ -26,6 +26,8 @@ describe('Where students are (e2e)', () => {
     const owner = await ownerClient(app, prisma, 'loc');
     schoolId = (await owner.post('/api/owner/schools', { name: 'Location School', plan: 'SMART', admin: { name: 'Admin', email: 'admin@loc.eg', password: 'admin-pass' } }).expect(201)).body.id;
     admin = await login(app, 'admin@loc.eg', 'admin-pass');
+    await admin.get('/api/locations').expect(403); // tracking comes with automatic attendance
+    await owner.patch(`/api/owner/schools/${schoolId}/modules/attendance/features`, { features: { automatic: true } }).expect(200);
     // School is on right now: every day is a school day and one period spans the present.
     await admin.patch('/api/school', { schoolDays: [0, 1, 2, 3, 4, 5, 6] }).expect(200);
     const hhmm = (ms: number) => localParts(new Date(ms), 'Africa/Cairo').time;
@@ -44,8 +46,8 @@ describe('Where students are (e2e)', () => {
       ids[name] = (await admin.post('/api/students', { code: `L${i}`, firstName: name, lastName: 'Test', classId: cls })).body.id;
       if (name !== 'Salma') await admin.post('/api/devices/straps', { mac: mac(i), studentId: ids[name] }).expect(201);
     }
-    await admin.post(`/api/students/${ids.Layla}/guardians`, { relation: 'MOTHER', name: 'Mona', phone: '+201400000001', password: 'parent-pass' }).expect(201);
-    parent = await login(app, '+201400000001', 'parent-pass');
+    await admin.post(`/api/students/${ids.Layla}/guardians`, { relation: 'MOTHER', name: 'Mona', email: 'p201400000001@test.eg', phone: '+201400000001', password: 'parent-pass' }).expect(201);
+    parent = await login(app, 'p201400000001@test.eg', 'parent-pass');
   });
 
   afterAll(async () => {
@@ -79,7 +81,8 @@ describe('Where students are (e2e)', () => {
 
   it('stops worrying about children not heard once school is over', async () => {
     const later = new Date(now + 90 * MIN);
-    if (localParts(later, 'Africa/Cairo').date !== today.date) return; // tomorrow already
+    // Omar was last heard 20 minutes ago: all of it has to be on the same Cairo day.
+    if (localParts(later, 'Africa/Cairo').date !== today.date || localParts(new Date(now - 20 * MIN), 'Africa/Cairo').date !== today.date) return;
     const res = await app.get(LocationsService).now(schoolId, later);
     const by = Object.fromEntries(res.students.map((s) => [s.firstName, s]));
     expect(res.schoolHours).toBe(false);

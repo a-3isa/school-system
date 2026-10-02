@@ -1,53 +1,44 @@
 'use client';
-import Link from 'next/link';
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { todayCairo } from '@/lib/api';
 import { useApi } from '@/lib/hooks';
-import { Badge, Card, Empty, ErrorNote, Field, PageHead } from '@/components/ui';
+import { useI18n } from '@/lib/i18n';
+import { Lesson, LessonRow } from '@/components/Lessons';
+import { Empty, ErrorNote, Field, PageHead } from '@/components/ui';
 
-export default function AttendanceHome() {
-  const [date, setDate] = useState(todayCairo());
-  const lessons = useApi<any[]>(`/attendance/my-lessons?date=${date}`);
+function TakeAttendance() {
+  const { t } = useI18n();
+  const [date, setDate] = useState(useSearchParams().get('date') ?? todayCairo());
+  const lessons = useApi<Lesson[]>(`/attendance/my-lessons?date=${date}`);
 
   return (
     <>
       <PageHead
-        eyebrow="Attendance"
-        title="Take attendance"
-        sub="Pick a lesson to mark every student. Teachers can mark and correct today; earlier days are corrected by an admin."
+        sub={date === todayCairo() ? t.take.subToday : t.take.subDay}
+        title={t.nav.take}
         actions={
-          <Field label="Day" id="day">
-            <input id="day" type="date" className="input" value={date} onChange={(e) => setDate(e.target.value)} />
+          <Field label={t.common.date} id="day">
+            <input id="day" type="date" className="input" value={date} onChange={(e) => setDate(e.target.value || todayCairo())} />
           </Field>
         }
       />
       <ErrorNote error={lessons.error} />
-      <Card title="Lessons" pad={false}>
+      <div className="panel">
         {lessons.data?.length ? (
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr><th>Period</th><th>Time</th><th>Class</th><th>Subject</th><th>Room</th><th>Marked</th><th /></tr>
-              </thead>
-              <tbody>
-                {lessons.data.map((l) => (
-                  <tr key={`${l.classId}:${l.periodId}`}>
-                    <td className="num">{l.period}</td>
-                    <td className="num">{l.startTime}–{l.endTime}</td>
-                    <td>{l.className}</td>
-                    <td>{l.subject}</td>
-                    <td>{l.room}</td>
-                    <td>{l.students && l.marked >= l.students ? <Badge tone="ok">All {l.students}</Badge> : <Badge tone="warn">{l.marked} of {l.students}</Badge>}</td>
-                    <td><Link className="btn small primary" href={`/attendance/${l.classId}/${l.periodId}?date=${date}`}>Mark</Link></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          lessons.data.map((l) => <LessonRow key={`${l.classId}:${l.periodId}`} l={l} date={date} />)
         ) : (
-          <Empty>{lessons.loading ? 'Loading…' : 'No lessons on this day.'}</Empty>
+          <Empty>{lessons.loading ? t.common.loading : t.take.none}</Empty>
         )}
-      </Card>
+      </div>
     </>
+  );
+}
+
+export default function AttendanceHome() {
+  return (
+    <Suspense>
+      <TakeAttendance />
+    </Suspense>
   );
 }

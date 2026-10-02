@@ -102,6 +102,10 @@ model User {
   active       Boolean  @default(true)
   // When a parent agreed to their child's presence and location being tracked (decision H39).
   consentAt    DateTime?
+  // When the parent proved their mobile with a WhatsApp code in the app.
+  phoneVerifiedAt DateTime?
+  // When the email was proved by a code sent to it (parents sign up in the app).
+  emailVerifiedAt DateTime?
   createdAt    DateTime @default(now())
 
   school      School?           @relation(fields: [schoolId], references: [id], onDelete: Cascade)
@@ -481,14 +485,22 @@ model EvaluatedPeriod {
 }
 
 // A one-time sign-in code sent by WhatsApp. Only a hash is stored.
-model LoginCode {
-  id        String   @id @default(cuid())
-  phone     String
+enum CodePurpose {
+  SIGNUP // emailed to a parent creating their account (the school registered the email first)
+  PHONE // sent by WhatsApp to the mobile a parent gives in the app, at sign-up or when changing it
+  RESET // emailed for a forgotten password
+}
+
+/** A 6-digit code sent to an email or a mobile, stored hashed. */
+model VerificationCode {
+  id        String      @id @default(cuid())
+  target    String // the email or the mobile number it was sent to
+  purpose   CodePurpose
   codeHash  String
-  attempts  Int      @default(0)
+  attempts  Int         @default(0)
   expiresAt DateTime
   usedAt    DateTime?
-  createdAt DateTime @default(now())
+  createdAt DateTime    @default(now())
 
-  @@index([phone, createdAt])
+  @@index([target, purpose, createdAt])
 }

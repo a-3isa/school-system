@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import ExcelJS from 'exceljs';
 import { Client, login, ownerClient, startApp } from './helpers';
 
-async function sheet(rows: (string | undefined)[][], header = ['Student code', 'First name', 'Last name', 'Arabic name', 'Class', 'Mother name', 'Mother mobile', 'Father name', 'Father mobile', 'Strap']) {
+async function sheet(rows: (string | undefined)[][], header = ['Student code', 'First name', 'Last name', 'Arabic name', 'Class', 'Mother name', 'Mother email', 'Mother mobile', 'Father name', 'Father email', 'Father mobile', 'Strap']) {
   const wb = new ExcelJS.Workbook();
   const ws = wb.addWorksheet('Students');
   ws.addRow(header);
@@ -45,8 +45,8 @@ describe('Excel import (e2e)', () => {
 
   it('previews and reports every problem without writing anything', async () => {
     const file = await sheet([
-      ['1001', 'Layla', 'Hussein', 'ليلى', '4-A', 'Nadia', '01001234567', undefined, undefined, 'DC0D30AA4A11'],
-      ['1001', 'Twin', 'Row', undefined, '9-Z'],
+      ['1001', 'Layla', 'Hussein', 'ليلى', '4-A', 'Nadia', 'nadia@example.com', '01001234567', undefined, undefined, undefined, 'DC0D30AA4A11'],
+      ['1001', 'Twin', 'Row', undefined, '9-Z', 'Mona', undefined, '+201001234500'],
       ['1002', undefined, 'Nobody'],
     ]);
     const res = await upload(file, true);
@@ -56,6 +56,7 @@ describe('Excel import (e2e)', () => {
       '2: Mother mobile “01001234567” needs the country code, like +201001234567.',
       '3: Student code 1001 appears twice in the sheet.',
       '3: There is no class called “9-Z”. Add it first or fix the name.',
+      '3: Mother email is missing: parents sign up in the app with it.',
       '4: First name is missing.',
     ]));
     // Not imported even without preview, because of the errors.
@@ -65,8 +66,8 @@ describe('Excel import (e2e)', () => {
 
   it('imports students, parents and straps, and updates on a second run', async () => {
     const file = await sheet([
-      ['1001', 'Layla', 'Hussein', 'ليلى', '4-A', 'Nadia', '+201001234567', 'Ibrahim', '+201101234567', 'DC0D30AA4A11'],
-      ['1002', 'Karim', 'Hussein', undefined, '4-a', 'Nadia', '+201001234567'],
+      ['1001', 'Layla', 'Hussein', 'ليلى', '4-A', 'Nadia', 'Nadia@Example.com', '+201001234567', 'Ibrahim', 'ibrahim@example.com', '+201101234567', 'DC0D30AA4A11'],
+      ['1002', 'Karim', 'Hussein', undefined, '4-a', 'Nadia', 'nadia@example.com', '+201001234567'],
     ]);
     const preview = await upload(file, true);
     expect(preview.body).toEqual(expect.objectContaining({ rows: 2, create: 2, update: 0, parents: 3, straps: 1, errors: [] }));

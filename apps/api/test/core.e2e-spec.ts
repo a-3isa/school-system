@@ -78,9 +78,13 @@ describe('Phase 1 core (e2e)', () => {
 
   it('allows automatic attendance only when the feature is on', async () => {
     await admin.patch('/api/school', { attendanceMode: 'AUTOMATIC' }).expect(400);
-    await admin.patch('/api/modules/attendance/features', { features: { automatic: true } }).expect(200);
-    const res = await admin.patch('/api/school', { attendanceMode: 'AUTOMATIC', absenceNoticeTime: '08:15' }).expect(200);
-    expect(res.body.attendanceMode).toBe('AUTOMATIC');
+    // Automatic attendance (straps) comes with the subscription: the owner switches it on, not the school.
+    await admin.patch('/api/modules/attendance/features', { features: { automatic: true } }).expect(403);
+    expect((await admin.get('/api/auth/me').expect(200)).body.straps).toBe(false);
+    await owner.patch(`/api/owner/schools/${schoolId}/modules/attendance/features`, { features: { automatic: true } }).expect(200);
+    const me = (await admin.get('/api/auth/me').expect(200)).body;
+    expect(me.straps).toBe(true);
+    expect(me.attendanceMode).toBe('AUTOMATIC'); // the subscription sets it
     await admin.patch('/api/modules/attendance/features', { features: { flying: true } }).expect(400);
   });
 
@@ -126,16 +130,16 @@ describe('Phase 1 core (e2e)', () => {
     const layla = await admin.post('/api/students', { code: '2019-0412', firstName: 'Layla', lastName: 'Hussein', classId }).expect(201);
     laylaId = layla.body.id;
     await admin.post('/api/students', { code: '2019-0412', firstName: 'X', lastName: 'Y' }).expect(409);
-    await admin.post(`/api/students/${laylaId}/guardians`, { relation: 'MOTHER', name: 'Nadia Hussein', phone: '+201000000001', password: 'parent-pass' }).expect(201);
-    await admin.post(`/api/students/${laylaId}/guardians`, { relation: 'MOTHER', name: 'Other', phone: '+201000000009' }).expect(400);
-    const both = await admin.post(`/api/students/${laylaId}/guardians`, { relation: 'FATHER', name: 'Ibrahim Hussein', phone: '+201000000002' }).expect(201);
+    await admin.post(`/api/students/${laylaId}/guardians`, { relation: 'MOTHER', name: 'Nadia Hussein', email: 'p201000000001@test.eg', phone: '+201000000001', password: 'parent-pass' }).expect(201);
+    await admin.post(`/api/students/${laylaId}/guardians`, { relation: 'MOTHER', name: 'Other', email: 'p201000000009@test.eg', phone: '+201000000009' }).expect(400);
+    const both = await admin.post(`/api/students/${laylaId}/guardians`, { relation: 'FATHER', name: 'Ibrahim Hussein', email: 'p201000000002@test.eg', phone: '+201000000002' }).expect(201);
     expect(both.body.guardians).toHaveLength(2);
 
     // A sibling reuses the mother's existing account.
     const karim = await admin.post('/api/students', { code: '2022-0133', firstName: 'Karim', lastName: 'Hussein' }).expect(201);
-    await admin.post(`/api/students/${karim.body.id}/guardians`, { relation: 'MOTHER', name: 'Nadia Hussein', phone: '+201000000001' }).expect(201);
+    await admin.post(`/api/students/${karim.body.id}/guardians`, { relation: 'MOTHER', name: 'Nadia Hussein', email: 'p201000000001@test.eg', phone: '+201000000001' }).expect(201);
 
-    const parent = as(await login('+201000000001', 'parent-pass'));
+    const parent = as(await login('p201000000001@test.eg', 'parent-pass'));
     expect((await parent.get('/api/auth/me').expect(200)).body.consentAt).toBeNull();
     await parent.post('/api/parent/consent').expect(201);
     expect((await parent.get('/api/auth/me').expect(200)).body.consentAt).not.toBeNull();
@@ -163,7 +167,13 @@ describe('Phase 1 core (e2e)', () => {
   it('limits writes by role and records an audit trail', async () => {
     const teacher = as(await login('hana@nv.eg', 'teacher-pass'));
     await teacher.post('/api/students', { code: 'T-1', firstName: 'A', lastName: 'B' }).expect(403);
-    await teacher.get('/api/timetable').expect(200);
+    // A teacher sees only their own lessons, not the whole school.
+    await teacher.get('/api/students').expect(403);
+    await teacher.get('/api/locations').expect(403);
+    await teacher.get('/api/attendance/summary?date=2026-09-30').expect(403);
+    const mine = await teacher.get('/api/timetable').expect(200);
+    const me = (await teacher.get('/api/auth/me').expect(200)).body;
+    expect(mine.body.every((e: any) => e.teacher?.id === me.id)).toBe(true);
     const audit = await admin.get('/api/audit').expect(200);
     const actions = audit.body.map((a: any) => a.action);
     expect(actions).toEqual(expect.arrayContaining(['student.create', 'guardian.add', 'timetable.create', 'module.features']));

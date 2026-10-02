@@ -107,3 +107,9 @@ export function toggleModule(enabled: Iterable<ModuleKey>, key: ModuleKey, on: b
   current.delete(key);
   return { ok: true, enabled: [...current], alsoEnabled: [] };
 }
+
+/**
+ * Features that come with the subscription: only the platform owner switches
+ * them. Automatic attendance means the school has straps and gateways.
+ */
+export const SUBSCRIPTION_FEATURES: Partial<Record<ModuleKey, string[]>> = { attendance: ['automatic'] };

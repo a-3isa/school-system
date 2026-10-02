@@ -45,12 +45,12 @@ describe('Manual attendance (e2e)', () => {
     laylaId = (await admin.post('/api/students', { code: 'S1', firstName: 'Layla', lastName: 'Hussein', classId })).body.id;
     aliId = (await admin.post('/api/students', { code: 'S2', firstName: 'Ali', lastName: 'Ramadan', classId })).body.id;
     omarId = (await admin.post('/api/students', { code: 'S3', firstName: 'Omar', lastName: 'Kamal', classId: class2Id })).body.id;
-    await admin.post(`/api/students/${aliId}/guardians`, { relation: 'MOTHER', name: 'Rania', phone: '+201100000001', password: 'parent-pass' }).expect(201);
-    await admin.post(`/api/students/${laylaId}/guardians`, { relation: 'MOTHER', name: 'Nadia', phone: '+201100000002', password: 'parent-pass' }).expect(201);
+    await admin.post(`/api/students/${aliId}/guardians`, { relation: 'MOTHER', name: 'Rania', email: 'p201100000001@test.eg', phone: '+201100000001', password: 'parent-pass' }).expect(201);
+    await admin.post(`/api/students/${laylaId}/guardians`, { relation: 'MOTHER', name: 'Nadia', email: 'p201100000002@test.eg', phone: '+201100000002', password: 'parent-pass' }).expect(201);
 
     teacher = await login(app, 'hana@att.eg', 'teacher-pass');
     other = await login(app, 'sherif@att.eg', 'teacher-pass');
-    parent = await login(app, '+201100000001', 'parent-pass');
+    parent = await login(app, 'p201100000001@test.eg', 'parent-pass');
   });
 
   afterAll(async () => {
@@ -109,6 +109,13 @@ describe('Manual attendance (e2e)', () => {
     await parent.get(`/api/parent/children/${laylaId}/attendance?date=${today}`).expect(404);
   });
 
+  it('gives a parent the whole day, lessons to come included', async () => {
+    const day = await parent.get(`/api/parent/children/${aliId}/today?date=${today}`).expect(200);
+    expect(day.body).toEqual(expect.objectContaining({ date: today, arrivedAt: null, place: null }));
+    expect(day.body.lessons).toContainEqual(expect.objectContaining({ period: 1, subject: 'Math', status: 'ABSENT' }));
+    await parent.get(`/api/parent/children/${laylaId}/today?date=${today}`).expect(404);
+  });
+
   it('marks a class away so nobody is flagged absent', async () => {
     await other.post('/api/attendance/aways', { classId: class2Id, date: today, reason: 'Museum trip' }).expect(403);
     const res = await admin.post('/api/attendance/aways', { classId: class2Id, date: today, fromPeriod: 1, toPeriod: 2, reason: 'Museum trip' }).expect(201);
@@ -119,7 +126,7 @@ describe('Manual attendance (e2e)', () => {
   });
 
   it('needs a reason for manual marks when attendance is automatic', async () => {
-    await admin.patch('/api/modules/attendance/features', { features: { automatic: true } }).expect(200);
+    await owner.patch(`/api/owner/schools/${schoolId}/modules/attendance/features`, { features: { automatic: true } }).expect(200);
     await admin.patch('/api/school', { attendanceMode: 'AUTOMATIC' }).expect(200);
     const res = await teacher.put(`/api/attendance/classes/${classId}/periods/${p1}`, { date: today, marks: [{ studentId: aliId, status: 'PRESENT' }] }).expect(400);
     expect(res.body.message).toContain('needs a reason');

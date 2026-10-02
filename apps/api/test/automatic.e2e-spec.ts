@@ -19,7 +19,8 @@ describe('Automatic attendance (e2e)', () => {
 
   // A lesson that started 50 minutes ago and ended 5 minutes ago (Cairo time).
   let start = new Date(Date.now() - 50 * MIN);
-  if (localParts(start, 'Africa/Cairo').date !== localParts(new Date(start.getTime() + 45 * MIN), 'Africa/Cairo').date) {
+  // The gate arrivals 10 minutes before the lesson and the lesson itself must be on one Cairo day.
+  if (localParts(new Date(start.getTime() - 15 * MIN), 'Africa/Cairo').date !== localParts(new Date(start.getTime() + 45 * MIN), 'Africa/Cairo').date) {
     start = new Date(Date.now() - 20 * 60 * MIN); // avoid a lesson that crosses midnight
   }
   const end = new Date(start.getTime() + 45 * MIN);
@@ -40,7 +41,7 @@ describe('Automatic attendance (e2e)', () => {
     schoolId = (await owner.post('/api/owner/schools', { name: 'Auto School', plan: 'SMART', admin: { name: 'Admin', email: 'admin@auto.eg', password: 'admin-pass' } })).body.id;
     admin = await login(app, 'admin@auto.eg', 'admin-pass');
     await admin.patch('/api/school', { schoolDays: [0, 1, 2, 3, 4, 5, 6] }).expect(200);
-    await admin.patch('/api/modules/attendance/features', { features: { automatic: true } }).expect(200);
+    await owner.patch(`/api/owner/schools/${schoolId}/modules/attendance/features`, { features: { automatic: true } }).expect(200);
     await admin.patch('/api/school', { attendanceMode: 'AUTOMATIC' }).expect(200);
 
     const grade = (await admin.post('/api/grades', { name: 'Grade 4', order: 4 })).body;
@@ -60,10 +61,10 @@ describe('Automatic attendance (e2e)', () => {
       ids[name] = (await admin.post('/api/students', { code: `A${i}`, firstName: name, lastName: 'Test', classId: ids.class })).body.id;
     }
     await admin.post('/api/students', { code: 'C1', firstName: 'Nour', lastName: 'Test', classId: ids.classC }).expect(201);
-    await admin.post(`/api/students/${ids.Ali}/guardians`, { relation: 'MOTHER', name: 'Rania', phone: '+201200000001', password: 'parent-pass' }).expect(201);
-    await admin.post(`/api/students/${ids.Salma}/guardians`, { relation: 'FATHER', name: 'Amr', phone: '+201200000002' }).expect(201);
+    await admin.post(`/api/students/${ids.Ali}/guardians`, { relation: 'MOTHER', name: 'Rania', email: 'p201200000001@test.eg', phone: '+201200000001', password: 'parent-pass' }).expect(201);
+    await admin.post(`/api/students/${ids.Salma}/guardians`, { relation: 'FATHER', name: 'Amr', email: 'p201200000002@test.eg', phone: '+201200000002' }).expect(201);
     teacher = await login(app, 'hana@auto.eg', 'teacher-pass');
-    parent = await login(app, '+201200000001', 'parent-pass');
+    parent = await login(app, 'p201200000001@test.eg', 'parent-pass');
   });
 
   afterAll(async () => {
@@ -183,13 +184,12 @@ describe('Automatic attendance (e2e)', () => {
     expect(ex.body[0].message).toContain('12%');
   });
 
-  it('lets a teacher resolve today’s exceptions and leaves earlier ones to admins', async () => {
+  it('leaves exceptions to the school office, not teachers', async () => {
+    await teacher.get('/api/attendance/exceptions').expect(403);
     const [battery] = (await admin.get('/api/attendance/exceptions?type=LOW_BATTERY')).body; // raised today
-    const res = await teacher.post(`/api/attendance/exceptions/${battery.id}/resolve`, { note: 'Battery ordered' }).expect(201);
+    await teacher.post(`/api/attendance/exceptions/${battery.id}/resolve`, { note: 'Battery ordered' }).expect(403);
+    const res = await admin.post(`/api/attendance/exceptions/${battery.id}/resolve`, { note: 'Battery ordered' }).expect(201);
     expect(res.body.status).toBe('RESOLVED');
-    await prisma.attendanceException.update({ where: { id: battery.id }, data: { date: new Date('2020-01-01T00:00:00Z'), status: 'OPEN' } });
-    await teacher.post(`/api/attendance/exceptions/${battery.id}/resolve`, {}).expect(403);
-    await admin.post(`/api/attendance/exceptions/${battery.id}/resolve`, {}).expect(201);
   });
 
   it('answers the MQTT broker’s login and topic checks', async () => {

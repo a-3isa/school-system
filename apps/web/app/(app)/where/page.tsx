@@ -1,43 +1,52 @@
 'use client';
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { timeCairo } from '@/lib/api';
-import { useApi } from '@/lib/hooks';
-import { Badge, Card, Empty, ErrorNote, Field, Kpi, PageHead } from '@/components/ui';
+import { useApi, useEvery } from '@/lib/hooks';
+import { useI18n } from '@/lib/i18n';
+import { Dict } from '@/lib/strings';
+import { Empty, ErrorNote, Kpi, LiveStamp, PageHead, Section, Tabs } from '@/components/ui';
 
 type State = 'here' | 'recent' | 'missing' | 'left' | 'away' | 'notSeen' | 'noStrap';
 type Place = { gatewayId: string; name: string; kind: string | null; room: string | null };
 type Student = { id: string; firstName: string; lastName: string; class: { id: string; name: string } | null; state: State; place: Place | null; seenAt: string | null; arrivedAt: string | null };
 
 const REFRESH_MS = 10_000;
+const minsSince = (iso: string | null, now: number) => (iso ? Math.max(0, Math.floor((now - Date.parse(iso)) / 60_000)) : 0);
 
-function ago(iso: string | null, now: number) {
-  if (!iso) return '';
-  const min = Math.floor((now - Date.parse(iso)) / 60_000);
-  if (min < 1) return 'now';
-  if (min < 60) return `${min} min ago`;
-  return `since ${timeCairo(iso)}`;
-}
-
-function Person({ s, now }: { s: Student; now: number }) {
+/** A child's name as a chip; it shows how long ago they were heard once that isn't fresh. */
+function Chip({ s, now, extra, tone }: { s: Student; now: number; extra?: string; tone?: 'late' | 'alert' }) {
+  const { t, x } = useI18n();
+  const m = minsSince(s.seenAt, now);
+  const stale = !extra && (s.state === 'recent' || s.state === 'missing') && m >= 3;
+  const label = extra ?? (stale ? t.where.minAgo(m) : '');
   return (
-    <Link href={`/students/${s.id}`} className={`person${s.state === 'recent' ? ' dim' : ''}`}>
+    <Link href={`/students/${s.id}`} className={`namechip${stale || tone === 'alert' ? ' stale' : ''}`}>
       {s.firstName} {s.lastName}
-      {s.state !== 'here' && s.seenAt && <span className="ago">{ago(s.seenAt, now)}</span>}
+      {label && <em className={tone ?? (stale ? (m >= 10 ? 'alert' : 'late') : '')}>{x(label)}</em>}
     </Link>
   );
 }
 
+function Panel({ title, meta, note, dashed, children }: { title: string; meta?: string; note?: string; dashed?: boolean; children?: React.ReactNode }) {
+  const { x } = useI18n();
+  return (
+    <div className={`place${dashed ? ' dashed' : ''}`}>
+      <div className="place-head"><b>{x(title)}</b>{meta && <span>{x(meta)}</span>}</div>
+      {note && <span className="small muted">{note}</span>}
+      {children && <div className="chips">{children}</div>}
+    </div>
+  );
+}
+
 export default function WherePage() {
+  const { t, x } = useI18n();
   const live = useApi<{ at: string; schoolHours: boolean; places: Place[]; students: Student[] }>('/locations');
   const classes = useApi<any[]>('/classes');
+  const rooms = useApi<any[]>('/rooms');
   const [classId, setClassId] = useState('');
   const [q, setQ] = useState('');
-
-  useEffect(() => {
-    const t = setInterval(() => void live.reload(), REFRESH_MS);
-    return () => clearInterval(t);
-  }, [live.reload]);
+  useEvery(REFRESH_MS, live.reload);
 
   const now = live.data ? Date.parse(live.data.at) : Date.now();
   const students = useMemo(() => {
@@ -47,82 +56,76 @@ export default function WherePage() {
     );
   }, [live.data, classId, q]);
 
-  const inPlace = (p: Place) => students.filter((s) => (s.state === 'here' || s.state === 'recent') && s.place?.gatewayId === p.gatewayId);
-  const of = (state: State) => students.filter((s) => s.state === state);
+  const of = (...states: State[]) => students.filter((s) => states.includes(s.state));
+  const inPlace = (p: Place) => students.filter((s) => (s.state === 'here' || s.state === 'recent' || s.state === 'missing') && s.place?.gatewayId === p.gatewayId);
   const places = [...(live.data?.places ?? [])].sort((a, b) => (a.kind === 'GATE' ? -1 : b.kind === 'GATE' ? 1 : a.name.localeCompare(b.name)));
-  const inSchool = students.filter((s) => s.state === 'here' || s.state === 'recent').length;
+  // Rooms with no gateway can't hear straps; say so instead of showing them empty.
+  const heard = new Set(places.map((p) => p.room).filter(Boolean));
+  const deaf = (rooms.data ?? []).filter((r) => !heard.has(r.name));
   const missing = of('missing');
+  const kind = (p: Place) => (p.kind === 'GATE' ? t.where.gate : p.room ?? t.where.kinds[(p.kind ?? 'ROOM') as keyof Dict['where']['kinds']]);
 
   return (
     <>
-      <PageHead
-        eyebrow="Live"
-        title="Where students are"
-        sub="From the straps, refreshed every 10 seconds. Each child is placed where the loudest gateway heard them, so a child is in one room, not in every room that can hear them."
-      />
+      <PageHead sub={t.where.sub} title={t.nav.where} actions={<LiveStamp at={live.loadedAt} />} />
+      <div className="row wrap" style={{ gap: 12 }}>
+        <input type="search" className="input" aria-label={t.common.searchName} placeholder={t.common.searchName} value={q} onChange={(e) => setQ(e.target.value)} style={{ flex: '1 1 280px' }} />
+        <Tabs label={t.common.class} value={classId} onChange={setClassId} items={[['', t.common.allClasses], ...(classes.data ?? []).map((c): [string, string] => [c.id, c.name])]} />
+      </div>
       <ErrorNote error={live.error} />
-      <div className="grid g4">
-        <Kpi label="Heard in the last 10 minutes" value={live.data ? inSchool : '—'} sub={`of ${students.length} students`} />
-        <Kpi label="Not heard for 10+ minutes" value={live.data ? missing.length : '—'} sub={live.data && !live.data.schoolHours ? 'only counted during school hours' : 'last heard inside the school'} />
-        <Kpi label="Out of school" value={live.data ? of('left').length + of('away').length : '—'} sub={`${of('left').length} through the gate`} />
-        <Kpi label="Not heard today" value={live.data ? of('notSeen').length : '—'} sub={`${of('noStrap').length} without a strap`} />
+      <div className="kpis">
+        <Kpi label={t.where.kFresh} value={live.data ? of('here', 'recent').length : '—'} />
+        <Kpi label={t.where.kStale} value={live.data ? missing.length : '—'} color="var(--a)" sub={live.data && !live.data.schoolHours ? t.where.onlySchoolHours : undefined} />
+        <Kpi label={t.where.kOut} value={live.data ? of('left', 'away').length : '—'} />
+        <Kpi label={t.where.kNone} value={live.data ? of('notSeen', 'noStrap').length : '—'} color="var(--muted)" />
       </div>
-      <div className="form-row">
-        <Field label="Search" id="q">
-          <input id="q" className="input" placeholder="Student name" value={q} onChange={(e) => setQ(e.target.value)} />
-        </Field>
-        <Field label="Class" id="cls">
-          <select id="cls" className="input" value={classId} onChange={(e) => setClassId(e.target.value)}>
-            <option value="">All classes</option>
-            {classes.data?.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
-        </Field>
-      </div>
-      {missing.length > 0 && (
-        <Card title={<span className="row">Needs a look <Badge tone="alert">{missing.length}</Badge></span>} pad={false}>
-          <div className="table-wrap">
+      <Section title={t.where.needsALook}>
+        <div className="panel scroll">
+          {missing.length ? (
             <table>
-              <thead><tr><th>Student</th><th>Class</th><th>Last heard</th><th>Where</th></tr></thead>
+              <thead><tr><th>{t.common.name}</th><th>{t.common.class}</th><th>{t.where.lastHeard}</th><th>{t.where.whereCol}</th><th /></tr></thead>
               <tbody>
                 {missing.map((s) => (
                   <tr key={s.id}>
-                    <td><Link href={`/students/${s.id}`}>{s.firstName} {s.lastName}</Link></td>
-                    <td>{s.class?.name ?? '—'}</td>
-                    <td className="num">{timeCairo(s.seenAt)} <span className="muted small">· {ago(s.seenAt, now)}</span></td>
+                    <td className="strong">{s.firstName} {s.lastName}</td>
+                    <td className="ltr">{s.class?.name ?? '—'}</td>
+                    <td className="num">{x(`${timeCairo(s.seenAt)} · ${t.where.minAgo(minsSince(s.seenAt, now))}`)}</td>
                     <td>{s.place?.name ?? '—'}</td>
+                    <td><Link className="btn small" href={`/students/${s.id}`}>{t.common.open}</Link></td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </div>
-        </Card>
-      )}
-      {live.data && !places.length && <Empty>No gateways yet. Claim one under Devices to see where students are.</Empty>}
-      <div className="grid g3">
+          ) : (
+            <Empty>{t.where.nobodyToLook}</Empty>
+          )}
+        </div>
+      </Section>
+      {live.data && !places.length && <Empty>{t.where.noGateways}</Empty>}
+      <section className="places">
         {places.map((p) => {
           const here = inPlace(p);
           return (
-            <Card key={p.gatewayId} title={<span className="row">{p.name} <Badge tone={here.length ? 'info' : ''}>{here.length}</Badge></span>} action={<span className="muted small">{p.kind === 'GATE' ? 'Gate' : p.room ?? p.kind?.toLowerCase()}</span>}>
-              {here.length ? <div className="people">{here.map((s) => <Person key={s.id} s={s} now={now} />)}</div> : <span className="muted small">Nobody here now.</span>}
-            </Card>
+            <Panel key={p.gatewayId} title={p.name} meta={`${p.name === kind(p) ? '' : `${kind(p)} · `}${here.length}`} note={!here.length ? (p.kind === 'GATE' ? t.where.nobodyAtGate : t.where.nobodyHere) : undefined}>
+              {here.length ? here.map((s) => (
+                p.kind === 'GATE' && s.state === 'missing'
+                  ? <Chip key={s.id} s={s} now={now} extra={`${timeCairo(s.seenAt)} · ${t.where.minAgo(minsSince(s.seenAt, now))}`} tone="alert" />
+                  : <Chip key={s.id} s={s} now={now} />
+              )) : null}
+            </Panel>
           );
         })}
-        {of('left').length > 0 && (
-          <Card title="Went out through the gate">
-            <div className="people">{of('left').map((s) => <Person key={s.id} s={s} now={now} />)}</div>
-          </Card>
-        )}
-        {of('away').length > 0 && (
-          <Card title="Gone for the day" action={<span className="muted small">not heard since school ended</span>}>
-            <div className="people">{of('away').map((s) => <Person key={s.id} s={s} now={now} />)}</div>
-          </Card>
-        )}
-        {of('notSeen').length > 0 && (
-          <Card title="Not heard today">
-            <div className="people">{of('notSeen').map((s) => <Person key={s.id} s={s} now={now} />)}</div>
-          </Card>
-        )}
-      </div>
+        {deaf.map((r) => <Panel key={r.id} title={r.name} note={t.where.cantHear} dashed />)}
+        <Panel title={t.where.wentOut} meta={String(of('left').length)} note={of('left').length ? undefined : t.where.nobody}>
+          {of('left').length ? of('left').map((s) => <Chip key={s.id} s={s} now={now} extra={timeCairo(s.seenAt)} />) : null}
+        </Panel>
+        <Panel title={t.where.gone} meta={String(of('away').length)} note={of('away').length ? undefined : t.where.nobody}>
+          {of('away').length ? of('away').map((s) => <Chip key={s.id} s={s} now={now} extra={timeCairo(s.seenAt)} />) : null}
+        </Panel>
+        <Panel title={t.where.notHeard} meta={String(of('notSeen', 'noStrap').length)} note={of('notSeen', 'noStrap').length ? undefined : t.where.nobody}>
+          {of('notSeen', 'noStrap').length ? of('notSeen', 'noStrap').map((s) => <Chip key={s.id} s={s} now={now} extra={s.state === 'noStrap' ? t.where.noStrap : undefined} />) : null}
+        </Panel>
+      </section>
     </>
   );
 }

@@ -2,10 +2,11 @@ import { Injectable, Logger } from '@nestjs/common';
 
 /**
  * Sends WhatsApp messages through Meta's WhatsApp Cloud API, using one shared
- * business number for every school (decision F31).
+ * business number for every school (decision F31). Used to check a parent's
+ * mobile number with a code, at sign-up and when they change it.
  *
  * Needs WHATSAPP_TOKEN, WHATSAPP_PHONE_ID and an approved authentication
- * template (WHATSAPP_OTP_TEMPLATE, default "login_code", language ar or en).
+ * template (WHATSAPP_OTP_TEMPLATE, default "verify_code", language ar or en).
  * Without them, messages are only logged, which is enough for development.
  */
 @Injectable()
@@ -18,10 +19,10 @@ export class WhatsAppService {
     return !!(process.env.WHATSAPP_TOKEN && process.env.WHATSAPP_PHONE_ID);
   }
 
-  async sendLoginCode(phone: string, code: string, language: 'ar' | 'en' = 'ar') {
+  async sendCode(phone: string, code: string, language: 'ar' | 'en' = 'ar') {
     if (!this.configured) {
       this.outbox.set(phone, code);
-      this.logger.log(`(not configured) login code for ${phone}: ${code}`);
+      this.logger.log(`(WhatsApp not configured) code for ${phone}: ${code}`);
       return;
     }
     const res = await fetch(`https://graph.facebook.com/v21.0/${process.env.WHATSAPP_PHONE_ID}/messages`, {
@@ -32,7 +33,7 @@ export class WhatsAppService {
         to: phone.replace(/^\+/, ''),
         type: 'template',
         template: {
-          name: process.env.WHATSAPP_OTP_TEMPLATE ?? 'login_code',
+          name: process.env.WHATSAPP_OTP_TEMPLATE ?? 'verify_code',
           language: { code: language },
           components: [
             { type: 'body', parameters: [{ type: 'text', text: code }] },

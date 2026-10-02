@@ -11,6 +11,12 @@ export function configureApp(app: INestApplication) {
 }
 
 async function bootstrap() {
+  // Settings from apps/api/.env (WhatsApp, JWT secret, MQTT…); real environment variables win.
+  try {
+    process.loadEnvFile('.env');
+  } catch {
+    /* no .env file: use the environment as it is */
+  }
   if (process.env.NODE_ENV === 'production' && (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32)) {
     throw new Error('Set JWT_SECRET to a random value of at least 32 characters before running in production.');
   }
