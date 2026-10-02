@@ -6,7 +6,7 @@ import { useI18n } from '@/lib/i18n';
 import { Dict } from '@/lib/strings';
 import { ErrorNote, Field, PageHead, Switch, toast } from '@/components/ui';
 
-const ROLES = ['SCHOOL_ADMIN', 'TEACHER', 'TRANSPORT', 'NURSE', 'CANTEEN', 'ACCOUNTANT'] as const;
+const ROLES = ['SCHOOL_ADMIN', 'TEACHER', 'SOCIAL_WORKER', 'NURSE', 'TRANSPORT', 'CANTEEN', 'ACCOUNTANT'] as const;
 const BLANK = { name: '', role: 'TEACHER', email: '', phone: '', password: '' };
 
 export default function StaffPage() {

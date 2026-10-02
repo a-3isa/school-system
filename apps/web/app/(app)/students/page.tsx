@@ -1,15 +1,12 @@
 'use client';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { FormEvent, useState } from 'react';
-import { post } from '@/lib/api';
-import { useAction, useApi } from '@/lib/hooks';
+import { useState } from 'react';
+import { useApi } from '@/lib/hooks';
 import { useI18n } from '@/lib/i18n';
 import { useSession } from '@/lib/session';
-import { Empty, ErrorNote, Field, PageHead, Pill, Tabs, toast } from '@/components/ui';
-import { BLANK_PARENT, ParentFields, parentBody } from '@/components/ParentFields';
-
-const BLANK = { code: '', firstName: '', lastName: '', nameAr: '', classId: '' };
+import { Empty, ErrorNote, PageHead, Pill } from '@/components/ui';
+import { ClassSelect } from '@/components/ClassPicker';
 
 export default function StudentsPage() {
   const { me } = useSession();
@@ -20,29 +17,6 @@ export default function StudentsPage() {
   const [classId, setClassId] = useState('');
   const students = useApi<any[]>(`/students?active=true${q ? `&q=${encodeURIComponent(q)}` : ''}${classId ? `&classId=${classId}` : ''}`);
   const classes = useApi<any[]>('/classes');
-  const act = useAction();
-  const [adding, setAdding] = useState(false);
-  const [form, setForm] = useState(BLANK);
-  const [parent, setParent] = useState(BLANK_PARENT);
-  const [emailMissing, setEmailMissing] = useState(false);
-
-  async function add(e: FormEvent) {
-    e.preventDefault();
-    // Every student comes with a parent or guardian.
-    const first = parentBody(parent);
-    if (!first) {
-      setEmailMissing(true);
-      return;
-    }
-    const created = await act.run(() => post<any>('/students', { ...form, nameAr: form.nameAr || undefined, classId: form.classId || undefined, parent: first }));
-    if (created) {
-      toast(t.students.added(form.firstName));
-      setForm({ ...BLANK, classId: form.classId });
-      setParent(BLANK_PARENT);
-      await students.reload();
-    }
-  }
-
   return (
     <>
       <PageHead
@@ -50,37 +24,15 @@ export default function StudentsPage() {
         title={isAdmin ? t.nav.students : t.students.titleStaff}
         actions={isAdmin && (
           <>
-            <button type="button" className="btn primary" onClick={() => setAdding(true)}>{t.students.add}</button>
+            <Link className="btn primary" href="/students/new">{t.students.add}</Link>
             <Link className="btn" href="/students/import">{t.nav.import}</Link>
           </>
         )}
       />
       <input type="search" className="input" aria-label={t.students.search} placeholder={t.students.search} value={q} onChange={(e) => setQ(e.target.value)} />
-      <Tabs label={t.common.class} value={classId} onChange={setClassId} items={[['', t.common.allClasses], ...(classes.data ?? []).map((c): [string, string] => [c.id, c.name])]} />
-      {isAdmin && adding && (
-        <form className="form" onSubmit={add}>
-          <div className="form-title">{t.students.add}</div>
-          {act.error && <div className="full"><ErrorNote error={act.error} /></div>}
-          <Field label={t.students.firstName} id="fn"><input id="fn" className="input" required value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} /></Field>
-          <Field label={t.students.lastName} id="ln"><input id="ln" className="input" required value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} /></Field>
-          <Field label={t.students.nameAr} id="ar"><input id="ar" className="input" dir="rtl" value={form.nameAr} onChange={(e) => setForm({ ...form, nameAr: e.target.value })} /></Field>
-          <Field label={t.students.code} id="code"><input id="code" className="input mono" dir="ltr" required placeholder="NV-4A-13" value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} /></Field>
-          <Field label={t.common.class} id="fc">
-            <select id="fc" className="input" value={form.classId} onChange={(e) => setForm({ ...form, classId: e.target.value })}>
-              <option value="">{t.students.noClass}</option>
-              {classes.data?.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
-          </Field>
-          <div className="form-title">{t.students.firstParent}</div>
-          <p className="full small muted" style={{ margin: 0, lineHeight: 1.5 }}>{t.students.firstParentHelp}</p>
-          <ParentFields prefix="np" value={parent} emailMissing={emailMissing} onChange={(f) => { setParent(f); setEmailMissing(false); }} />
-          <p className="full small muted" style={{ margin: 0, lineHeight: 1.5 }}>{t.student.signupHelp}</p>
-          <div className="form-actions">
-            <button className="btn primary" type="submit" disabled={act.busy}>{t.students.add}</button>
-            <button className="btn" type="button" onClick={() => setAdding(false)}>{t.common.cancel}</button>
-          </div>
-        </form>
-      )}
+      <div className="row wrap" style={{ gap: 10 }}>
+        <span style={{ minWidth: 200 }}><ClassSelect classes={classes.data} value={classId} onChange={setClassId} empty={t.common.allClasses} /></span>
+      </div>
       <ErrorNote error={students.error} />
       <div className="panel scroll">
         {students.data?.length ? (

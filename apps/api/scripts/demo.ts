@@ -7,9 +7,49 @@
 // periods, a timetable, 24 students with parents (parent1@demo.school … parent23@demo.school;
 // some mothers have two children) and one guardian (guardian24@demo.school), all with the
 // password demo-parent-1, gateways and straps.
+import { deflateSync } from 'zlib';
 import { playDay } from './demo-day';
 
 const api = (process.argv.includes('--api') ? process.argv[process.argv.indexOf('--api') + 1] : 'http://localhost:3000') + '/api';
+
+/** A plain square PNG in one colour, as a stand-in for a student's photo. */
+function squarePng(size: number, [r, g, b]: [number, number, number]): Buffer {
+  const crcTable = Array.from({ length: 256 }, (_, n) => {
+    let c = n;
+    for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+    return c >>> 0;
+  });
+  const crc = (buf: Buffer) => {
+    let c = 0xffffffff;
+    for (const byte of buf) c = crcTable[(c ^ byte) & 0xff] ^ (c >>> 8);
+    return (c ^ 0xffffffff) >>> 0;
+  };
+  const chunk = (type: string, data: Buffer) => {
+    const len = Buffer.alloc(4);
+    len.writeUInt32BE(data.length);
+    const body = Buffer.concat([Buffer.from(type, 'latin1'), data]);
+    const sum = Buffer.alloc(4);
+    sum.writeUInt32BE(crc(body));
+    return Buffer.concat([len, body, sum]);
+  };
+  const header = Buffer.alloc(13);
+  header.writeUInt32BE(size, 0);
+  header.writeUInt32BE(size, 4);
+  header.set([8, 2, 0, 0, 0], 8); // 8-bit RGB
+  const row = Buffer.concat([Buffer.from([0]), Buffer.alloc(size * 3).fill(Buffer.from([r, g, b]))]);
+  const pixels = deflateSync(Buffer.concat(Array.from({ length: size }, () => row)));
+  return Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), chunk('IHDR', header), chunk('IDAT', pixels), chunk('IEND', Buffer.alloc(0))]);
+}
+
+async function upload(token: string, kind: string, file: Buffer, name: string, type: string): Promise<string> {
+  const form = new FormData();
+  form.append('kind', kind);
+  form.append('file', new Blob([new Uint8Array(file)], { type }), name);
+  const res = await fetch(api + '/students/files', { method: 'POST', headers: { authorization: `Bearer ${token}` }, body: form });
+  const data: any = await res.json().catch(() => null);
+  if (!res.ok) throw new Error(`upload ${kind}: ${res.status} ${JSON.stringify(data)}`);
+  return data.id;
+}
 
 async function call(token: string | null, method: string, path: string, body?: unknown): Promise<any> {
   const res = await fetch(api + path, {
@@ -23,6 +63,7 @@ async function call(token: string | null, method: string, path: string, body?: u
 }
 
 const FIRST = ['Layla', 'Omar', 'Yara', 'Ali', 'Karim', 'Salma', 'Mariam', 'Youssef', 'Hana', 'Ziad', 'Nour', 'Adam'];
+const GIRLS = new Set(['Layla', 'Yara', 'Salma', 'Mariam', 'Hana', 'Nour']);
 const LAST = ['Hussein', 'Kamal', 'Mostafa', 'Ramadan', 'Fathy', 'Nabil', 'Adel', 'Gamal'];
 
 async function main() {
@@ -44,9 +85,14 @@ async function main() {
 
   const hana = await A('POST', '/staff', { name: 'Hana Nabil', role: 'TEACHER', email: 'hana@demo.school', password: 'demo-teacher-1' });
   const sherif = await A('POST', '/staff', { name: 'Sherif Kamal', role: 'TEACHER', email: 'sherif@demo.school', password: 'demo-teacher-1' });
-  const g4 = await A('POST', '/grades', { name: 'Grade 4', order: 4 });
-  const c4a = await A('POST', '/classes', { name: '4-A', gradeId: g4.id, homeroomTeacherId: hana.id });
-  const c4b = await A('POST', '/classes', { name: '4-B', gradeId: g4.id, homeroomTeacherId: sherif.id });
+  // An Egyptian primary school: Primary 1–6, two classes of Primary 4 (4/1 and 4/2) in the languages system.
+  const grades: any[] = await A('POST', '/grades/egypt', { stages: ['PRIMARY'] });
+  const g4 = grades.find((g) => g.name === 'Primary 4');
+  const c4a = await A('POST', '/classes', { name: '4/1', section: '1', gradeId: g4.id, homeroomTeacherId: hana.id, system: 'NATIONAL_LANGUAGES', capacity: 30 });
+  const c4b = await A('POST', '/classes', { name: '4/2', section: '2', gradeId: g4.id, homeroomTeacherId: sherif.id, system: 'NATIONAL_LANGUAGES', capacity: 30 });
+  // The school year: two terms with the mid-year break, and Egypt's fixed public holidays.
+  const year = await A('POST', '/school/years', { name: '2026/2027', startsOn: '2026-09-13', endsOn: '2027-06-30', term2StartsOn: '2027-02-07', breakFrom: '2027-01-24', breakTo: '2027-02-04' });
+  await A('POST', '/school/holidays/egypt', { yearId: year.id, lang: 'en' });
   const r204 = await A('POST', '/rooms', { name: 'Room 204' });
   const r205 = await A('POST', '/rooms', { name: 'Room 205' });
   const lab = await A('POST', '/rooms', { name: 'Science lab', kind: 'LAB' });
@@ -69,15 +115,25 @@ async function main() {
 
   for (let i = 0; i < 24; i++) {
     // Every student comes with a parent. Some brothers and sisters share a mother
-    // (one in 4-A, one in 4-B), and the last child is looked after by a guardian.
+    // (one in 4/1, one in 4/2), and the last child is looked after by a guardian.
     // Demo parents get a password straight away; real parents sign up in the app with their email.
     const sibling = i >= 12 && i % 4 === 0 ? i - 12 : i;
     const first = FIRST[(sibling === i ? i : i + 5) % FIRST.length];
     const parent = i === 23
       ? { relation: 'GUARDIAN', name: `Grandmother of ${first}`, email: `guardian${i + 1}@demo.school`, password: 'demo-parent-1' }
       : { relation: 'MOTHER', name: `Mother of ${FIRST[sibling % FIRST.length]}`, email: `parent${sibling + 1}@demo.school`, phone: `+20100${String(1000000 + sibling)}`, password: 'demo-parent-1' };
+    // Born in 2016 or 2017 in Cairo; the national number agrees with the birth date and gender.
+    const girl = GIRLS.has(first);
+    const born = new Date(Date.UTC(i < 12 ? 2016 : 2017, i % 12, 1 + i));
+    const ymd = born.toISOString().slice(2, 10).replace(/-/g, '');
+    const nationalId = `3${ymd}01${String(100 + i).padStart(3, '0')}${girl ? 2 : 1}${i % 10}`;
     const s = await A('POST', '/students', {
       code: `2026-${String(i + 1).padStart(4, '0')}`, firstName: first, lastName: LAST[(sibling * 3) % LAST.length], classId: i < 12 ? c4a.id : c4b.id, parent,
+      gender: girl ? 'FEMALE' : 'MALE', dateOfBirth: born.toISOString().slice(0, 10), nationality: 'EG', nationalId,
+      files: [
+        await upload(admin, 'PHOTO', squarePng(96, [60 + ((i * 37) % 160), 90 + ((i * 53) % 120), 120 + ((i * 29) % 100)]), 'photo.png', 'image/png'),
+        await upload(admin, 'BIRTH_CERTIFICATE', Buffer.from(`%PDF-1.4\n% Birth certificate of ${first} (demo)\n%%EOF\n`), 'birth-certificate.pdf', 'application/pdf'),
+      ],
     });
     await A('POST', '/devices/straps', { mac: `DC:0D:30:00:${String(Math.floor(i / 100)).padStart(2, '0')}:${String(i % 100).padStart(2, '0')}`, studentId: s.id });
   }

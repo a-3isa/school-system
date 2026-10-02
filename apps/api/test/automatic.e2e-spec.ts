@@ -1,7 +1,7 @@
 import { INestApplication } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import request from 'supertest';
-import { Client, login, ownerClient, startApp } from './helpers';
+import { Client, login, ownerClient, startApp, KID, kid } from './helpers';
 import { AttendanceEvaluator } from '../src/devices/evaluator';
 import { localParts } from '../src/common/time';
 import { rulesFor } from '../src/devices/rules';
@@ -58,9 +58,9 @@ describe('Automatic attendance (e2e)', () => {
     await admin.post('/api/timetable', { classId: ids.classC, dayOfWeek: local.dayOfWeek, periodId: ids.period, roomId: ids.lab, subjectId: subject }).expect(201);
 
     for (const [i, name] of ['Layla', 'Ali', 'Omar', 'Yara', 'Karim', 'Salma'].entries()) {
-      ids[name] = (await admin.post('/api/students', { code: `A${i}`, firstName: name, lastName: 'Test', classId: ids.class, parent: { relation: 'GUARDIAN', name: 'Guardian', email: `g-A${i}@au.test.eg` } })).body.id;
+      ids[name] = (await admin.post('/api/students', { ...(await kid(admin)), code: `A${i}`, firstName: name, lastName: 'Test', classId: ids.class, parent: { relation: 'GUARDIAN', name: 'Guardian', email: `g-A${i}@au.test.eg` } })).body.id;
     }
-    await admin.post('/api/students', { code: 'C1', firstName: 'Nour', lastName: 'Test', classId: ids.classC, parent: { relation: 'GUARDIAN', name: 'Guardian', email: `g-C1@au.test.eg` } }).expect(201);
+    await admin.post('/api/students', { ...(await kid(admin)), code: 'C1', firstName: 'Nour', lastName: 'Test', classId: ids.classC, parent: { relation: 'GUARDIAN', name: 'Guardian', email: `g-C1@au.test.eg` } }).expect(201);
     await admin.post(`/api/students/${ids.Ali}/guardians`, { relation: 'MOTHER', name: 'Rania', email: 'p201200000001@test.eg', phone: '+201200000001', password: 'parent-pass' }).expect(201);
     await admin.post(`/api/students/${ids.Salma}/guardians`, { relation: 'FATHER', name: 'Amr', email: 'p201200000002@test.eg', phone: '+201200000002' }).expect(201);
     teacher = await login(app, 'hana@auto.eg', 'teacher-pass');

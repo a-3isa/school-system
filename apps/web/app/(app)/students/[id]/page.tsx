@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import { FormEvent, useState } from 'react';
+import { FormEvent, Fragment, ReactNode, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { del, patch, post, timeCairo, todayCairo } from '@/lib/api';
 import { useAction, useApi } from '@/lib/hooks';
@@ -8,6 +8,8 @@ import { useI18n } from '@/lib/i18n';
 import { useSession } from '@/lib/session';
 import { Empty, ErrorNote, Pill, Section, StatusPill, toast } from '@/components/ui';
 import { BLANK_PARENT, ParentFields, parentBody, RELATIONS } from '@/components/ParentFields';
+import { PaperPicker, REQUIRED_FILES, SavedThumb } from '@/components/StudentFiles';
+import { countries } from '@/lib/enrol';
 
 const shift = (d: string, days: number) => new Date(Date.parse(`${d}T00:00:00Z`) + days * 86400000).toISOString().slice(0, 10);
 
@@ -52,15 +54,37 @@ export default function StudentPage() {
   const latin = `${s.firstName} ${s.lastName}`;
   const name = lang === 'ar' && s.nameAr ? s.nameAr : latin;
   const alt = lang === 'ar' ? (s.nameAr ? latin : null) : s.nameAr;
+  const photo = [...s.files].reverse().find((f: any) => f.kind === 'PHOTO' && f.mime !== 'application/pdf');
+  const missingPapers = REQUIRED_FILES.filter((k) => !s.files.some((f: any) => f.kind === k)).map((k) => t.papers.kinds[k]);
+  const nation = s.nationality ? countries(lang).find(([c]) => c === s.nationality)?.[1] ?? s.nationality : '';
+  const emergency = [s.emergencyName, s.emergencyRelation, s.emergencyPhone].filter(Boolean).join(' · ');
+  const details: [string, ReactNode][] = [
+    [t.enrol.gender.replace(' *', ''), s.gender ? (s.gender === 'MALE' ? t.enrol.boy : t.enrol.girl) : ''],
+    [t.enrol.dob.replace(' *', ''), s.dateOfBirth ? <bdi dir="ltr">{s.dateOfBirth.slice(0, 10)}</bdi> : ''],
+    [t.enrol.nationality.replace(' *', ''), nation],
+    [s.nationality === 'EG' || !s.passportNo ? t.enrol.nationalId.replace(' *', '') : t.enrol.passport, <bdi key="id" dir="ltr" className="mono">{s.nationalId ?? s.passportNo ?? ''}</bdi>],
+    [t.enrol.placeOfBirth, s.placeOfBirth],
+    [t.enrol.religion, s.religion ? t.enrol.religions[s.religion] : ''],
+    [t.enrol.enrolledOn, s.enrolledOn ? <bdi dir="ltr">{s.enrolledOn.slice(0, 10)}</bdi> : ''],
+    [t.enrol.previousSchool, s.previousSchool],
+    [t.enrol.address, s.address],
+    [t.enrol.bloodType, s.bloodType],
+    [t.enrol.allergies, s.allergies],
+    [t.enrol.medical, s.medicalNotes],
+    [t.enrol.secEmergency, emergency ? x(emergency) : ''],
+  ];
   const dayLabel = (d: string) => (d === today ? t.student.today : `${d.slice(8, 10)}/${d.slice(5, 7)}`);
 
   return (
     <>
       <header className="head">
+        <div className="row" style={{ gap: 18, alignItems: 'flex-end' }}>
+        {photo && <span className="student-photo"><SavedThumb studentId={s.id} file={photo} label={t.papers.kinds.PHOTO} /></span>}
         <div className="head-text" style={{ gap: 4 }}>
           <nav className="crumb"><Link href="/students">{t.nav.students}</Link><span>/</span><b>{name}</b></nav>
           <h1>{name}</h1>
           {alt && <span style={{ fontSize: 17 }} className="muted" dir="auto">{alt}</span>}
+        </div>
         </div>
         <div className="facts">
           <span>{t.students.code}<b className="mono" style={{ fontSize: 14, fontWeight: 500 }}><bdi dir="ltr">{s.code}</bdi></b></span>
@@ -70,6 +94,27 @@ export default function StudentPage() {
       <ErrorNote error={act.error} />
       <div className="cols">
         <div className="stack" style={{ gap: 24, minWidth: 0 }}>
+          <Section title={t.enrol.details} aside={isAdmin ? <Link href={`/students/${s.id}/edit`}>{t.enrol.edit}</Link> : undefined}>
+            <div className="panel pad">
+              <dl className="kv">
+                {details.map(([k, val]) => (
+                  <Fragment key={k}><dt>{k}</dt><dd>{val || <span className="muted">{t.enrol.none}</span>}</dd></Fragment>
+                ))}
+              </dl>
+            </div>
+          </Section>
+          <Section title={t.papers.title}>
+            <div className="panel pad stack" style={{ gap: 12 }}>
+              {missingPapers.length > 0 && <Pill tone="L" glyph="!">{t.papers.missing(missingPapers.join(lang === 'ar' ? '، ' : ', '))}</Pill>}
+              {isAdmin ? (
+                <PaperPicker files={[]} onChange={() => undefined} studentId={s.id} saved={s.files} onSavedChange={() => void student.reload()} />
+              ) : s.files.length ? (
+                <div className="paper-files">{s.files.filter((f: any) => f.kind === 'PHOTO' || (me.role === 'NURSE' && f.kind === 'VACCINATION_RECORD')).map((f: any) => <SavedThumb key={f.id} studentId={s.id} file={f} label={t.papers.kinds[f.kind]} />)}</div>
+              ) : (
+                <span className="muted">{t.papers.none}</span>
+              )}
+            </div>
+          </Section>
           {visits.data && (
             <Section title={t.student.whereToday} aside={t.student.fromStrap}>
               <div className="panel pad">

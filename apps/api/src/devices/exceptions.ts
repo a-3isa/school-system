@@ -39,7 +39,7 @@ export class ExceptionsController {
    * Anyone responsible can resolve an exception on its own day; after that it
    * needs an admin (decision C18).
    */
-  @Roles(Role.SCHOOL_ADMIN, Role.TRANSPORT, Role.NURSE)
+  @Roles(Role.SCHOOL_ADMIN, Role.TRANSPORT, Role.NURSE, Role.SOCIAL_WORKER)
   @Post(':id/resolve')
   async resolve(@CurrentUser() user: AuthUser, @SchoolId() schoolId: string, @Param('id') id: string, @Body() dto: ResolveDto) {
     const ex = await this.prisma.attendanceException.findFirst({ where: { id, schoolId } });

@@ -1,7 +1,7 @@
 import { INestApplication } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import request from 'supertest';
-import { Client, login, ownerClient, startApp } from './helpers';
+import { Client, login, ownerClient, startApp, KID, kid } from './helpers';
 import { localParts } from '../src/common/time';
 import { AttendanceEvaluator } from '../src/devices/evaluator';
 
@@ -51,7 +51,7 @@ describe('The lesson happening now (e2e)', () => {
       await admin.post('/api/devices/gateways/claim', { claimCode: g.claimCode, name, kind, roomId: kind === 'ROOM' ? room : undefined }).expect(201);
     }
     for (const [i, name] of ['Layla', 'Salma', 'Omar', 'Karim'].entries()) {
-      ids[name] = (await admin.post('/api/students', { code: `V${i}`, firstName: name, lastName: 'Test', classId, parent: { relation: 'GUARDIAN', name: 'Guardian', email: `g-V${i}@ll.test.eg` } })).body.id;
+      ids[name] = (await admin.post('/api/students', { ...(await kid(admin)), code: `V${i}`, firstName: name, lastName: 'Test', classId, parent: { relation: 'GUARDIAN', name: 'Guardian', email: `g-V${i}@ll.test.eg` } })).body.id;
       await admin.post('/api/devices/straps', { mac: mac(i), studentId: ids[name] }).expect(201);
     }
     await admin.post(`/api/students/${ids.Salma}/guardians`, { relation: 'MOTHER', name: 'Mona', email: 'p201500000001@test.eg', phone: '+201500000001', password: 'parent-pass' }).expect(201);

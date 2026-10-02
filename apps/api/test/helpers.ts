@@ -21,6 +21,11 @@ export function client(app: INestApplication, token: string) {
     put: (url: string, body?: object) => auth(request(srv()).put(url)).send(body),
     patch: (url: string, body?: object) => auth(request(srv()).patch(url)).send(body),
     delete: (url: string) => auth(request(srv()).delete(url)),
+    upload: (url: string, fields: Record<string, string>, file: Buffer, name = 'file.png') => {
+      let r = auth(request(srv()).post(url));
+      for (const [k, v] of Object.entries(fields)) r = r.field(k, v);
+      return r.attach('file', file, name);
+    },
   };
 }
 
@@ -41,4 +46,17 @@ export async function ownerClient(app: INestApplication, prisma: PrismaClient, t
   const email = `owner-${tag}@test.eg`;
   await prisma.user.create({ data: { email, name: 'Owner', role: Role.OWNER, passwordHash: await bcrypt.hash('owner-pass', 10) } });
   return login(app, email, 'owner-pass');
+}
+
+/** What every new student needs besides a name, code and parent. Not Egyptian, so no national number. */
+export const KID = { gender: 'FEMALE', dateOfBirth: '2017-03-15', nationality: 'SD' };
+
+/** The smallest real PNG (1×1 pixel). */
+export const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
+
+/** KID plus the photo and birth certificate, uploaded for one new student. */
+export async function kid(c: { upload: Client['upload'] }) {
+  const files: string[] = [];
+  for (const kind of ['PHOTO', 'BIRTH_CERTIFICATE']) files.push((await c.upload('/api/students/files', { kind }, PNG).expect(201)).body.id);
+  return { ...KID, files };
 }

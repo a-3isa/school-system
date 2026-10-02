@@ -8,6 +8,10 @@ import { AttendanceList } from '@/components/AttendanceList';
 export default function MyClassNowPage() {
   const { t, x } = useI18n();
   const current = useApi<{ date: string; now: any; next: any }>('/attendance/now');
+  const status = useApi<any>(current.data ? `/school/day?date=${current.data.date}` : null);
+  const closed = status.data && !status.data.open
+    ? status.data.reason === 'HOLIDAY' ? t.eg.closed.HOLIDAY(status.data.name) : t.eg.closed[status.data.reason as 'WEEKEND' | 'BREAK' | 'OUTSIDE_YEAR']
+    : null;
 
   // Move on to the next lesson by itself when the bell goes.
   useEvery(60_000, current.reload);
@@ -23,7 +27,7 @@ export default function MyClassNowPage() {
   return (
     <section className="between-lessons">
       <span>{t.att.betweenLessons}</span>
-      <h1>{x(next ? t.att.nextLesson(next.className, next.subject, next.room, next.startTime) : t.att.noMoreLessons)}</h1>
+      <h1>{x(closed ?? (next ? t.att.nextLesson(next.className, next.subject, next.room, next.startTime) : t.att.noMoreLessons))}</h1>
       {next && <span className="num">{x(`${t.att.period(next.period)} · ${next.startTime}–${next.endTime}`)}</span>}
     </section>
   );

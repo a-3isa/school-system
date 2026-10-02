@@ -25,7 +25,7 @@ Each role sees only its own screens. Design each role's navigation separately; n
 Signs in with email and password. The teacher only opens the PC for one reason: a child forgot their strap (or, at a school without straps, to take the register). So the teacher has **one screen only, and it is the same design with or without straps**. No menu, no other pages, no school-wide data.
 
 **My class now:**
-- **Header:** class, subject and room, with the period and time, e.g. "4-A · Math · Room 204 · Period 3 · 09:50–10:35". One big **Save** button with a count ("Save (1)"), or "Saved".
+- **Header:** class, subject and room, with the period and time, e.g. "4/1 · Math · Room 204 · Period 3 · 09:50–10:35". One big **Save** button with a count ("Save (1)"), or "Saved".
 - **Summary line:** "11 present · 1 absent", plus one short sentence:
   - with straps: "from the straps, updated every 15 seconds. Tap Present for a child who forgot their strap."
   - without straps: "everyone starts as present. Tap the absent ones, then Save."
@@ -34,7 +34,7 @@ Signs in with email and password. The teacher only opens the PC for one reason: 
   - **Without straps:** everyone starts as Present.
   - **After saving:** a row shows "Saved by Hana Nabil".
 - **Nothing else:** no reason box (filled in automatically), no "manual/automatic" switch, no columns.
-- **Between lessons:** "No lesson right now. Next: 4-A Math in Room 204 at 09:50."
+- **Between lessons:** "No lesson right now. Next: 4/1 Math in Room 204 at 09:50."
 - **Design for:** a PC screen read from a step away, and touch screens. Big names and big buttons; the one child who needs a tap must jump out.
 
 ### 2. School admin: at a desk, all day
@@ -49,8 +49,8 @@ Navigation, grouped:
 - **Attendance**
   - **Take attendance:** every lesson, any date, each with marking progress; opening one shows **the same attendance screen as the teacher's** (no separate admin design).
   - **Exceptions:** a list of things to look at, each with a type tag and Resolve with a note:
-    - "Salma Gamal came in at 08:20 but hasn't been in 4-A Math in Room 204 (period 3)"
-    - "Ali was in 4-A Science for only 40% of the lesson"
+    - "Salma Gamal came in at 08:20 but hasn't been in 4/1 Math in Room 204 (period 3)"
+    - "Ali was in 4/1 Science for only 40% of the lesson"
     - "Gateway in Room 205 offline, mark manually"
     - "Science lab has no gateway"
     - "Low strap battery"
@@ -62,8 +62,11 @@ Navigation, grouped:
     - **More panels:** "Went out through the gate" (with times), "Gone for the day", "Not heard today"
     - **Controls:** search and class filter
 - **People**
-  - **Students:** a searchable, filterable table (name with Arabic name below, code, class) and "Add a student", which also asks for the first parent or guardian: every student has at least one.
+  - **Students:** a searchable, filterable table (name with Arabic name below, code, class) and "Add a student".
+  - **Add a student:** one long form in sections: student (name, Arabic name, suggested code, nationality, national number that fills in the birth date and gender, gender, date of birth with the age on 1 October, place of birth, religion), at school (class, joined on, previous school, address), health and emergency contact, parents (first required, add up to three), and photo and papers (one row per paper with a thumbnail and "Choose photo or scan"; the photo and birth certificate are required).
   - **Student page:**
+    - **Header** with the student's photo.
+    - **Details** with "Edit details", and **Photo and papers** (thumbnails, "Still needed" when the photo or birth certificate is missing).
     - **Parents** (mother, father and one guardian at most; at least one). Each name opens the parent's page; the class opens the class page. Each shows name, email, mobile, and two status tags: "Signed up in the app" or "Not signed up yet", and "Mobile checked by WhatsApp" or "Mobile not checked yet". Actions: Restrict, Remove.
     - **Add-parent form:** relation, name, **email (required)**, mobile (optional). Explain under it that the parent signs up in the app with this email, and that their mobile is checked by WhatsApp then and saved here.
     - **Where today** (straps only): a timeline, e.g. "07:49 Gate A", "08:00–09:29 Room 204"…
@@ -76,7 +79,7 @@ Navigation, grouped:
   - **Staff:** accounts table (name, role, email, active) and an add form.
 - **School setup**
   - **Timetable:** a week grid (days × periods) for a chosen class; each cell shows subject, room and teacher; add or remove lessons; clash errors inline.
-  - **Classes, rooms & periods:** four small editors.
+  - **School structure & year:** stages and grades (one click for Egypt's grades), classes (grade, section, system, boys/girls, stream, places, homeroom), the school year (terms and mid-year break) and holidays (one click for Egypt's fixed holidays), then rooms, periods and subjects.
   - **Devices** (straps only):
     - **Gateways:** claim by code; name; kind (gate or room); room; last seen; firmware.
     - **Straps:** address, student, battery, last seen.
@@ -134,7 +137,7 @@ Screens:
 
 ## Sample data to use
 
-- **School:** Nile Valley School (demo). Classes 4-A and 4-B, Rooms 204 and 205, a Science lab, Gate A.
+- **School:** Nile Valley School (demo). Classes 4/1 and 4/2, Rooms 204 and 205, a Science lab, Gate A.
 - **Teachers:** Hana Nabil, Sherif Kamal.
 - **Students:** Layla Hussein, Omar Ramadan, Yara Adel, Ali Kamal, Karim Fathy, Salma Gamal, Mariam Mostafa, Youssef Nabil, Hana Hussein, Ziad Ramadan, Nour Adel, Adam Kamal.
 - **Periods:** 08:00–08:45, 08:45–09:30, 09:50–10:35, 10:35–11:20, 11:40–12:25, 12:25–13:10.

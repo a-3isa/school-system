@@ -1,12 +1,15 @@
-import { BadRequestException, Body, Controller, Delete, ForbiddenException, Get, Injectable, NotFoundException, Param, Patch, Post, Query } from '@nestjs/common';
-import { GuardianRelation, Prisma, Role } from '@prisma/client';
+import { BadRequestException, Body, ConflictException, Controller, Delete, ForbiddenException, Get, Injectable, NotFoundException, Param, Patch, Post, Query } from '@nestjs/common';
+import { Gender, GuardianRelation, Prisma, Religion, Role } from '@prisma/client';
 import { Type } from 'class-transformer';
-import { IsBoolean, IsDateString, IsDefined, IsEmail, IsEnum, IsOptional, IsString, Matches, MinLength, ValidateNested } from 'class-validator';
+import { ArrayMaxSize, IsArray, IsBoolean, IsDateString, IsDefined, IsEmail, IsEnum, IsIn, IsOptional, IsString, Matches, MinLength, ValidateIf, ValidateNested } from 'class-validator';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit';
 import { AuthUser, CurrentUser, Roles, SchoolId, SCHOOL_WIDE, STAFF } from '../auth/auth.decorators';
 import { hashPassword } from '../auth/auth';
 import { mapPrismaError } from '../common/validation';
+import { parseNationalId } from './national-id';
+import { localParts } from '../common/time';
+import { fileSelect, StudentFilesService } from './files';
 
 export class GuardianDto {
   @IsEnum(GuardianRelation) relation: GuardianRelation;
@@ -19,27 +22,63 @@ export class GuardianDto {
   @IsOptional() @IsString() @MinLength(8) password?: string;
 }
 
-export class StudentDto {
+export const BLOOD_TYPES = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'] as const;
+const PHONE = /^\+\d{8,15}$/;
+const PHONE_MESSAGE = 'Enter the mobile number with its country code, like +201001234567.';
+
+/** What can be recorded about a student, all of it optional. */
+class StudentDetailsDto {
+  @IsOptional() @IsString() nameAr?: string;
+  @IsOptional() @IsString() classId?: string;
+  @IsOptional() @IsString() nationalId?: string;
+  @IsOptional() @IsString() passportNo?: string;
+  @IsOptional() @IsEnum(Religion) religion?: Religion | null;
+  @IsOptional() @IsString() placeOfBirth?: string;
+  @IsOptional() @IsString() address?: string;
+  @IsOptional() @IsString() previousSchool?: string;
+  @IsOptional() @IsDateString() enrolledOn?: string;
+  @IsOptional() @IsIn([...BLOOD_TYPES, '']) bloodType?: string;
+  @IsOptional() @IsString() allergies?: string;
+  @IsOptional() @IsString() medicalNotes?: string;
+  @IsOptional() @IsString() emergencyName?: string;
+  @IsOptional() @IsString() emergencyRelation?: string;
+  @IsOptional() @ValidateIf((d) => !!d.emergencyPhone) @Matches(PHONE, { message: PHONE_MESSAGE }) emergencyPhone?: string;
+}
+
+export class StudentDto extends StudentDetailsDto {
   @IsString() @MinLength(1) code: string;
   @IsString() @MinLength(1) firstName: string;
   @IsString() @MinLength(1) lastName: string;
-  @IsOptional() @IsString() nameAr?: string;
-  @IsOptional() @IsString() classId?: string;
-  @IsOptional() @IsDateString() dateOfBirth?: string;
-  @IsOptional() @IsString() medicalNotes?: string;
+  @IsEnum(Gender, { message: 'Choose boy or girl.' }) gender: Gender;
+  @IsDateString({}, { message: 'Enter the date of birth.' }) dateOfBirth: string;
+  @Matches(/^[A-Z]{2}$/, { message: 'Choose the nationality.' }) nationality: string;
   // Every student has at least one parent or guardian from the start.
   @IsDefined({ message: 'Add the student’s mother, father or guardian.' }) @ValidateNested() @Type(() => GuardianDto) parent: GuardianDto;
+  // The other parents, if the school has them too.
+  @IsOptional() @IsArray() @ArrayMaxSize(2) @ValidateNested({ each: true }) @Type(() => GuardianDto) moreParents?: GuardianDto[];
+  // Photos and scans uploaded first (POST /students/files); the photo and birth certificate are required.
+  @IsArray({ message: 'Add the student’s photo and birth certificate.' }) @ArrayMaxSize(20) @IsString({ each: true }) files: string[];
 }
 
-export class UpdateStudentDto {
+export class UpdateStudentDto extends StudentDetailsDto {
   @IsOptional() @IsString() @MinLength(1) firstName?: string;
   @IsOptional() @IsString() @MinLength(1) lastName?: string;
-  @IsOptional() @IsString() nameAr?: string;
-  @IsOptional() @IsString() classId?: string;
+  @IsOptional() @IsEnum(Gender) gender?: Gender;
   @IsOptional() @IsDateString() dateOfBirth?: string;
-  @IsOptional() @IsString() medicalNotes?: string;
+  @IsOptional() @Matches(/^[A-Z]{2}$/) nationality?: string;
   @IsOptional() @IsBoolean() active?: boolean;
 }
+
+/** Turns the form's values into database values: blank text is cleared, dates become dates. */
+function toData(dto: StudentDetailsDto & { dateOfBirth?: string; nationality?: string }) {
+  const data: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(dto)) if (v !== undefined) data[k] = typeof v === 'string' ? v.trim() || null : v;
+  if (dto.dateOfBirth) data.dateOfBirth = new Date(dto.dateOfBirth);
+  if (dto.enrolledOn) data.enrolledOn = new Date(dto.enrolledOn);
+  return data;
+}
+
+const YEAR = 365.25 * 86400_000;
 
 export class GuardianAccessDto {
   @IsBoolean() restricted: boolean;
@@ -50,6 +89,7 @@ const RELATION_NAME: Record<GuardianRelation, string> = { MOTHER: 'mother', FATH
 const studentInclude = {
   class: { select: { id: true, name: true } },
   guardians: { include: { user: { select: { id: true, name: true, phone: true, email: true, phoneVerifiedAt: true, emailVerifiedAt: true } } }, orderBy: { relation: 'asc' } },
+  files: { select: fileSelect, orderBy: { createdAt: 'asc' } },
 } satisfies Prisma.StudentInclude;
 
 @Injectable()
@@ -57,6 +97,7 @@ export class StudentsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly files: StudentFilesService,
   ) {}
 
   private async checkClass(schoolId: string, classId?: string) {
@@ -87,27 +128,67 @@ export class StudentsService {
     });
   }
 
+  /**
+   * Checks who the student is, against what is already saved:
+   * - an Egyptian student has a national number, and it agrees with the date of birth and gender;
+   * - no two students of the school share a national number;
+   * - the date of birth is a school-age child's (2 to 25 years old).
+   */
+  private async checkIdentity(schoolId: string, next: { id?: string; nationality?: string | null; nationalId?: string | null; dateOfBirth?: Date | null; gender?: Gender | null }) {
+    if (next.dateOfBirth) {
+      const age = (Date.now() - next.dateOfBirth.getTime()) / YEAR;
+      if (age < 2 || age > 25) throw new BadRequestException('Check the date of birth: the student would be ' + Math.floor(age) + ' years old.');
+    }
+    if (next.nationality === 'EG' && !next.nationalId) {
+      throw new BadRequestException('Enter the student’s national number (14 digits, on the birth certificate).');
+    }
+    if (!next.nationalId) return;
+    const id = parseNationalId(next.nationalId);
+    if (!id) throw new BadRequestException('The national number should be 14 digits, as on the birth certificate.');
+    if (next.dateOfBirth && id.dateOfBirth !== next.dateOfBirth.toISOString().slice(0, 10)) {
+      throw new BadRequestException(`The national number says the student was born on ${id.dateOfBirth}. Check the date of birth or the number.`);
+    }
+    if (next.gender && id.gender !== next.gender) {
+      throw new BadRequestException(`The national number is a ${id.gender === 'MALE' ? 'boy' : 'girl'}’s. Check the gender or the number.`);
+    }
+    const other = await this.prisma.student.findFirst({ where: { schoolId, nationalId: next.nationalId, NOT: next.id ? { id: next.id } : undefined }, select: { code: true } });
+    if (other) throw new ConflictException(`Student ${other.code} already has this national number.`);
+  }
+
   async create(user: AuthUser, schoolId: string, dto: StudentDto) {
     await this.checkClass(schoolId, dto.classId);
-    const { parent, ...data } = dto;
-    const { id, parentId } = await this.prisma.$transaction(async (tx) => {
+    const { parent, moreParents = [], files, ...rest } = dto;
+    const data = toData(rest);
+    const school = await this.prisma.school.findUniqueOrThrow({ where: { id: schoolId }, select: { timezone: true } });
+    data.enrolledOn ??= new Date(localParts(new Date(), school.timezone).date);
+    await this.checkIdentity(schoolId, data as any);
+    await this.files.pending(schoolId, files);
+    const { id, parentIds } = await this.prisma.$transaction(async (tx) => {
       const student = await tx.student
-        .create({ data: { ...data, dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : undefined, schoolId } })
-        .catch((e) => mapPrismaError(e, `Student code ${dto.code} is already used.`));
-      return { id: student.id, parentId: await this.link(tx, schoolId, student.id, [], parent) };
+        .create({ data: { ...(data as any), schoolId } })
+        .catch((e) => mapPrismaError(e, e?.meta?.target?.includes?.('nationalId') ? 'Another student already has this national number.' : `Student code ${dto.code} is already used.`));
+      const attached = await tx.studentFile.updateMany({ where: { id: { in: files }, schoolId, studentId: null }, data: { studentId: student.id } });
+      if (attached.count !== new Set(files).size) throw new BadRequestException('Some photos weren’t uploaded. Add them again.');
+      const has: GuardianRelation[] = [];
+      const parentIds: string[] = [];
+      for (const p of [parent, ...moreParents]) {
+        parentIds.push(await this.link(tx, schoolId, student.id, has, p));
+        has.push(p.relation);
+      }
+      return { id: student.id, parentIds };
     });
-    await this.audit.log(user, 'student.create', 'student', id, { code: dto.code, classId: dto.classId, parentId, relation: parent.relation });
+    await this.audit.log(user, 'student.create', 'student', id, { code: dto.code, classId: dto.classId, parentIds });
     return this.get(schoolId, id);
   }
 
   async update(user: AuthUser, schoolId: string, id: string, dto: UpdateStudentDto) {
-    await this.get(schoolId, id);
-    await this.checkClass(schoolId, dto.classId);
-    const student = await this.prisma.student.update({
-      where: { id },
-      data: { ...dto, dateOfBirth: dto.dateOfBirth ? new Date(dto.dateOfBirth) : undefined },
-      include: studentInclude,
-    });
+    const before = await this.get(schoolId, id);
+    await this.checkClass(schoolId, dto.classId || undefined);
+    const data = toData(dto);
+    await this.checkIdentity(schoolId, { ...before, ...(data as any), id });
+    const student = await this.prisma.student
+      .update({ where: { id }, data: data as any, include: studentInclude })
+      .catch((e) => mapPrismaError(e, 'Another student already has this national number.'));
     await this.audit.log(user, 'student.update', 'student', id, { ...dto });
     return student;
   }

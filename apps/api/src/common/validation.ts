@@ -21,3 +21,8 @@ export function mapPrismaError(err: unknown, conflict = 'This already exists.'):
   }
   throw err;
 }
+
+/** The fields that were actually sent: a request's unset fields are left out, so they don't overwrite saved ones. */
+export function defined<T extends object>(dto: T): Partial<T> {
+  return Object.fromEntries(Object.entries(dto).filter(([, v]) => v !== undefined)) as Partial<T>;
+}

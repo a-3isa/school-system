@@ -20,6 +20,10 @@ export default function TodayPage() {
   const date = todayCairo();
   const hasAttendance = me.modules.includes('attendance') && me.role !== 'TEACHER';
   const summary = useApi(hasAttendance ? `/attendance/summary?date=${date}` : null);
+  const status = useApi<any>(`/school/day?date=${date}`);
+  const closed = status.data && !status.data.open
+    ? status.data.reason === 'HOLIDAY' ? t.eg.closed.HOLIDAY(status.data.name) : t.eg.closed[status.data.reason as 'WEEKEND' | 'BREAK' | 'OUTSIDE_YEAR']
+    : null;
   const exceptions = useApi<any[]>(hasAttendance ? `/attendance/exceptions?date=${date}&status=OPEN` : null);
   const messages = useApi<any[]>(me.role === 'TEACHER' ? null : '/notifications');
   const lessons = useApi<Lesson[]>(hasAttendance && me.role === 'SCHOOL_ADMIN' ? `/attendance/my-lessons?date=${date}` : null);
@@ -40,7 +44,8 @@ export default function TodayPage() {
 
   return (
     <>
-      <PageHead sub={day(date)} title={t.today.title} actions={hasAttendance && <LiveStamp at={summary.loadedAt} />} />
+      <PageHead sub={x([day(date), status.data?.term && t.eg.term(status.data.term), status.data?.year].filter(Boolean).join(' · '))} title={t.today.title} actions={hasAttendance && <LiveStamp at={summary.loadedAt} />} />
+      {closed && <Note title={closed} />}
       {!hasAttendance && <Note>{t.today.noAttendance}</Note>}
       {hasAttendance && (
         <>

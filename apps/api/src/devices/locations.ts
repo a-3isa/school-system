@@ -4,6 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { RequiresModule, Roles, SchoolId, SCHOOL_WIDE, STAFF } from '../auth/auth.decorators';
 import { dbDate } from '../common/dates';
 import { localParts, zonedTime } from '../common/time';
+import { SchoolCalendar } from '../setup/calendar';
 import { rulesFor } from './rules';
 
 const MINUTE = 60_000;
@@ -24,7 +25,7 @@ export type LocationState = 'here' | 'recent' | 'missing' | 'left' | 'away' | 'n
  */
 @Injectable()
 export class LocationsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly calendar: SchoolCalendar) {}
 
   private async places(schoolId: string) {
     const gateways = await this.prisma.gateway.findMany({ where: { schoolId }, include: { room: { select: { name: true } } } });
@@ -55,7 +56,7 @@ export class LocationsService {
     // A child not heard for a while is only a worry while school is on.
     const periods = await this.prisma.period.findMany({ where: { schoolId }, orderBy: { startTime: 'asc' }, select: { startTime: true, endTime: true } });
     const lastEnd = periods.reduce((m, p) => (p.endTime > m ? p.endTime : m), '00:00');
-    const schoolHours = school.schoolDays.includes(dayOfWeek) && periods.length > 0 && time >= periods[0].startTime && time <= lastEnd;
+    const schoolHours = school.schoolDays.includes(dayOfWeek) && periods.length > 0 && time >= periods[0].startTime && time <= lastEnd && (await this.calendar.isOpen(school, date));
     const byStrap = await this.lastHeard(schoolId, minRssi, dayStart, at);
     const places = await this.places(schoolId);
     const [students, gate] = await Promise.all([

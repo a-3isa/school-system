@@ -1,7 +1,7 @@
 import { INestApplication } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import request from 'supertest';
-import { Client, login, ownerClient, startApp } from './helpers';
+import { Client, login, ownerClient, startApp, KID, kid } from './helpers';
 import { EmailService } from '../src/auth/email';
 import { WhatsAppService } from '../src/auth/whatsapp';
 
@@ -23,9 +23,9 @@ describe('Parents sign up in the app (e2e)', () => {
     const owner = await ownerClient(app, prisma, 'signup');
     await owner.post('/api/owner/schools', { name: 'Signup School', plan: 'ESSENTIALS', admin: { name: 'A', email: 'admin@signup.eg', password: 'admin-pass' } }).expect(201);
     admin = await login(app, 'admin@signup.eg', 'admin-pass');
-    studentId = (await admin.post('/api/students', { code: 'S1', firstName: 'Mona', lastName: 'Ali', parent: { relation: 'GUARDIAN', name: 'Guardian', email: `g-S1@su.test.eg` } }).expect(201)).body.id;
+    studentId = (await admin.post('/api/students', { ...(await kid(admin)), code: 'S1', firstName: 'Mona', lastName: 'Ali', parent: { relation: 'GUARDIAN', name: 'Guardian', email: `g-S1@su.test.eg` } }).expect(201)).body.id;
     // Someone else already uses this mobile.
-    const other = (await admin.post('/api/students', { code: 'S2', firstName: 'Ziad', lastName: 'Omar', parent: { relation: 'GUARDIAN', name: 'Guardian', email: `g-S2@su.test.eg` } }).expect(201)).body.id;
+    const other = (await admin.post('/api/students', { ...(await kid(admin)), code: 'S2', firstName: 'Ziad', lastName: 'Omar', parent: { relation: 'GUARDIAN', name: 'Guardian', email: `g-S2@su.test.eg` } }).expect(201)).body.id;
     await admin.post(`/api/students/${other}/guardians`, { relation: 'MOTHER', name: 'Dina', email: 'dina@x.eg', phone: '+201600000777' }).expect(201);
   });
 
