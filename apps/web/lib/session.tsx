@@ -11,6 +11,9 @@ export interface Me {
   role: 'OWNER' | 'SCHOOL_ADMIN' | 'TEACHER' | 'TRANSPORT' | 'NURSE' | 'CANTEEN' | 'ACCOUNTANT' | 'PARENT';
   schoolId: string | null;
   schoolName: string | null;
+  schoolNameAr?: string | null;
+  /** The school has uploaded its crest (GET /school/logo). */
+  schoolLogo?: boolean;
   attendanceMode: 'MANUAL' | 'AUTOMATIC' | null;
   /** The school subscribes to automatic attendance: straps, gateways and tracking. */
   straps: boolean;

@@ -199,6 +199,8 @@ export const en = {
     autoOn: 'Registers are taken from the smart bands. Teachers only correct a forgotten band.', autoOff: 'Teachers take the register on the classroom PC.',
     days: 'School days', daysHelp: 'No messages are sent on other days.', absTime: 'Daily absence message', absTimeHelp: 'Parents of students not marked present by this time are informed.',
     saveSettings: 'Save settings', settingsSaved: 'School settings saved',
+    crest: 'School crest', crestHelp: 'Shown across the school’s dashboard. A square PNG or JPG on a white or transparent background works best (up to 1 MB).',
+    crestUpload: 'Upload crest', crestReplace: 'Replace crest', crestRemove: 'Remove', crestSaved: 'Crest updated',
     alwaysOn: 'Always on', inPlan: 'In your plan', notInPlan: 'Not in your plan', needs: (m: string) => `Needs ${m}`, noOptions: 'No options.',
     features: {
       excelImport: 'Excel import', automatic: 'Automatic attendance (smart bands)', leaveEarlyAlerts: 'Messages when a student leaves early',
@@ -253,6 +255,17 @@ export const en = {
 };
 
 export type Dict = typeof en;
+
+/** Arabic counts: the noun changes with the number (طالب واحد، طالبان، 3 طلاب، 11 طالبًا). */
+function arN(n: number, one: string, two: string, few: string, many: string, single = one): string {
+  const r = n % 100;
+  if (n === 0) return `0 ${single}`;
+  if (n === 1) return one;
+  if (n === 2) return two;
+  if (r >= 3 && r <= 10) return `${n} ${few}`;
+  return `${n} ${many}`;
+}
+const students = (n: number) => arN(n, 'طالب واحد', 'طالبان', 'طلاب', 'طالبًا', 'طالب');
 
 export const ar: Dict = {
   common: {
@@ -322,7 +335,7 @@ export const ar: Dict = {
     noGateways: 'لا توجد أجهزة قراءة بعد. أضف جهازًا من صفحة «الأجهزة» لعرض أماكن الطلاب.',
   },
   students: {
-    sub: (n) => `${n} طالبًا`, titleStaff: 'الطلاب', add: 'إضافة طالب', added: (name) => `تمت إضافة ${name}`,
+    sub: students, titleStaff: 'الطلاب', add: 'إضافة طالب', added: (name) => `تمت إضافة ${name}`,
     search: 'البحث بالاسم أو كود الطالب', firstName: 'الاسم الأول', lastName: 'اسم العائلة', nameAr: 'الاسم بالعربية', code: 'كود الطالب',
     noClass: 'لم يُحدَّد بعد', parents: 'أولياء الأمور', mother: 'الأم', father: 'الأب', guardian: 'الوصي', noParent: 'لا يوجد ولي أمر أو وصي مسجّل', noMatch: 'لا يوجد طلاب مطابقون.',
     rel: { MOTHER: 'الأم', FATHER: 'الأب', GUARDIAN: 'الوصي' },
@@ -348,7 +361,7 @@ export const ar: Dict = {
     addChild: 'ربط أخ أو أخت', student: 'الطالب', link: 'ربط', linked: 'تم الربط', inactive: 'لم يعد مقيدًا بالمدرسة',
   },
   classes: {
-    sub: (n) => `${n} فصول`, grade: 'الصف الدراسي', homeroom: 'رائد الفصل', students: 'الطلاب', nStudents: (n) => `${n} طالبًا`,
+    sub: (n) => arN(n, 'فصل واحد', 'فصلان', 'فصول', 'فصلًا', 'فصل'), grade: 'الصف الدراسي', homeroom: 'رائد الفصل', students: 'الطلاب', nStudents: students,
     none: 'لا توجد فصول بعد. أضفها من «هيكل المدرسة والعام الدراسي».', noStudents: 'لا يوجد طلاب في هذا الفصل بعد.', noHomeroom: 'لم يُحدَّد رائد الفصل',
     timetable: 'الجدول',
   },
@@ -398,7 +411,7 @@ export const ar: Dict = {
     addYear: 'إضافة عام دراسي', yearAdded: 'تم حفظ العام الدراسي', noYear: 'لم يُحدَّد العام الدراسي بعد: تُحتسب كل أيام الدراسة في الأسبوع.',
     term: (n) => (n === 1 ? 'الفصل الدراسي الأول' : 'الفصل الدراسي الثاني'),
     holidaysTitle: 'العطلات', holidaysHelp: 'العطلات الرسمية والأعياد وأيام إغلاق المدرسة. مواعيد الأعياد تتبع التقويم الهجري، لذا يُرجى إضافتها عند إعلانها.',
-    holidayName: 'العطلة', from: 'من', to: 'إلى', addHoliday: 'إضافة عطلة', addEgyptHolidays: 'إضافة العطلات الرسمية الثابتة', holidaysAdded: (n) => (n ? `تمت إضافة ${n} عطلات` : 'جميع العطلات الرسمية مضافة بالفعل'), noHolidays: 'لا توجد عطلات بعد.',
+    holidayName: 'العطلة', from: 'من', to: 'إلى', addHoliday: 'إضافة عطلة', addEgyptHolidays: 'إضافة العطلات الرسمية الثابتة', holidaysAdded: (n) => (n ? `تمت إضافة ${arN(n, 'عطلة واحدة', 'عطلتين', 'عطلات', 'عطلة')}` : 'جميع العطلات الرسمية مضافة بالفعل'), noHolidays: 'لا توجد عطلات بعد.',
     closed: { WEEKEND: 'المدرسة مغلقة اليوم لعطلة نهاية الأسبوع.', HOLIDAY: (n) => `المدرسة مغلقة اليوم: ${n}.`, BREAK: 'المدرسة مغلقة لإجازة نصف العام.', OUTSIDE_YEAR: 'المدرسة مغلقة: خارج العام الدراسي.' },
     editClass: 'تعديل الفصل', saveClass: 'حفظ الفصل', classSaved: 'تم حفظ الفصل', allStages: 'كل المراحل',
   },
@@ -407,13 +420,13 @@ export const ar: Dict = {
     s1Title: 'ابدأ من النموذج', s1Text: 'صف لكل طالب: الاسم، والاسم بالعربية، والكود، والفصل، ثم اسم الأم أو الأب أو الوصي وبريده الإلكتروني (مطلوب) ورقم هاتفه. يلزم واحد منهم على الأقل لكل طالب. الكود المسجّل مسبقًا يحدّث بيانات الطالب. يُرجى عدم تعديل الصف الأول.',
     s1Download: 'تنزيل النموذج (.xlsx)', haveFile: 'الملف جاهز لدي',
     s2Title: 'ارفع الملف', s2Text: 'تتم مراجعة كل صف قبل حفظ أي بيانات.', s2Drop: 'اختر ملف Excel', s2Check: 'مراجعة الملف',
-    s3Fix: (n) => (n === 1 ? 'صف واحد يحتاج تصحيح' : `${n} صفوف تحتاج تصحيح`),
+    s3Fix: (n) => (n === 1 ? 'صف واحد يحتاج إلى تصحيح' : n === 2 ? 'صفّان يحتاجان إلى تصحيح' : `${arN(n, '', '', 'صفوف', 'صفًا')} تحتاج إلى تصحيح`),
     s3FixText: 'لن يُحفظ شيء حتى تصح جميع الصفوف. يُرجى تصحيح هذه الصفوف في Excel ثم رفع الملف مجددًا.',
     s3Ready: 'كل الصفوف جاهزة',
     s3ReadyText: (create, update, parents, straps) => `${create} طلاب جدد، و${update} تحديثًا، و${parents} من أولياء الأمور، و${straps} أساور ذكية.`,
     kRows: 'الصفوف', kReady: 'جاهزة', kProblems: 'بها مشاكل', row: (n) => `صف ${n}`,
-    importN: (n) => `استيراد ${n} صفوف`, uploadFixed: 'رفع ملف مصحح',
-    s4Title: (n) => `تم استيراد ${n} صفوف`, s4Text: 'يمكن لأولياء الأمور الآن التسجيل في تطبيق المدرسة بالبريد الإلكتروني الوارد في الملف.', seeStudents: 'عرض الطلاب', doneToast: 'تم الاستيراد',
+    importN: (n) => `استيراد ${arN(n, 'صف واحد', 'صفّين', 'صفوف', 'صفًا')}`, uploadFixed: 'رفع ملف مصحح',
+    s4Title: (n) => `تم استيراد ${arN(n, 'صف واحد', 'صفّين', 'صفوف', 'صفًا')}`, s4Text: 'يمكن لأولياء الأمور الآن التسجيل في تطبيق المدرسة بالبريد الإلكتروني الوارد في الملف.', seeStudents: 'عرض الطلاب', doneToast: 'تم الاستيراد',
   },
   staff: {
     sub: 'حسابات فريق العمل بالمدرسة', add: 'إضافة عضو', added: (name) => `يمكن لـ ${name} تسجيل الدخول الآن`,
@@ -424,7 +437,7 @@ export const ar: Dict = {
     classes: 'الفصول', rooms: 'القاعات', periods: 'الحصص', grades: 'الصفوف الدراسية', subjects: 'المواد',
     newClass: 'فصل جديد، مثل 4/1', grade: 'الصف الدراسي', homeroom: 'رائد الفصل', newRoom: 'قاعة جديدة', kind: 'النوع',
     number: 'الرقم', starts: 'البداية', ends: 'النهاية', newGrade: 'صف جديد، مثل الصف الرابع', order: 'الترتيب', newSubject: 'مادة جديدة',
-    nStudents: (n) => `${n} طالبًا`,
+    nStudents: students,
     roomKinds: { CLASSROOM: 'فصل', LAB: 'معمل', LIBRARY: 'مكتبة', SPORTS: 'ملعب', OTHER: 'أخرى' },
   },
   tt: {
@@ -451,6 +464,8 @@ export const ar: Dict = {
     autoOn: 'يُسجَّل الحضور من الأساور الذكية، ويصحّح المعلم فقط حالات نسيان السوار.', autoOff: 'يسجّل المعلم الحضور على حاسوب الفصل.',
     days: 'أيام الدراسة', daysHelp: 'لا تُرسل رسائل في الأيام الأخرى.', absTime: 'رسالة الغياب اليومية', absTimeHelp: 'يُبلَغ أولياء أمور الطلاب غير المسجلين حضورًا حتى هذا الوقت.',
     saveSettings: 'حفظ الإعدادات', settingsSaved: 'تم حفظ إعدادات المدرسة',
+    crest: 'شعار المدرسة', crestHelp: 'يظهر في لوحة المدرسة. يُفضَّل شعار مربع بصيغة PNG أو JPG على خلفية بيضاء أو شفافة (حتى 1 ميجابايت).',
+    crestUpload: 'رفع الشعار', crestReplace: 'تغيير الشعار', crestRemove: 'إزالة', crestSaved: 'تم تحديث الشعار',
     alwaysOn: 'مفعّل دائمًا', inPlan: 'ضمن باقتك', notInPlan: 'ليس ضمن باقتك', needs: (m) => `يحتاج ${m}`, noOptions: 'لا توجد خيارات.',
     features: {
       excelImport: 'الاستيراد من Excel', automatic: 'الحضور التلقائي (الأساور الذكية)', leaveEarlyAlerts: 'رسائل عند انصراف الطالب مبكرًا',
@@ -478,7 +493,7 @@ export const ar: Dict = {
     },
   },
   owner: {
-    sub: (n) => (n === 1 ? 'مدرسة واحدة على المنصة' : `${n} مدارس على المنصة`), create: 'إنشاء مدرسة', createBtn: 'إنشاء المدرسة',
+    sub: (n) => `${arN(n, 'مدرسة واحدة', 'مدرستان', 'مدارس', 'مدرسة')} على المنصة`, create: 'إنشاء مدرسة', createBtn: 'إنشاء المدرسة',
     created: (name) => `تم إنشاء ${name}. يمكن لمسؤولها الدخول الآن.`,
     schoolName: 'اسم المدرسة', nameAr: 'الاسم بالعربية (اختياري)', plan: 'الباقة', adminName: 'اسم أول مسؤول', adminEmail: 'بريد أول مسؤول',
     school: 'المدرسة', modules: 'الوحدات', manage: 'إدارة', noSchools: 'لا توجد مدارس بعد.',

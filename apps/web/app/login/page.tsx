@@ -92,13 +92,9 @@ export default function LoginPage() {
   return (
     <div className="signin">
       <section className="signin-side">
-        <b>{t.common.platformName}</b>
+        <b><span className="crest monogram">S</span>{t.common.platformName}</b>
         <div>
-          <div className="signin-ruler" aria-hidden="true">
-            {[['45', 'var(--dash)'], ['45', 'var(--dash)'], ['20', 'transparent'], ['45', 'var(--accent)'], ['45', ''], ['20', 'transparent'], ['45', ''], ['45', '']].map(([f, c], i) => (
-              <span key={i} style={{ flex: Number(f), height: c === 'var(--accent)' ? 14 : 6, background: c || undefined, borderRadius: 3 }} />
-            ))}
-          </div>
+          <div className="signin-rule" aria-hidden="true">✦</div>
           <p>{t.login.tagline}</p>
         </div>
         <small>{t.login.help}</small>

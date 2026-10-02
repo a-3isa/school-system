@@ -8,6 +8,7 @@ import { LangSwitch, useI18n } from '@/lib/i18n';
 import { useSession } from '@/lib/session';
 import { Dict } from '@/lib/strings';
 import { initials, Toaster } from './ui';
+import { Crest } from './Crest';
 
 type NavKey = keyof Dict['nav'];
 
@@ -64,7 +65,7 @@ const OWNER_NAV: { group: NavKey; items: NavItem[] }[] = [
 
 export function Shell({ children }: { children: ReactNode }) {
   const { me, logout } = useSession();
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const pathname = usePathname();
   const router = useRouter();
   const roleName = t.roles[me.role as keyof Dict['roles']] ?? me.role;
@@ -99,7 +100,7 @@ export function Shell({ children }: { children: ReactNode }) {
       <div className="app solo">
         <main className="main">
           <div className="topbar">
-            <span className="topbar-school"><b>{schoolName}</b><span>{strapsLabel}</span></span>
+            <span className="topbar-school"><Crest name={schoolName} hasLogo={me.schoolLogo} /><b>{lang === 'ar' && me.schoolNameAr ? me.schoolNameAr : schoolName}</b><span>{strapsLabel}</span></span>
             <div className="topbar-right">
               <span className="me">
                 <span className="avatar" aria-hidden="true">{initials(me.name)}</span>
@@ -120,8 +121,11 @@ export function Shell({ children }: { children: ReactNode }) {
     <div className="app">
       <aside className="side">
         <div className="side-school">
-          <b>{schoolName}</b>
-          <span>{strapsLabel}</span>
+          <Crest name={schoolName} hasLogo={me.schoolLogo} />
+          <span className="school-text">
+            <b>{lang === 'ar' && me.schoolNameAr ? me.schoolNameAr : schoolName}</b>
+            <span>{strapsLabel}</span>
+          </span>
         </div>
         {groups.map((g) => (
           <nav className="nav" key={g.group} aria-label={t.nav[g.group]}>

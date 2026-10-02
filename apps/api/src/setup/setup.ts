@@ -1,4 +1,7 @@
-import { BadRequestException, Body, Controller, Delete, Get, Injectable, Module, NotFoundException, Param, Patch, Post, Query } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, Injectable, Module, NotFoundException, Param, Patch, Post, Put, Query, Res, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import type { Response } from 'express';
+import { sniff } from '../students/files';
 import { AttendanceMode, ClassGender, Role, RoomKind, SchoolSystem, SecondaryStream, Stage } from '@prisma/client';
 import { ArrayMaxSize, ArrayMinSize, IsArray, IsDateString, IsEnum, IsIn, IsInt, IsOptional, IsString, Matches, Max, Min, MinLength, ValidateIf } from 'class-validator';
 import { PrismaService } from '../prisma/prisma.service';
@@ -190,6 +193,38 @@ export class SchoolController {
   @Get()
   get(@SchoolId() schoolId: string) {
     return this.setup.school(schoolId);
+  }
+
+  /** The school's crest, for staff and parents of the school. */
+  @Get('logo')
+  async logo(@SchoolId() schoolId: string, @Res() res: Response) {
+    const school = await this.prisma.school.findUniqueOrThrow({ where: { id: schoolId }, select: { logo: true, logoMime: true } });
+    if (!school.logo || !school.logoMime) throw new NotFoundException('This school has no crest yet.');
+    res.setHeader('content-type', school.logoMime);
+    res.setHeader('x-content-type-options', 'nosniff');
+    res.setHeader('cache-control', 'private, max-age=600');
+    res.send(Buffer.from(school.logo));
+  }
+
+  /** Sets the crest: a PNG, JPEG or WebP image up to 1 MB (no SVG: it could carry script). */
+  @Roles(Role.SCHOOL_ADMIN)
+  @Put('logo')
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 1024 * 1024 } }))
+  async setLogo(@CurrentUser() user: AuthUser, @SchoolId() schoolId: string, @UploadedFile() file: Express.Multer.File | undefined) {
+    if (!file) throw new BadRequestException('Attach the crest as “file”.');
+    const mime = sniff(file.buffer);
+    if (!mime || mime === 'application/pdf') throw new BadRequestException('Please use a PNG, JPG or WebP image for the crest.');
+    await this.prisma.school.update({ where: { id: schoolId }, data: { logo: new Uint8Array(file.buffer), logoMime: mime } });
+    await this.audit.log(user, 'school.logo', 'school', schoolId, { size: file.size });
+    return { ok: true };
+  }
+
+  @Roles(Role.SCHOOL_ADMIN)
+  @Delete('logo')
+  async removeLogo(@CurrentUser() user: AuthUser, @SchoolId() schoolId: string) {
+    await this.prisma.school.update({ where: { id: schoolId }, data: { logo: null, logoMime: null } });
+    await this.audit.log(user, 'school.logo', 'school', schoolId, { removed: true });
+    return { ok: true };
   }
 
   /** Whether there's school on a day, and which term it is in. */

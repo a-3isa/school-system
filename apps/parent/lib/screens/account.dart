@@ -54,7 +54,7 @@ class _AccountTabState extends State<AccountTab> {
           constraints: BoxConstraints(minHeight: box.maxHeight - 32),
           child: IntrinsicHeight(
             child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-              Text(s.tabAccount, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w600)),
+              Text(s.tabAccount, style: Brand.display(context, size: 24)),
               const SizedBox(height: 18),
               Divider(color: c.line, height: 1),
               row(s.name, Text(widget.me['name'] as String? ?? '', style: value)),

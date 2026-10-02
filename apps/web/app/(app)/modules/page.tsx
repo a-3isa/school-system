@@ -1,6 +1,7 @@
 'use client';
 import { FormEvent, useEffect, useState } from 'react';
-import { patch } from '@/lib/api';
+import { del, patch, upload } from '@/lib/api';
+import { Crest } from '@/components/Crest';
 import { useAction, useApi } from '@/lib/hooks';
 import { useI18n } from '@/lib/i18n';
 import { useSession } from '@/lib/session';
@@ -10,7 +11,8 @@ import { ErrorNote, PageHead, Pill, Section, Switch, toast } from '@/components/
 const WEEK = [6, 0, 1, 2, 3, 4, 5];
 
 export default function ModulesPage() {
-  const { refresh } = useSession();
+  const { me, refresh } = useSession();
+  const [crestVersion, setCrestVersion] = useState(0);
   const { t } = useI18n();
   const modules = useApi<any[]>('/modules');
   const school = useApi('/school');
@@ -42,6 +44,25 @@ export default function ModulesPage() {
     <>
       <PageHead sub={t.modules.sub} title={t.nav.modules} />
       <ErrorNote error={act.error} />
+      <div className="panel">
+        <div className="settings-row">
+          <span className="crest-row">
+            <span className="crest-lg"><Crest name={me.schoolName ?? ''} hasLogo={me.schoolLogo} version={crestVersion} /></span>
+            <span className="crest-text"><b>{t.modules.crest}</b><span>{t.modules.crestHelp}</span></span>
+          </span>
+          <span className="row" style={{ gap: 8 }}>
+            <label className="btn small">
+              {me.schoolLogo ? t.modules.crestReplace : t.modules.crestUpload}
+              <input type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={async (e) => {
+                const f = e.target.files?.[0];
+                e.target.value = '';
+                if (f && (await act.run(() => upload('/school/logo', f, {}, 'PUT')))) { await refresh(); setCrestVersion((v) => v + 1); toast(t.modules.crestSaved); }
+              }} />
+            </label>
+            {me.schoolLogo && <button type="button" className="btn small" onClick={async () => { if (await act.run(() => del('/school/logo'))) { await refresh(); toast(t.modules.crestSaved); } }}>{t.modules.crestRemove}</button>}
+          </span>
+        </div>
+      </div>
       <form className="panel" onSubmit={saveSettings}>
         <div className="settings-row">
           <span><b>{t.modules.auto}</b><span>{automaticAllowed ? t.modules.autoOn : t.modules.autoOff}</span></span>

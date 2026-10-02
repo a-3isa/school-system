@@ -311,7 +311,7 @@ export class AuthService {
       where: { id: auth.id },
       select: {
         id: true, name: true, email: true, phone: true, phoneVerifiedAt: true, role: true, schoolId: true, consentAt: true,
-        school: { select: { name: true, attendanceMode: true } },
+        school: { select: { name: true, nameAr: true, attendanceMode: true, logoMime: true } },
       },
     });
     const rows = auth.schoolId ? await this.prisma.schoolModule.findMany({ where: { schoolId: auth.schoolId, enabled: true } }) : [];
@@ -319,7 +319,7 @@ export class AuthService {
     // The school subscribes to automatic attendance: straps, gateways and tracking.
     const straps = !!(rows.find((m) => m.key === 'attendance')?.features as Record<string, boolean> | undefined)?.automatic;
     const { school, ...rest } = user;
-    return { ...rest, schoolName: school?.name ?? null, attendanceMode: school?.attendanceMode ?? null, straps, modules };
+    return { ...rest, schoolName: school?.name ?? null, schoolNameAr: school?.nameAr ?? null, schoolLogo: !!school?.logoMime, attendanceMode: school?.attendanceMode ?? null, straps, modules };
   }
 }
 

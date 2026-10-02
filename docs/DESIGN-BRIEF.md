@@ -4,7 +4,7 @@ Paste everything below the line into Claude Design. It describes the product, th
 
 ---
 
-Design the interface for a school attendance platform: a **web dashboard** for school staff and a **parent mobile app**. Everything below is already built and working; I want a new, crafted visual design and better UX for it, not new features. Avoid the generic "AI dashboard" look (purple gradients, glassmorphism, stock icons in coloured circles, everything in cards with big shadows). It should feel calm, trustworthy and made for schools in Egypt.
+Design the interface for a school attendance platform: a **web dashboard** for school staff and a **parent mobile app**. Everything below is already built and working; I want a new, crafted visual design and better UX for it, not new features. Avoid the generic "AI dashboard" look (purple gradients, glassmorphism, stock icons in coloured circles, everything in cards with big shadows). It should feel calm, trustworthy and made for Egypt's private, language and international schools: the polish of a good school's own stationery, never flashy. The direction now built (ivory, navy, a touch of brass-gold, serif headings, the school's crest) is described in SYSTEM.md, section 11.
 
 ## The product
 
@@ -133,7 +133,7 @@ Screens:
 - **Classroom PC:** 1366×768 or 1920×1080, sometimes a touch screen.
 - **Parent app:** works on cheap Android phones; light and dark.
 - **Motion:** live updates must not jump the layout or steal focus. Indicate "updated just now" quietly.
-- **Copy:** short plain sentences, like the examples above. No jargon (no "RSSI", "gateway" only in admin screens).
+- **Copy:** short, courteous sentences, like the examples above. British spelling; refined Arabic with polite forms. No jargon (no "RSSI"; "readers" only in admin screens).
 
 ## Sample data to use
 

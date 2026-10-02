@@ -1,6 +1,6 @@
 import { INestApplication } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
-import { Client, kid, login, ownerClient, startApp } from './helpers';
+import { Client, kid, login, ownerClient, PNG, startApp } from './helpers';
 
 // How an Egyptian school is organised: stages and grades, class details, and
 // the school year with its terms, mid-year break and holidays.
@@ -83,9 +83,20 @@ describe('Egyptian school structure (e2e)', () => {
     expect((await admin.get('/api/school/holidays').expect(200)).body).toHaveLength(5);
   });
 
-  it('has a social worker who follows up absences', async () => {
+  it('keeps the school’s crest', async () => {
     await admin.post('/api/staff', { name: 'Hoda', role: 'SOCIAL_WORKER', email: 'hoda@eg.eg', password: 'worker-pass-1' }).expect(201);
     worker = await login(app, 'hoda@eg.eg', 'worker-pass-1');
+    expect((await admin.get('/api/auth/me').expect(200)).body.schoolLogo).toBe(false);
+    await admin.get('/api/school/logo').expect(404);
+    await admin.upload('/api/school/logo', {}, Buffer.from('<svg onload="alert(1)"/>'), 'crest.svg', 'put').expect(400);
+    await worker.upload('/api/school/logo', {}, PNG, 'crest.png', 'put').expect(403);
+    await admin.upload('/api/school/logo', {}, PNG, 'crest.png', 'put').expect(200);
+    expect((await admin.get('/api/auth/me').expect(200)).body.schoolLogo).toBe(true);
+    const crest = await worker.get('/api/school/logo').expect(200);
+    expect(crest.headers['content-type']).toBe('image/png');
+  });
+
+  it('has a social worker who follows up absences', async () => {
     await worker.get('/api/students').expect(200);
     await worker.get('/api/attendance/exceptions').expect(200);
     await worker.post('/api/grades/egypt', { stages: ['KG'] }).expect(403);

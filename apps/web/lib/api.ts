@@ -79,12 +79,12 @@ export function dateTimeCairo(iso: string | null | undefined): string {
 }
 
 /** Sends a file as multipart form data under the field name "file", with any other fields. */
-export async function upload<T = any>(path: string, file: File, fields: Record<string, string> = {}): Promise<T> {
+export async function upload<T = any>(path: string, file: File, fields: Record<string, string> = {}, method: 'POST' | 'PUT' = 'POST'): Promise<T> {
   const token = getToken();
   const form = new FormData();
   for (const [k, v] of Object.entries(fields)) form.append(k, v);
   form.append('file', file);
-  const res = await fetch(`${API_URL}${path}`, { method: 'POST', body: form, headers: token ? { authorization: `Bearer ${token}` } : {} });
+  const res = await fetch(`${API_URL}${path}`, { method, body: form, headers: token ? { authorization: `Bearer ${token}` } : {} });
   const data = await res.json().catch(() => null);
   if (!res.ok) throw new ApiError(res.status, Array.isArray(data?.message) ? data.message.join(' ') : data?.message ?? `Upload failed (${res.status}).`);
   return data as T;

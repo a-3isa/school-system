@@ -64,7 +64,7 @@ class FormPage extends StatelessWidget {
               Text(s.stepOf(step!.$1, step!.$2), style: TextStyle(fontSize: 13, color: c.ink2, fontWeight: FontWeight.w600)),
               const SizedBox(height: 16),
             ],
-            Text(title, style: const TextStyle(fontSize: 25, fontWeight: FontWeight.w600, height: 1.25)),
+            Text(title, style: Brand.display(context, size: 25)),
             if (sub != null) ...[
               const SizedBox(height: 8),
               Text.rich(
@@ -256,7 +256,7 @@ class _CodeFieldState extends State<CodeField> {
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                     color: c.surface,
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(Brand.radius),
                     border: _focus.hasFocus && i == text.length.clamp(0, 5)
                         ? Border.all(color: c.primary, width: 2)
                         : Border.all(color: c.line),
