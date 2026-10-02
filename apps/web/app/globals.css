@@ -136,6 +136,13 @@ html[lang='ar'] .nav-label { letter-spacing: 0; font-size: 12px; }
 .lang button { height: 32px; padding: 0 12px; border: 0; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 600; background: transparent; }
 .lang button[lang='ar'] { font-family: var(--arabic); font-size: 14px; }
 .lang button[aria-pressed='true'] { background: var(--surface); }
+@media (min-width: 901px) and (max-height: 900px) {
+  .side { gap: 10px; padding-block: 14px; }
+  .nav a { min-height: 32px; }
+  .nav-label { padding-bottom: 4px; }
+  .side-foot { flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding-top: 12px; }
+  .side-foot .me { flex-basis: 100%; }
+}
 .signout { border: 0; background: none; padding: 6px 4px; color: var(--accent); font-weight: 600; font-size: 14px; cursor: pointer; text-align: start; }
 .main { padding: 20px 40px 120px; display: flex; flex-direction: column; gap: 24px; min-width: 0; max-width: 1480px; width: 100%; margin: 0 auto; }
 .topbar { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding-bottom: 14px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }

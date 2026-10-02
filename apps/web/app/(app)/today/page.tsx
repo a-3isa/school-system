@@ -116,7 +116,7 @@ export default function TodayPage() {
                 <span style={{ width: 8, height: 8, borderRadius: '50%', marginTop: 7, background: m.readAt ? 'transparent' : 'var(--accent)' }} />
                 <span className="stack" style={{ gap: 3 }}>
                   <span style={{ fontSize: 15, lineHeight: 1.5, fontWeight: m.readAt ? 400 : 600 }}>{x(m.title)}</span>
-                  <span className="small cap">{x(`${m.body} · ${dateTimeCairo(m.createdAt)}`)}</span>
+                  <span className="small cap">{x(m.body)} · {x(dateTimeCairo(m.createdAt))}</span>
                 </span>
                 {!m.readAt && <button type="button" className="btn small" onClick={() => markRead([m.id])}>{t.today.markRead}</button>}
               </div>

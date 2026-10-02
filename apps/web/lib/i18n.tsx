@@ -20,6 +20,31 @@ export function isolateLatin(s: string): string {
   return LATIN.test(s) ? `\u2066${s}\u2069` : s;
 }
 
+/**
+ * Exceptions and school messages are written by the server in English. In
+ * Arabic, the known sentences are said again in Arabic; anything else is shown
+ * as it came.
+ */
+const SERVER_AR: [RegExp, (...m: string[]) => string][] = [
+  [/^(.+) came in at (\d\d:\d\d) but hasn’t been in (\S+) (.+) in (.+) \(period (\d+)\)\.$/, (_, n, at, c, sub, room, p) => `${n}: دخول المدرسة الساعة ${at}، ولا حضور في ${sub} لفصل ${c} في ${room} (الحصة ${p}).`],
+  [/^(.+) was in (\S+) (.+) \(period (\d+)\) for only (\d+)% of the lesson\.$/, (_, n, c, sub, p, pct) => `${n}: حضور ${pct}% فقط من ${sub} لفصل ${c} (الحصة ${p}).`],
+  [/^(.+) arrived at (\d\d:\d\d) but wasn’t in (\S+) (.+) \(period (\d+)\)\.$/, (_, n, at, c, sub, p) => `${n}: وصول الساعة ${at}، ولا حضور في ${sub} لفصل ${c} (الحصة ${p}).`],
+  [/^(.+) went out through the gate at (\d\d:\d\d) before the end of the school day\.$/, (_, n, at) => `${n}: خروج من البوابة الساعة ${at} قبل نهاية اليوم الدراسي.`],
+  [/^Gateway “(.+)” in (.+) isn’t reporting\. Lessons there switch to manual marking\.$/, (_, g, room) => `جهاز الاستقبال «${g}» في ${room} لا يرسل. الحصص هناك تُسجل يدويًا.`],
+  [/^Gateway “(.+)” isn’t reporting\. Lessons there switch to manual marking\.$/, (_, g) => `جهاز الاستقبال «${g}» لا يرسل. الحصص هناك تُسجل يدويًا.`],
+  [/^(.+)’s strap battery is at (\d+)%\. Replace the battery soon\.$/, (_, n, b) => `بطارية سوار ${n} عند ${b}%. استبدلها قريبًا.`],
+  [/^(.+) changed their mobile$/, (_, n) => `${n}: رقم موبايل جديد`],
+  [/^(.+) checked a new mobile, (\+\d+), (when signing up in the app|in the app)\. It replaces (\+\d+)\.$/, (_, n, ph, how, old) => `${n}: تأكيد رقم جديد ${ph} ${how === 'in the app' ? 'من التطبيق' : 'عند التسجيل في التطبيق'}، بدلًا من ${old}.`],
+  [/^(.+) checked their mobile, (\+\d+), (when signing up in the app|in the app)\.$/, (_, n, ph, how) => `${n}: تأكيد الرقم ${ph} ${how === 'in the app' ? 'من التطبيق' : 'عند التسجيل في التطبيق'}.`],
+];
+export function serverTextAr(s: string): string {
+  for (const [re, f] of SERVER_AR) {
+    const m = s.match(re);
+    if (m) return f(...m);
+  }
+  return s;
+}
+
 interface I18n {
   lang: Lang;
   dir: 'ltr' | 'rtl';
@@ -66,7 +91,7 @@ export function LangProvider({ children }: { children: ReactNode }) {
       dir: lang === 'ar' ? 'rtl' : 'ltr',
       t: DICTS[lang],
       setLang,
-      x: lang === 'ar' ? isolateLatin : (s: string) => s,
+      x: lang === 'ar' ? (s: string) => isolateLatin(serverTextAr(s)) : (s: string) => s,
       day: (date, opts = { weekday: 'long', day: 'numeric', month: 'long' }) =>
         new Intl.DateTimeFormat(locale, { ...opts, timeZone: 'UTC' }).format(new Date(`${date}T00:00:00Z`)),
     };

@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { ReactNode } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { ReactNode, useEffect } from 'react';
 import { todayCairo } from '@/lib/api';
 import { useApi, useEvery } from '@/lib/hooks';
 import { LangSwitch, useI18n } from '@/lib/i18n';
@@ -64,6 +64,7 @@ export function Shell({ children }: { children: ReactNode }) {
   const { me, logout } = useSession();
   const { t } = useI18n();
   const pathname = usePathname();
+  const router = useRouter();
   const roleName = t.roles[me.role as keyof Dict['roles']] ?? me.role;
   const schoolName = me.schoolName ?? t.common.platformName;
   const strapsLabel = me.role === 'OWNER' ? t.roles.OWNER : me.straps ? t.shell.withStraps : t.shell.withoutStraps;
@@ -71,6 +72,24 @@ export function Shell({ children }: { children: ReactNode }) {
   const showCount = me.modules.includes('attendance') && SCHOOL_WIDE.includes(me.role);
   const open = useApi<any[]>(showCount ? `/attendance/exceptions?date=${todayCairo()}&status=OPEN` : null);
   useEvery(60_000, open.reload, showCount);
+
+  const groups = (me.role === 'OWNER' ? OWNER_NAV : SCHOOL_NAV)
+    .map((g) => ({
+      ...g,
+      items: g.items.filter((i) => (!i.module || me.modules.includes(i.module)) && (!i.roles || i.roles.includes(me.role)) && (!i.straps || me.straps)),
+    }))
+    .filter((g) => g.items.length);
+  // The most specific matching link is the current page.
+  const current = groups.flatMap((g) => g.items).filter((i) => pathname === i.href || pathname.startsWith(`${i.href}/`))
+    .sort((a, b) => b.href.length - a.href.length)[0]?.href;
+
+  // Nobody stays on a page that isn't theirs (typed in, or a school without straps).
+  const home = me.role === 'TEACHER' ? '/class' : groups[0]?.items[0]?.href;
+  const allowed = me.role === 'TEACHER' ? pathname === '/class' : !!current;
+  useEffect(() => {
+    if (!allowed && home && pathname !== home) router.replace(home);
+  }, [allowed, home, pathname, router]);
+  if (!allowed) return null;
 
   // A teacher has one screen and no menu: the class in front of them.
   if (me.role === 'TEACHER') {
@@ -94,16 +113,6 @@ export function Shell({ children }: { children: ReactNode }) {
       </div>
     );
   }
-
-  const groups = (me.role === 'OWNER' ? OWNER_NAV : SCHOOL_NAV)
-    .map((g) => ({
-      ...g,
-      items: g.items.filter((i) => (!i.module || me.modules.includes(i.module)) && (!i.roles || i.roles.includes(me.role)) && (!i.straps || me.straps)),
-    }))
-    .filter((g) => g.items.length);
-  // The most specific matching link is the current page.
-  const current = groups.flatMap((g) => g.items).filter((i) => pathname === i.href || pathname.startsWith(`${i.href}/`))
-    .sort((a, b) => b.href.length - a.href.length)[0]?.href;
 
   return (
     <div className="app">
