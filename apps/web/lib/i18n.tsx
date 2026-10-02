@@ -26,16 +26,16 @@ export function isolateLatin(s: string): string {
  * as it came.
  */
 const SERVER_AR: [RegExp, (...m: string[]) => string][] = [
-  [/^(.+) came in at (\d\d:\d\d) but hasn’t been in (\S+) (.+) in (.+) \(period (\d+)\)\.$/, (_, n, at, c, sub, room, p) => `${n}: دخول المدرسة الساعة ${at}، ولا حضور في ${sub} لفصل ${c} في ${room} (الحصة ${p}).`],
-  [/^(.+) was in (\S+) (.+) \(period (\d+)\) for only (\d+)% of the lesson\.$/, (_, n, c, sub, p, pct) => `${n}: حضور ${pct}% فقط من ${sub} لفصل ${c} (الحصة ${p}).`],
-  [/^(.+) arrived at (\d\d:\d\d) but wasn’t in (\S+) (.+) \(period (\d+)\)\.$/, (_, n, at, c, sub, p) => `${n}: وصول الساعة ${at}، ولا حضور في ${sub} لفصل ${c} (الحصة ${p}).`],
-  [/^(.+) went out through the gate at (\d\d:\d\d) before the end of the school day\.$/, (_, n, at) => `${n}: خروج من البوابة الساعة ${at} قبل نهاية اليوم الدراسي.`],
-  [/^Gateway “(.+)” in (.+) isn’t reporting\. Lessons there switch to manual marking\.$/, (_, g, room) => `جهاز الاستقبال «${g}» في ${room} لا يرسل. الحصص هناك تُسجل يدويًا.`],
-  [/^Gateway “(.+)” isn’t reporting\. Lessons there switch to manual marking\.$/, (_, g) => `جهاز الاستقبال «${g}» لا يرسل. الحصص هناك تُسجل يدويًا.`],
-  [/^(.+)’s strap battery is at (\d+)%\. Replace the battery soon\.$/, (_, n, b) => `بطارية سوار ${n} عند ${b}%. استبدلها قريبًا.`],
-  [/^(.+) changed their mobile$/, (_, n) => `${n}: رقم موبايل جديد`],
-  [/^(.+) checked a new mobile, (\+\d+), (when signing up in the app|in the app)\. It replaces (\+\d+)\.$/, (_, n, ph, how, old) => `${n}: تأكيد رقم جديد ${ph} ${how === 'in the app' ? 'من التطبيق' : 'عند التسجيل في التطبيق'}، بدلًا من ${old}.`],
-  [/^(.+) checked their mobile, (\+\d+), (when signing up in the app|in the app)\.$/, (_, n, ph, how) => `${n}: تأكيد الرقم ${ph} ${how === 'in the app' ? 'من التطبيق' : 'عند التسجيل في التطبيق'}.`],
+  [/^(.+) came in at (\d\d:\d\d) but hasn’t been in (\S+) (.+) in (.+) \(period (\d+)\)\.$/, (_, n, at, c, sub, room, p) => `${n}: وصول إلى المدرسة الساعة ${at}، دون حضور حصة ${sub} لفصل ${c} في ${room} (الحصة ${p}).`],
+  [/^(.+) was in (\S+) (.+) \(period (\d+)\) for only (\d+)% of the lesson\.$/, (_, n, c, sub, p, pct) => `${n}: حضور ${pct}% فقط من حصة ${sub} لفصل ${c} (الحصة ${p}).`],
+  [/^(.+) arrived at (\d\d:\d\d) but wasn’t in (\S+) (.+) \(period (\d+)\)\.$/, (_, n, at, c, sub, p) => `${n}: وصول الساعة ${at}، دون حضور حصة ${sub} لفصل ${c} (الحصة ${p}).`],
+  [/^(.+) went out through the gate at (\d\d:\d\d) before the end of the school day\.$/, (_, n, at) => `${n}: انصراف من البوابة الساعة ${at} قبل انتهاء اليوم الدراسي.`],
+  [/^Gateway “(.+)” in (.+) isn’t reporting\. Lessons there switch to manual marking\.$/, (_, g, room) => `جهاز القراءة «${g}» في ${room} غير متصل، ويُسجَّل الحضور هناك يدويًا.`],
+  [/^Gateway “(.+)” isn’t reporting\. Lessons there switch to manual marking\.$/, (_, g) => `جهاز القراءة «${g}» غير متصل، ويُسجَّل الحضور هناك يدويًا.`],
+  [/^(.+)’s strap battery is at (\d+)%\. Replace the battery soon\.$/, (_, n, b) => `بطارية السوار الذكي لـ ${n} عند ${b}%. يُرجى استبدالها قريبًا.`],
+  [/^(.+) updated their mobile number$/, (_, n) => `${n}: تحديث رقم الهاتف`],
+  [/^(.+) verified a new mobile number, (\+\d+), (when signing up in the app|in the app)\. It replaces (\+\d+)\.$/, (_, n, ph, how, old) => `${n}: تأكيد رقم هاتف جديد ${ph} ${how === 'in the app' ? 'من التطبيق' : 'عند التسجيل في التطبيق'}، بدلًا من ${old}.`],
+  [/^(.+) verified their mobile number, (\+\d+), (when signing up in the app|in the app)\.$/, (_, n, ph, how) => `${n}: تأكيد رقم الهاتف ${ph} ${how === 'in the app' ? 'من التطبيق' : 'عند التسجيل في التطبيق'}.`],
 ];
 export function serverTextAr(s: string): string {
   for (const [re, f] of SERVER_AR) {

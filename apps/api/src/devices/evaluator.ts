@@ -223,8 +223,8 @@ export class AttendanceEvaluator {
               schoolId: school.id,
               userId: g.userId,
               type: 'attendance.lessonAbsent',
-              title: `${student.firstName} was absent from ${where}`,
-              body: `${student.firstName} came in through the gate at ${localParts(arrived.get(student.id)!, school.timezone).time} but hasn’t been in ${where} since it started at ${period.startTime}. The school has been told.`,
+              title: `${student.firstName} hasn’t joined ${where}`,
+              body: `${student.firstName} arrived at ${localParts(arrived.get(student.id)!, school.timezone).time} but hasn’t been in ${where}, which began at ${period.startTime}. The school has been informed and is following up.`,
               data: { studentId: student.id, date, periodId: period.id, subject: lesson.subject.name, room: lesson.room.name },
             })),
           );
@@ -262,7 +262,7 @@ export class AttendanceEvaluator {
       await this.notifications.notify([
         ...c.student.guardians.map((g) => ({
           schoolId: school.id, userId: g.userId, type: 'attendance.left',
-          title: `${name} left school early`, body: `${name} went out through the gate at ${at}. The school has been told.`,
+          title: `${name} left school early`, body: `${name} left through the school gate at ${at}. The school has been informed.`,
           data: { studentId: c.studentId, date, time: at },
         })),
         ...admins.map((a) => ({

@@ -90,6 +90,9 @@ model School {
   id                String         @id @default(cuid())
   name              String
   nameAr            String?
+  // The school's crest, shown in the dashboard and the parent app.
+  logo              Bytes?
+  logoMime          String?
   timezone          String         @default("Africa/Cairo")
   plan              Plan           @default(ESSENTIALS)
   attendanceMode    AttendanceMode @default(MANUAL)

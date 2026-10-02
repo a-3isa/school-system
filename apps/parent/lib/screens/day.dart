@@ -101,7 +101,7 @@ class _DayTabState extends State<DayTab> {
           if (kids.isEmpty && data.error == null) Padding(padding: const EdgeInsets.only(top: 24), child: Text(s.noChildren, style: TextStyle(color: c.ink2, fontSize: 15, height: 1.5))),
           if (kids.length > 1) ...[_ChildSwitch(kids: kids, selected: _childId, onPick: _pick), const SizedBox(height: 14)],
           if (kids.length == 1) ...[
-            Text('${kids.first['firstName']}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
+            Text('${kids.first['firstName']}', style: Brand.display(context, size: 22)),
             if (kids.first['class']?['name'] != null) Text(ltr(kids.first['class']['name'] as String), style: TextStyle(fontSize: 13, color: c.ink2)),
             const SizedBox(height: 14),
           ],
@@ -135,9 +135,9 @@ class _DayTabState extends State<DayTab> {
           Text(arrived != null ? s.arrived : s.notArrived, style: TextStyle(fontSize: 13, color: c.ink2)),
           const SizedBox(height: 4),
           Text(arrived != null ? timeCairo(arrived) : '—',
-              style: const TextStyle(fontSize: 34, fontWeight: FontWeight.w600, height: 1.05, letterSpacing: -.3, fontFeatures: [FontFeature.tabularFigures()])),
+              style: Brand.display(context, size: 36, height: 1.05).copyWith(fontFamily: 'SourceSerif4', height: 1.05, fontFeatures: const [FontFeature.tabularFigures(), FontFeature.liningFigures()])),
           if (arrived != null) ...[const SizedBox(height: 4), Text(s.throughGate, style: TextStyle(fontSize: 14, color: c.ink2))],
-          if (left != null) ...[const SizedBox(height: 6), Text(s.leftAt(timeCairo(left)), style: TextStyle(fontSize: 14, color: c.lFg, fontWeight: FontWeight.w600))],
+          if (left != null) ...[const SizedBox(height: 6), Text(s.leftAt(timeCairo(left), widget.data.child(_childId)?['gender'] as String?), style: TextStyle(fontSize: 14, color: c.lFg, fontWeight: FontWeight.w600))],
         ]),
       ),
       if (place != null) ...[

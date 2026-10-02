@@ -59,9 +59,9 @@ class _ConsentScreenState extends State<ConsentScreen> {
               constraints: BoxConstraints(minHeight: box.maxHeight - 64),
               child: IntrinsicHeight(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                  Text(s.oneTime, style: TextStyle(fontSize: 13, color: c.ink2, fontWeight: FontWeight.w600)),
+                  Text(s.oneTime.toUpperCase(), style: TextStyle(fontSize: 12, color: c.gold, fontWeight: FontWeight.w600, letterSpacing: Directionality.of(context) == TextDirection.rtl ? 0 : 1.2)),
                   const SizedBox(height: 8),
-                  Text(s.consentTitle, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w600, height: 1.25)),
+                  Text(s.consentTitle, style: Brand.display(context, size: 26)),
                   const SizedBox(height: 18),
                   Text(s.consentBody(_child), style: TextStyle(fontSize: 15, height: 1.55, color: c.ink2)),
                   const SizedBox(height: 18),

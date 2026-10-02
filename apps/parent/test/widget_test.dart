@@ -61,6 +61,8 @@ void main() {
 
   testWidgets('new parents create their account in three steps, starting with the email the school registered', (tester) async {
     await start(tester, {'lang': 'en'});
+    await tester.ensureVisible(find.text('Create your account'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Create your account'));
     await tester.pumpAndSettle();
     expect(find.text('Step 1 of 3'), findsOneWidget);
@@ -93,9 +95,16 @@ void main() {
     expect(find.text('1'), findsOneWidget); // unread badge on the tab
     await tester.tap(find.text('الإشعارات'));
     await tester.pumpAndSettle();
-    expect(find.text('غياب Salma عن حصة Math في Room 204'), findsOneWidget);
+    expect(find.text('عدم حضور Salma حصة Math في Room 204'), findsOneWidget);
     expect(find.text('وصول Salma إلى المدرسة'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
+  });
+
+  test('Arabic agrees with the child’s gender', () {
+    expect(S.ar.notification('attendance.arrived', 'سلمى', {}, '', 'FEMALE'), 'وصلت سلمى إلى المدرسة');
+    expect(S.ar.notification('attendance.arrived', 'عمر', {}, '', 'MALE'), 'وصل عمر إلى المدرسة');
+    expect(S.ar.notification('attendance.left', 'نور', {}, ''), 'انصراف نور من المدرسة مبكرًا'); // gender not recorded
+    expect(S.en.notification('attendance.absent', 'Omar', {}, '', 'MALE'), 'Omar is marked absent today');
   });
 
   test('phone numbers', () {

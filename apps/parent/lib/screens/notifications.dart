@@ -34,7 +34,7 @@ class NotificationsTab extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
             child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
-              Expanded(child: Text(s.tabNotifs, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w600))),
+              Expanded(child: Text(s.tabNotifs, style: Brand.display(context, size: 24))),
               if (data.unread > 0)
                 TextButton(
                   onPressed: () => data.markRead(items.where((n) => n['readAt'] == null).map((n) => n['id'] as String)),
@@ -76,7 +76,7 @@ class _Row extends StatelessWidget {
       'attendance.absent' || 'attendance.lessonAbsent' => ('×', c.aFg, c.aBg),
       _ => ('i', c.eFg, c.eBg),
     };
-    final text = child == null ? n['title'] as String : s.notification(type, name, info, n['title'] as String);
+    final text = child == null ? n['title'] as String : s.notification(type, name, info, n['title'] as String, child['gender'] as String?);
     final who = child == null
         ? n['body'] as String
         : ltr([child['class']?['name'], '${child['firstName']} ${child['lastName']}'].whereType<String>().join(' · '));

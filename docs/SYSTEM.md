@@ -229,6 +229,43 @@ The server enforces this: a teacher asking for school-wide data (the student lis
 
 ---
 
+## 11. Voice and look
+
+The platform is made for Egypt's private, language and international schools, and the families who choose them. It should read and look like the school's own stationery: courteous, assured and quiet.
+
+**Words**
+- English uses British spelling (enrolment, colour). Arabic is refined Modern Standard Arabic and uses polite forms such as «يُرجى» and «نرجو».
+- Parents read about their own child, by name, in Arabic that agrees with the child's gender: «وصل أحمد إلى المدرسة», «وصلت ليلى إلى المدرسة».
+- Staff messages use gender-neutral noun forms in Arabic.
+- Fixed vocabulary:
+
+  | English | Arabic |
+  |---|---|
+  | Smart band | السوار الذكي |
+  | Readers | أجهزة القراءة |
+  | Follow-ups | المتابعات |
+  | Class teacher | رائد الفصل |
+  | Student ID | كود الطالب |
+  | Year group | الصف الدراسي |
+  | New enrolment | قيد طالب جديد |
+  | Limit access | تقييد الاطلاع |
+- Emails come from the school, by name, in both languages.
+
+**Look**
+- Palette: ivory ground `#F6F3EC`, deep navy `#1C2E5A` for actions and the sidebar (`#14213D`), and brass-gold `#A6823C` used sparingly for distinction.
+  - Gold appears on the active link, the crest ring, eyebrows and focus.
+  - Gold text on light grounds uses `#86662A`, which passes AA.
+  - Dark mode lifts the navy and the gold.
+- Type:
+  - Headings and figures use serifs: Source Serif 4 in English, Noto Naskh Arabic in Arabic.
+  - Body text uses IBM Plex Sans and IBM Plex Sans Arabic.
+  - All four fonts are bundled locally under the OFL.
+- Corners are soft and consistent: 6, 8, 10 and 14 px tokens. Shadows are low and warm.
+- **School crest:** an admin uploads it under Modules (PNG, JPEG or WebP, up to 1 MB).
+  - It sits in the dashboard sidebar, and in the topbar on the classroom PC. The parent app does not show it yet.
+  - With no crest, the school's initials appear in a gold ring.
+- Status colours keep their glyph and word, so they never rely on colour alone. Keyboard focus is always visible, and motion respects reduced-motion settings.
+
 ## Not done yet in Phase 1
 
 - **Real hardware:**
