@@ -7,7 +7,7 @@ import { byStage, Places, useGradeName } from '@/components/ClassPicker';
 import { Empty, ErrorNote, PageHead, Section } from '@/components/ui';
 
 export default function ClassesPage() {
-  const { t } = useI18n();
+  const { t, staff } = useI18n();
   const router = useRouter();
   const gradeName = useGradeName();
   const classes = useApi<any[]>('/classes');
@@ -29,7 +29,7 @@ export default function ClassesPage() {
                     <td>{gradeName(c.grade)}{c.stream && <span className="sub">{t.eg.streams[c.stream]}</span>}</td>
                     <td>{c.system ? t.eg.systems[c.system] : <span className="muted">—</span>}</td>
                     <td>{t.eg.genders[c.gender]}</td>
-                    <td>{c.homeroomTeacher?.name ?? <span className="muted">{t.classes.noHomeroom}</span>}</td>
+                    <td>{c.homeroomTeacher ? staff(c.homeroomTeacher) : <span className="muted">{t.classes.noHomeroom}</span>}</td>
                     <td><Places n={c._count.students} capacity={c.capacity} /></td>
                   </tr>
                 ))}

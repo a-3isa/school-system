@@ -428,3 +428,58 @@ class _ResendLinkState extends State<ResendLink> {
     );
   }
 }
+
+/// Two letters for a school's crest: "Nile Valley Language School" → "NV".
+String crestLetters(String name) {
+  final skip = RegExp(r'^(of|the|and|school|language|languages|مدرسة|مدارس|للغات)$', caseSensitive: false);
+  final words = name.split(RegExp(r'\s+')).where((w) => RegExp(r'^[A-Za-z؀-ۿ]').hasMatch(w) && !skip.hasMatch(w));
+  final letters = words.take(2).map((w) => w[0]).join().toUpperCase();
+  return letters.isEmpty && name.isNotEmpty ? name[0] : letters;
+}
+
+/// The school's crest: a burgundy shield with a gold edge and the school's
+/// initials, or the crest image the school uploaded.
+class Crest extends StatelessWidget {
+  const Crest({super.key, required this.name, this.image, this.width = 26});
+  final String name;
+  final Uint8List? image;
+  final double width;
+
+  @override
+  Widget build(BuildContext context) {
+    final height = width * 1.19;
+    final shape = BorderRadius.only(
+      topLeft: const Radius.circular(5), topRight: const Radius.circular(5),
+      bottomLeft: Radius.circular(width / 2), bottomRight: Radius.circular(width / 2),
+    );
+    return ExcludeSemantics(
+      child: Container(
+        width: width,
+        height: height,
+        decoration: BoxDecoration(
+          color: image != null ? Colors.white : Brand.crest,
+          borderRadius: shape,
+          border: Border.all(color: Brand.crestGold, width: 1.5),
+        ),
+        clipBehavior: Clip.antiAlias,
+        alignment: Alignment.center,
+        child: image != null
+            ? Padding(padding: EdgeInsets.all(width * .08), child: Image.memory(image!, fit: BoxFit.contain, gaplessPlayback: true))
+            : Text(
+                crestLetters(name),
+                textDirection: TextDirection.ltr,
+                style: TextStyle(
+                  fontFamily: 'SourceSerif4',
+                  fontFamilyFallback: const ['NotoNaskhArabic'],
+                  fontVariations: const [FontVariation('wght', 600)],
+                  fontWeight: FontWeight.w600,
+                  fontSize: width * .385,
+                  height: 1,
+                  letterSpacing: width * .385 * .02,
+                  color: Brand.crestInk,
+                ),
+              ),
+      ),
+    );
+  }
+}

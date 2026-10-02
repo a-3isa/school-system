@@ -49,7 +49,7 @@ export class AttendanceService {
     if (!period) throw new NotFoundException('Period not found.');
     const lesson = await this.prisma.timetableEntry.findFirst({
       where: { classId, periodId, dayOfWeek: weekday(date) },
-      include: { subject: { select: { name: true } }, room: { select: { id: true, name: true } }, teacher: { select: { id: true, name: true } } },
+      include: { subject: { select: { name: true } }, room: { select: { id: true, name: true } }, teacher: { select: { id: true, name: true, honorific: true } } },
     });
     return { cls, period, lesson };
   }
@@ -77,7 +77,7 @@ export class AttendanceService {
     if (!access.canView) throw new ForbiddenException(access.why);
     const [students, records, school] = await Promise.all([
       this.prisma.student.findMany({ where: { schoolId, classId, active: true }, orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }] }),
-      this.prisma.attendanceRecord.findMany({ where: { classId, periodId, date: dbDate(date) }, include: { markedBy: { select: { name: true } } } }),
+      this.prisma.attendanceRecord.findMany({ where: { classId, periodId, date: dbDate(date) }, include: { markedBy: { select: { name: true, honorific: true } } } }),
       this.school(schoolId),
     ]);
     const byStudent = new Map(records.map((r) => [r.studentId, r]));
@@ -104,6 +104,7 @@ export class AttendanceService {
           source: r?.source ?? null,
           reason: r?.reason ?? null,
           markedBy: r?.markedBy?.name ?? null,
+          markedByHonorific: r?.markedBy?.honorific ?? null,
           firstSeenAt: r?.firstSeenAt ?? null,
         };
       }),

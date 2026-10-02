@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -6,6 +7,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// The platform API. Set the address at build time:
 ///   flutter run --dart-define=API_URL=https://api.example.com/api
 const apiUrl = String.fromEnvironment('API_URL', defaultValue: 'http://localhost:3000/api');
+
+/// The time now. Tests set a fixed time so lessons are reliably past or to come.
+DateTime Function() clock = DateTime.now;
 
 class ApiException implements Exception {
   ApiException(this.status, this.message);
@@ -94,7 +98,28 @@ class Api {
   Future<void> requestPhoneChange(String phone) => post('/auth/phone', {'phone': phone});
   Future<void> confirmPhoneChange(String phone, String code) => post('/auth/phone/verify', {'phone': phone, 'code': code});
 
-  Future<Map<String, dynamic>> me() async => await get('/auth/me') as Map<String, dynamic>;
+  Future<Map<String, dynamic>> me() async {
+    final me = await get('/auth/me') as Map<String, dynamic>;
+    // Remembered so the sign-in screen can show the school next time.
+    if (me['schoolName'] is String) await _prefs.setString(_schoolKey, me['schoolName'] as String);
+    if (me['schoolNameAr'] is String) await _prefs.setString(_schoolArKey, me['schoolNameAr'] as String);
+    return me;
+  }
+
+  static const _schoolKey = 'schoolName', _schoolArKey = 'schoolNameAr';
+
+  /// The school this phone last signed in to, in the app's language, if any.
+  String? lastSchool(bool arabic) => (arabic ? _prefs.getString(_schoolArKey) : null) ?? _prefs.getString(_schoolKey);
+
+  /// The school's crest image, or null when the school hasn't uploaded one.
+  Future<Uint8List?> crest() async {
+    try {
+      final res = await _client.get(Uri.parse('$apiUrl/school/logo'), headers: {if (token != null) 'authorization': 'Bearer $token'});
+      return res.statusCode == 200 && res.bodyBytes.isNotEmpty ? res.bodyBytes : null;
+    } catch (_) {
+      return null;
+    }
+  }
   Future<void> consent() => post('/parent/consent');
   Future<List<dynamic>> children() async => await get('/parent/children') as List<dynamic>;
   Future<List<dynamic>> childDay(String id, String date) async => await get('/parent/children/$id/attendance?date=$date') as List<dynamic>;
@@ -106,7 +131,7 @@ class Api {
 
 /// Today's date in Cairo as YYYY-MM-DD (Egypt is UTC+2, or UTC+3 in summer time).
 String todayCairo([DateTime? now]) {
-  final utc = (now ?? DateTime.now()).toUtc();
+  final utc = (now ?? clock()).toUtc();
   final offset = cairoOffset(utc);
   final local = utc.add(Duration(hours: offset));
   return '${local.year.toString().padLeft(4, '0')}-${local.month.toString().padLeft(2, '0')}-${local.day.toString().padLeft(2, '0')}';
@@ -137,10 +162,13 @@ String timeCairo(String iso) {
 
 /// The time now in Cairo as HH:mm, to compare with period times.
 String nowCairo([DateTime? now]) {
-  final utc = (now ?? DateTime.now()).toUtc();
+  final utc = (now ?? clock()).toUtc();
   final local = utc.add(Duration(hours: cairoOffset(utc)));
   return '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
 }
+
+/// The hour now in Cairo (0–23), for the greeting.
+int nowCairoHour([DateTime? now]) => int.parse(nowCairo(now).substring(0, 2));
 
 /// The Cairo date (YYYY-MM-DD) of an ISO timestamp.
 String dateCairo(String iso) => todayCairo(DateTime.parse(iso));

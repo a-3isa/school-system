@@ -2,7 +2,7 @@
 //
 //   OWNER_EMAIL=... OWNER_PASSWORD=... npx ts-node scripts/demo.ts [--api http://localhost:3000]
 //
-// Creates "Nile Valley School (demo)" with an admin (admin@demo.school / demo-admin-1),
+// Creates "Nile Valley Language School (demo)" with an admin (admin@demo.school / demo-admin-1),
 // two teachers (hana@demo.school, sherif@demo.school / demo-teacher-1), classes, rooms,
 // periods, a timetable, 24 students with parents (parent1@demo.school … parent23@demo.school;
 // some mothers have two children) and one guardian (guardian24@demo.school), all with the
@@ -64,6 +64,8 @@ async function call(token: string | null, method: string, path: string, body?: u
 
 const FIRST = ['Layla', 'Omar', 'Yara', 'Ali', 'Karim', 'Salma', 'Mariam', 'Youssef', 'Hana', 'Ziad', 'Nour', 'Adam'];
 const GIRLS = new Set(['Layla', 'Yara', 'Salma', 'Mariam', 'Hana', 'Nour']);
+// Mothers' own names (in Egypt a mother keeps her family name).
+const MOTHERS = ['Dina', 'Rania', 'Mona', 'Heba', 'Nadia', 'Amira', 'Yasmin', 'Ghada', 'Reem', 'Salwa', 'Nermeen', 'Marwa'];
 const LAST = ['Hussein', 'Kamal', 'Mostafa', 'Ramadan', 'Fathy', 'Nabil', 'Adel', 'Gamal'];
 
 async function main() {
@@ -73,7 +75,7 @@ async function main() {
   const owner = (await call(null, 'POST', '/auth/login', { login: email, password })).token;
 
   const school = await call(owner, 'POST', '/owner/schools', {
-    name: 'Nile Valley School (demo)', nameAr: 'مدرسة وادي النيل', plan: 'SMART',
+    name: 'Nile Valley Language School (demo)', nameAr: 'مدرسة وادي النيل للغات', plan: 'SMART',
     admin: { name: 'Samia Adel', email: 'admin@demo.school', password: 'demo-admin-1' },
   });
   const admin = (await call(null, 'POST', '/auth/login', { login: 'admin@demo.school', password: 'demo-admin-1' })).token;
@@ -83,8 +85,11 @@ async function main() {
   await call(owner, 'PATCH', `/owner/schools/${school.id}/modules/attendance/features`, { features: { automatic: true } });
   await A('PATCH', '/school', { absenceNoticeTime: '08:30' });
 
-  const hana = await A('POST', '/staff', { name: 'Hana Nabil', role: 'TEACHER', email: 'hana@demo.school', password: 'demo-teacher-1' });
-  const sherif = await A('POST', '/staff', { name: 'Sherif Kamal', role: 'TEACHER', email: 'sherif@demo.school', password: 'demo-teacher-1' });
+  // Staff are addressed by title, as in Egypt's private schools: Ms. Samia Adel, Ms. Hana Nabil, Mr. Sherif Kamal.
+  const me = await A('GET', '/auth/me');
+  await A('PATCH', `/staff/${me.id}`, { honorific: 'MS' });
+  const hana = await A('POST', '/staff', { name: 'Hana Nabil', honorific: 'MS', role: 'TEACHER', email: 'hana@demo.school', password: 'demo-teacher-1' });
+  const sherif = await A('POST', '/staff', { name: 'Sherif Kamal', honorific: 'MR', role: 'TEACHER', email: 'sherif@demo.school', password: 'demo-teacher-1' });
   // An Egyptian primary school: Primary 1–6, two classes of Primary 4 (4/1 and 4/2) in the languages system.
   const grades: any[] = await A('POST', '/grades/egypt', { stages: ['PRIMARY'] });
   const g4 = grades.find((g) => g.name === 'Primary 4');
@@ -120,8 +125,8 @@ async function main() {
     const sibling = i >= 12 && i % 4 === 0 ? i - 12 : i;
     const first = FIRST[(sibling === i ? i : i + 5) % FIRST.length];
     const parent = i === 23
-      ? { relation: 'GUARDIAN', name: `Grandmother of ${first}`, email: `guardian${i + 1}@demo.school`, password: 'demo-parent-1' }
-      : { relation: 'MOTHER', name: `Mother of ${FIRST[sibling % FIRST.length]}`, email: `parent${sibling + 1}@demo.school`, phone: `+20100${String(1000000 + sibling)}`, password: 'demo-parent-1' };
+      ? { relation: 'GUARDIAN', name: 'Fatma Hussein', email: `guardian${i + 1}@demo.school`, password: 'demo-parent-1' }
+      : { relation: 'MOTHER', name: `${MOTHERS[sibling % MOTHERS.length]} ${LAST[(sibling * 5 + 2) % LAST.length]}`, email: `parent${sibling + 1}@demo.school`, phone: `+20100${String(1000000 + sibling)}`, password: 'demo-parent-1' };
     // Born in 2016 or 2017 in Cairo; the national number agrees with the birth date and gender.
     const girl = GIRLS.has(first);
     const born = new Date(Date.UTC(i < 12 ? 2016 : 2017, i % 12, 1 + i));
@@ -139,7 +144,7 @@ async function main() {
   }
 
   const secrets: Record<string, string> = {};
-  for (const [serial, name, kind, roomId] of [['DEMO-GATE-A', 'Gate A', 'GATE', undefined], ['DEMO-R204', 'Room 204', 'ROOM', r204.id], ['DEMO-R205', 'Room 205', 'ROOM', r205.id]] as const) {
+  for (const [serial, name, kind, roomId] of [['DEMO-GATE-A', 'Main gate', 'GATE', undefined], ['DEMO-R204', 'Room 204', 'ROOM', r204.id], ['DEMO-R205', 'Room 205', 'ROOM', r205.id]] as const) {
     const gw = await call(owner, 'POST', '/owner/gateways', { serial });
     await A('POST', '/devices/gateways/claim', { claimCode: gw.claimCode, name, kind, roomId });
     secrets[serial] = gw.secret;

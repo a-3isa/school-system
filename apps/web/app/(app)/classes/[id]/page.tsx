@@ -14,7 +14,7 @@ const SYSTEMS = ['NATIONAL_ARABIC', 'NATIONAL_LANGUAGES', 'BRITISH', 'AMERICAN',
 
 /** The admin's form for a class's details. */
 function EditClass({ c, onSaved }: { c: any; onSaved: () => void }) {
-  const { t } = useI18n();
+  const { t, staff } = useI18n();
   const teachers = useApi<any[]>('/staff?role=TEACHER');
   const act = useAction();
   const [f, setF] = useState({ name: c.name, section: c.section ?? '', system: c.system ?? '', gender: c.gender, stream: c.stream ?? '', capacity: c.capacity ? String(c.capacity) : '', homeroomTeacherId: c.homeroomTeacher?.id ?? '' });
@@ -55,7 +55,7 @@ function EditClass({ c, onSaved }: { c: any; onSaved: () => void }) {
       <Field label={t.classes.homeroom} id="e-home">
         <select id="e-home" className="input" value={f.homeroomTeacherId} onChange={(e) => setF({ ...f, homeroomTeacherId: e.target.value })}>
           <option value="">{t.classes.noHomeroom}</option>
-          {teachers.data?.map((tc) => <option key={tc.id} value={tc.id}>{tc.name}</option>)}
+          {teachers.data?.map((tc) => <option key={tc.id} value={tc.id}>{staff(tc)}</option>)}
         </select>
       </Field>
       <div className="form-actions"><button className="btn primary" type="submit" disabled={act.busy}>{t.eg.saveClass}</button></div>
@@ -65,7 +65,7 @@ function EditClass({ c, onSaved }: { c: any; onSaved: () => void }) {
 
 export default function ClassPage() {
   const { id } = useParams<{ id: string }>();
-  const { t, lang } = useI18n();
+  const { t, lang, staff } = useI18n();
   const { me } = useSession();
   const gradeName = useGradeName();
   const cls = useApi<any>(`/classes/${id}`);
@@ -88,7 +88,7 @@ export default function ClassPage() {
           {c.stream && <span>{t.eg.stream}<b>{t.eg.streams[c.stream]}</b></span>}
           {c.system && <span>{t.eg.system}<b>{t.eg.systems[c.system]}</b></span>}
           <span>{t.eg.gender}<b>{t.eg.genders[c.gender]}</b></span>
-          <span>{t.classes.homeroom}<b>{c.homeroomTeacher?.name ?? '—'}</b></span>
+          <span>{t.classes.homeroom}<b>{c.homeroomTeacher ? staff(c.homeroomTeacher) : '—'}</b></span>
           <span>{t.classes.students}<b><Places n={c.students.length} capacity={c.capacity} /></b></span>
         </div>
       </header>

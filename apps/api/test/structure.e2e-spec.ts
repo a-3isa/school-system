@@ -96,6 +96,20 @@ describe('Egyptian school structure (e2e)', () => {
     expect(crest.headers['content-type']).toBe('image/png');
   });
 
+  it('addresses staff by their title', async () => {
+    const staff = (await admin.get('/api/staff').expect(200)).body;
+    const hoda = staff.find((u: any) => u.email === 'hoda@eg.eg');
+    expect(hoda.honorific).toBeNull();
+    await admin.patch(`/api/staff/${hoda.id}`, { honorific: 'SIR' }).expect(400);
+    expect((await admin.patch(`/api/staff/${hoda.id}`, { honorific: 'MRS' }).expect(200)).body.honorific).toBe('MRS');
+    expect((await worker.get('/api/auth/me').expect(200)).body.honorific).toBe('MRS');
+    // Leaving it out keeps it; null clears it.
+    expect((await admin.patch(`/api/staff/${hoda.id}`, { name: 'Hoda Samir' }).expect(200)).body.honorific).toBe('MRS');
+    expect((await admin.patch(`/api/staff/${hoda.id}`, { honorific: null }).expect(200)).body.honorific).toBeNull();
+    const teacher = (await admin.post('/api/staff', { name: 'Karim Adel', honorific: 'MR', role: 'TEACHER', email: 'karim@eg.eg', password: 'teacher-pass-1' }).expect(201)).body;
+    expect(teacher.honorific).toBe('MR');
+  });
+
   it('has a social worker who follows up absences', async () => {
     await worker.get('/api/students').expect(200);
     await worker.get('/api/attendance/exceptions').expect(200);

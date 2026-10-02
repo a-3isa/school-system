@@ -4,7 +4,7 @@ Paste everything below the line into Claude Design. It describes the product, th
 
 ---
 
-Design the interface for a school attendance platform: a **web dashboard** for school staff and a **parent mobile app**. Everything below is already built and working; I want a new, crafted visual design and better UX for it, not new features. Avoid the generic "AI dashboard" look (purple gradients, glassmorphism, stock icons in coloured circles, everything in cards with big shadows). It should feel calm, trustworthy and made for Egypt's private, language and international schools: the polish of a good school's own stationery, never flashy. The direction now built (ivory, navy, a touch of brass-gold, serif headings, the school's crest) is described in SYSTEM.md, section 11.
+Design the interface for a school attendance platform: a **web dashboard** for school staff and a **parent mobile app**. Everything below is already built and working; I want a new, crafted visual design and better UX for it, not new features. Avoid the generic "AI dashboard" look (purple gradients, glassmorphism, stock icons in coloured circles, everything in cards with big shadows). It should feel calm, trustworthy and made for Egypt's private, language and international schools: the polish of a good school's own stationery, never flashy. The direction now built is v2 of the Claude Design handoff (ivory, Oxford navy, the burgundy-and-gold crest, serif headings). It is described in SYSTEM.md, section 11.
 
 ## The product
 
@@ -137,8 +137,8 @@ Screens:
 
 ## Sample data to use
 
-- **School:** Nile Valley School (demo). Classes 4/1 and 4/2, Rooms 204 and 205, a Science lab, Gate A.
-- **Teachers:** Hana Nabil, Sherif Kamal.
+- **School:** Nile Valley Language School (demo). Classes 4/1 and 4/2, Rooms 204 and 205, a Science lab, the Main gate.
+- **Teachers:** Ms. Hana Nabil, Mr. Sherif Kamal. Student Affairs: Ms. Samia Adel.
 - **Students:** Layla Hussein, Omar Ramadan, Yara Adel, Ali Kamal, Karim Fathy, Salma Gamal, Mariam Mostafa, Youssef Nabil, Hana Hussein, Ziad Ramadan, Nour Adel, Adam Kamal.
 - **Periods:** 08:00–08:45, 08:45–09:30, 09:50–10:35, 10:35–11:20, 11:40–12:25, 12:25–13:10.
 

@@ -8,7 +8,7 @@ import { Empty, ErrorNote, PageHead, Tabs } from '@/components/ui';
 
 export default function TimetablePage() {
   const { me } = useSession();
-  const { t, x } = useI18n();
+  const { t, x, staff } = useI18n();
   const isAdmin = me.role === 'SCHOOL_ADMIN';
   // A teacher sees their own week across all their classes.
   const isTeacher = me.role === 'TEACHER';
@@ -74,7 +74,7 @@ export default function TimetablePage() {
                         <div className="lessoncell">
                           <b>{x(isTeacher ? `${e.class?.name} · ${e.subject.name}` : e.subject.name)}</b>
                           <span>{e.room.name}</span>
-                          {!isTeacher && e.teacher && <span>{e.teacher.name}</span>}
+                          {!isTeacher && e.teacher && <span>{staff(e.teacher)}</span>}
                           {isAdmin && (
                             <button type="button" className="icon-btn" aria-label={t.tt.remove} title={t.tt.remove} onClick={async () => { if (await act.run(() => del(`/timetable/${e.id}`))) await entries.reload(); }}>✕</button>
                           )}
@@ -91,7 +91,7 @@ export default function TimetablePage() {
                           </select>
                           <select aria-label={t.tt.teacher} value={pick.teacherId} onChange={(ev) => setPick({ ...pick, teacherId: ev.target.value })}>
                             <option value="">{t.tt.teacher}</option>
-                            {teachers.data?.map((tc) => <option key={tc.id} value={tc.id}>{tc.name}</option>)}
+                            {teachers.data?.map((tc) => <option key={tc.id} value={tc.id}>{staff(tc)}</option>)}
                           </select>
                           {cellError?.key === key && <span className="cell-error" role="alert">✕ {cellError.message}</span>}
                           <span className="row">

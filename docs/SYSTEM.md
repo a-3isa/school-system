@@ -125,7 +125,7 @@ Teachers and admins use **the same screen**:
   - at a school with straps, they open it only when a child forgot their strap: tap **Present**, then **Save**
   - at a school without straps, they tap the absent ones, then **Save**
   - can change today's lessons they teach
-- **The admin:** opens the same screen from **Take attendance** for any lesson on any day.
+- **The admin:** opens the same screen from the **Attendance register** for any lesson on any day.
 - **Reasons:** a change at a school with straps needs a reason, which is filled in by itself ("Strap forgotten", "Correction", "Gateway not working"). A person's mark always wins over the strap.
 - **Class away** (trip, exam elsewhere): an admin marks a class away for some periods or the whole day, and nobody in it shows as absent.
 
@@ -181,7 +181,7 @@ All messages arrive as **app notifications**, and every one is also kept in the 
 |---|:-:|:-:|:-:|
 | **My class now:** the lesson in front of them, the teacher's only screen (section 4) | ✓ | | |
 | **Today:** students enrolled and how many came in through the gate, present and absent per period, open exceptions, lessons today, and **Messages** to the school (e.g. a parent changed their mobile) | | ✓ | |
-| **Take attendance:** every lesson; opens the same attendance screen for any lesson, any day | | ✓ | |
+| **Attendance register:** every lesson; opens the same attendance screen for any lesson, any day | | ✓ | |
 | **Exceptions:** things a person should look at, each resolved with a note:<ul><li>at school but not in the lesson</li><li>left a lesson</li><li>left early</li><li>gateway offline / room without a gateway</li><li>low battery</li></ul> | | ✓ | |
 | **Where students are** (only with straps): live every 10 seconds:<ul><li>each room and the gate, with who is in it now</li><li>"needs a look": not heard for 10+ minutes during school hours</li><li>who went out through the gate</li><li>who hasn't been heard today</li></ul>Has search and a class filter. | | ✓ | |
 | **School structure & year:** stages and grades, classes (section, system, boys/girls, stream, places, homeroom), school year (terms, mid-year break), holidays, rooms, periods, subjects | | ✓ | |
@@ -191,8 +191,8 @@ All messages arrive as **app notifications**, and every one is also kept in the 
 | **Import from Excel:** template, check, import | | ✓ | |
 | **Staff:** accounts | | ✓ | |
 | **Timetable** (whole school), **School structure & year** | | ✓ | |
-| **Devices** (only with straps): gateways, straps, detection rules | | ✓ | |
-| **Modules & settings:** school days, absence message time, whether straps are in the subscription | | ✓ | |
+| **Smart band readers** (only with straps): gateways, straps, detection rules | | ✓ | |
+| **School settings:** school days, absence message time, whether straps are in the subscription | | ✓ | |
 | **Audit log** | | ✓ | |
 | **Schools, Gateways** (section 2) | | | ✓ |
 
@@ -231,40 +231,59 @@ The server enforces this: a teacher asking for school-wide data (the student lis
 
 ## 11. Voice and look
 
-The platform is made for Egypt's private, language and international schools, and the families who choose them. It should read and look like the school's own stationery: courteous, assured and quiet.
+The platform is made for Egypt's private, language and international schools, and the families who choose them. It follows the Claude Design handoff v2, "Ivory, Oxford navy & a crest: the school's own register".
 
 **Words**
-- English uses British spelling (enrolment, colour). Arabic is refined Modern Standard Arabic and uses polite forms such as «يُرجى» and «نرجو».
-- Parents read about their own child, by name, in Arabic that agrees with the child's gender: «وصل أحمد إلى المدرسة», «وصلت ليلى إلى المدرسة».
-- Staff messages use gender-neutral noun forms in Arabic.
+- English uses British spelling (enrolment, colour).
+- Arabic is refined Modern Standard Arabic with polite forms («يُرجى»، «أدخلوا»).
+- Parents are reassured first: "Salma arrived safely at school", "Salma missed Math in Room 204. Student Affairs is following up."
+  - The Arabic agrees with the child's gender: «وصل أحمد المدرسة بالسلامة», «وصلت ليلى المدرسة بالسلامة».
+  - Staff messages use gender-neutral noun forms.
+- Staff are addressed by title, set on the Faculty & staff page: Mr., Ms., Mrs. or Dr. (مستر، مس، مدام، د.). For example, "Ms. Hana Nabil" or "Saved by Mr. Sherif Kamal".
 - Fixed vocabulary:
 
   | English | Arabic |
   |---|---|
-  | Smart band | السوار الذكي |
-  | Readers | أجهزة القراءة |
+  | Attendance register | كشف الحضور |
   | Follow-ups | المتابعات |
-  | Class teacher | رائد الفصل |
+  | On campus now | داخل المدرسة الآن |
+  | Student Affairs (the school admin role) | شؤون الطلبة |
+  | Faculty & staff | هيئة التدريس والعاملون |
+  | Smart band | السوار الذكي |
+  | Smart band readers | أجهزة قراءة الأساور |
+  | School settings | إعدادات المدرسة |
+  | Activity log | سجل النشاط |
+  | Class teacher (of a class) | رائد الفصل |
   | Student ID | كود الطالب |
   | Year group | الصف الدراسي |
   | New enrolment | قيد طالب جديد |
-  | Limit access | تقييد الاطلاع |
+  | Activate your account (parents) | تفعيل حسابكم |
 - Emails come from the school, by name, in both languages.
 
 **Look**
-- Palette: ivory ground `#F6F3EC`, deep navy `#1C2E5A` for actions and the sidebar (`#14213D`), and brass-gold `#A6823C` used sparingly for distinction.
-  - Gold appears on the active link, the crest ring, eyebrows and focus.
-  - Gold text on light grounds uses `#86662A`, which passes AA.
-  - Dark mode lifts the navy and the gold.
-- Type:
-  - Headings and figures use serifs: Source Serif 4 in English, Noto Naskh Arabic in Arabic.
-  - Body text uses IBM Plex Sans and IBM Plex Sans Arabic.
-  - All four fonts are bundled locally under the OFL.
-- Corners are soft and consistent: 6, 8, 10 and 14 px tokens. Shadows are low and warm.
-- **School crest:** an admin uploads it under Modules (PNG, JPEG or WebP, up to 1 MB).
-  - It sits in the dashboard sidebar, and in the topbar on the classroom PC. The parent app does not show it yet.
-  - With no crest, the school's initials appear in a gold ring.
-- Status colours keep their glyph and word, so they never rely on colour alone. Keyboard focus is always visible, and motion respects reduced-motion settings.
+- **Colours:**
+  - Light: ivory ground `#F6F4EF`, white panels, hairlines `#DEDAD0`, ink `#1A1D24`.
+  - Oxford navy `#1B2A4E` for actions and the sidebar.
+  - The crest is burgundy `#7A1F2E` with a gold `#C9A75A` edge. Gold also labels the sidebar groups and rings the current page.
+  - Dark: ground `#12141A`, panels `#1A1D25`, and gold `#D6BA75` takes over actions from navy.
+- **Type:**
+  - Headings use serifs: Source Serif 4 in English and Noto Naskh Arabic in Arabic.
+  - Text, data and controls use IBM Plex Sans and IBM Plex Sans Arabic.
+  - Times stay Latin, with tabular figures.
+  - All the fonts are bundled locally under the OFL.
+- **Corners and depth:**
+  - Corners are 4 px for chips, 6 px for controls, 8 px for big buttons and 10 px for panels.
+  - Cards have no shadows: surfaces separate by a hairline and a tone step.
+  - Only floating layers (the toast) have a shadow.
+- **The crest:**
+  - It is a shield with the school's initials, or the crest an admin uploads under School settings (PNG, JPEG or WebP, up to 1 MB).
+  - It appears in the sidebar, on the classroom PC's top bar and on the sign-in panel.
+  - In the parent app it appears on the day screen next to the greeting ("Good morning, Dina"), and on the sign-in screen once the phone has signed in to a school.
+- **Rules of the room:**
+  - Status colours always keep their glyph and word.
+  - Live updates never jump the layout or move focus.
+  - RTL works by mirroring, not rewriting.
+  - Keyboard focus is always visible, and motion respects reduced-motion settings.
 
 ## Not done yet in Phase 1
 

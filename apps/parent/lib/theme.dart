@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-/// The look of a good private school's stationery: warm ivory, deep navy for
-/// actions, a little brass-gold for distinction, and a colour, a glyph and a word
-/// for every status. Dark mode lifts the navy, the gold and the tints.
+/// Ivory, Oxford navy and a burgundy-and-gold crest: the school's own register.
+/// Every status keeps a colour, a glyph and a word. In dark mode gold takes over
+/// from navy for actions.
 @immutable
 class Palette extends ThemeExtension<Palette> {
   const Palette({
@@ -18,18 +18,18 @@ class Palette extends ThemeExtension<Palette> {
   final Color pFg, pBg, lFg, lBg, aFg, aBg, eFg, eBg, tFg, tBg;
 
   static const light = Palette(
-    bg: Color(0xFFF6F3EC), surface: Color(0xFFFFFFFF), sunk: Color(0xFFECE7DC), line: Color(0xFFE2DCCF),
-    ink: Color(0xFF172033), ink2: Color(0xFF4E5566), ink3: Color(0xFF6A7080),
-    primary: Color(0xFF1C2E5A), onPrimary: Color(0xFFFFFFFF), unread: Color(0xFFF3F5F9), gold: Color(0xFF86662A),
+    bg: Color(0xFFF6F4EF), surface: Color(0xFFFFFFFF), sunk: Color(0xFFEEEBE3), line: Color(0xFFDEDAD0),
+    ink: Color(0xFF1A1D24), ink2: Color(0xFF4A4F5A), ink3: Color(0xFF666B76),
+    primary: Color(0xFF1B2A4E), onPrimary: Color(0xFFFFFFFF), unread: Color(0xFFEEF0F5), gold: Color(0xFFC9A75A),
     pFg: Color(0xFF23683F), pBg: Color(0xFFE2EFE5), lFg: Color(0xFF8A5A00), lBg: Color(0xFFF8ECD2),
     aFg: Color(0xFFA3291F), aBg: Color(0xFFF8E3DF), eFg: Color(0xFF4A5566), eBg: Color(0xFFE6E9EE),
     tFg: Color(0xFF3B5876), tBg: Color(0xFFE2EAF1),
   );
 
   static const dark = Palette(
-    bg: Color(0xFF0F1420), surface: Color(0xFF161C29), sunk: Color(0xFF0A0F19), line: Color(0xFF283041),
-    ink: Color(0xFFECE7DC), ink2: Color(0xFFB3B2AC), ink3: Color(0xFF8E8E8A),
-    primary: Color(0xFF9DB3E3), onPrimary: Color(0xFF0F1420), unread: Color(0xFF182032), gold: Color(0xFFD4B475),
+    bg: Color(0xFF12141A), surface: Color(0xFF1A1D25), sunk: Color(0xFF0E1015), line: Color(0xFF2A2E38),
+    ink: Color(0xFFEEEAE0), ink2: Color(0xFFB6B4AE), ink3: Color(0xFF8E8D8A),
+    primary: Color(0xFFD6BA75), onPrimary: Color(0xFF12141A), unread: Color(0xFF1A2130), gold: Color(0xFFC9A75A),
     pFg: Color(0xFF7FCB98), pBg: Color(0xFF1E3326), lFg: Color(0xFFE6B75A), lBg: Color(0xFF3A2E14),
     aFg: Color(0xFFF08A7B), aBg: Color(0xFF3D1F1B), eFg: Color(0xFFAEB7C4), eBg: Color(0xFF262B32),
     tFg: Color(0xFF9DB8D6), tBg: Color(0xFF1F2A36),
@@ -59,9 +59,16 @@ extension PaletteOf on BuildContext {
 class Brand {
   static const font = 'IBMPlexSans';
   static const fallback = ['IBMPlexSansArabic'];
-  static const radius = 10.0;
+  /// Controls (buttons, fields) and panels.
+  static const radius = 8.0;
+  static const panel = 10.0;
 
-  /// The serif for titles and figures: Source Serif in English, Naskh in Arabic.
+  /// The crest's colours, the same in light and dark.
+  static const crest = Color(0xFF7A1F2E);
+  static const crestGold = Color(0xFFC9A75A);
+  static const crestInk = Color(0xFFF3E7C9);
+
+  /// The serif for headings: Source Serif in English, Naskh in Arabic.
   static TextStyle display(BuildContext context, {double size = 26, FontWeight weight = FontWeight.w600, Color? color, double height = 1.25}) {
     final arabic = Directionality.of(context) == TextDirection.rtl;
     return TextStyle(
