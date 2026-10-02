@@ -86,6 +86,15 @@ const TICKET_SECRET = () => `${SECRET()}:signup-ticket`;
 const hashCode = (target: string, code: string) => createHash('sha256').update(`${target}:${code}:${SECRET()}`).digest('hex');
 const wrongCode = () => new UnauthorizedException('That code is wrong or has expired. Ask for a new one.');
 
+
+/** The school's name for a letter, or a neutral one. */
+const schoolName = (user: { school?: { name: string } | null }) => user.school?.name ?? 'Your school';
+
+/** A short, courteous letter in English and then Arabic, signed by the school. */
+function letter(name: string, school: string, en: string, ar: string) {
+  return `Dear ${name},\n\n${en}\n\nKind regards,\n${school}\n\n———\n\nعزيزنا ولي الأمر ${name}،\n\n${ar}\n\nمع خالص التحية،\n${school}`;
+}
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -162,8 +171,8 @@ export class AuthService {
           schoolId: user.schoolId!,
           userId: a.id,
           type: 'parent.phoneChanged',
-          title: `${user.name} changed their mobile`,
-          body: before.phone ? `${user.name} checked a new mobile, ${phone}, ${how}. It replaces ${before.phone}.` : `${user.name} checked their mobile, ${phone}, ${how}.`,
+          title: `${user.name} updated their mobile number`,
+          body: before.phone ? `${user.name} verified a new mobile number, ${phone}, ${how}. It replaces ${before.phone}.` : `${user.name} verified their mobile number, ${phone}, ${how}.`,
           data: { parentId: user.id, phone, previous: before.phone },
         })),
       );
@@ -188,15 +197,19 @@ export class AuthService {
       await this.nothingSent(email, CodePurpose.SIGNUP);
       await this.email.send({
         to: email,
-        subject: 'You already have an account',
-        text: `Hello ${user.name},\n\nYou already have an account for ${user.school?.name ?? 'your school'}. Sign in with this email, or choose “Forgot password” in the app.`,
+        subject: `${schoolName(user)}: you already have an account · لديكم حساب بالفعل`,
+        text: letter(user.name, schoolName(user),
+          `You already have an account with ${schoolName(user)}. Please sign in with this email address, or choose “Forgot password?” in the app.`,
+          `لديكم حساب بالفعل لدى ${schoolName(user)}. يُرجى تسجيل الدخول بهذا البريد، أو اختيار «نسيت كلمة المرور؟» في التطبيق.`),
       });
     } else {
       const code = await this.newCode(email, CodePurpose.SIGNUP);
       await this.email.send({
         to: email,
-        subject: 'Your sign-up code',
-        text: `Hello ${user.name},\n\n${user.school?.name ?? 'The school'} registered this email for you. Your sign-up code is ${code}.\nType it in the app to continue. It works for 15 minutes.\n\nIf you didn’t ask for it, ignore this email.`,
+        subject: `${schoolName(user)}: your registration code ${code} · رمز التسجيل`,
+        text: letter(user.name, schoolName(user),
+          `Welcome to ${schoolName(user)}. Your registration code is ${code}. Please enter it in the app to continue; it is valid for 15 minutes.\n\nIf you did not request this, you may safely ignore this email.`,
+          `أهلًا بكم في ${schoolName(user)}. رمز التسجيل الخاص بكم هو ${code}. يُرجى إدخاله في التطبيق للمتابعة، وهو صالح لمدة 15 دقيقة.\n\nإن لم تطلبوا هذا الرمز، يمكنكم تجاهل هذه الرسالة.`),
       });
     }
     return { sent: true, expiresInSeconds: CODE_TTL_MS / 1000 };
@@ -254,15 +267,17 @@ export class AuthService {
   async forgotPassword(rawEmail: string) {
     const email = rawEmail.trim().toLowerCase();
     await this.limit(email, CodePurpose.RESET);
-    const user = await this.prisma.user.findUnique({ where: { email } });
+    const user = await this.prisma.user.findUnique({ where: { email }, include: { school: { select: { name: true } } } });
     if (!user?.active || !user.passwordHash) {
       await this.nothingSent(email, CodePurpose.RESET);
     } else {
       const code = await this.newCode(email, CodePurpose.RESET);
       await this.email.send({
         to: email,
-        subject: 'Your password reset code',
-        text: `Hello ${user.name},\n\nYour code to choose a new password is ${code}. It works for 15 minutes.\n\nIf you didn’t ask for it, ignore this email; your password stays the same.`,
+        subject: `${schoolName(user)}: your password reset code ${code} · رمز إعادة تعيين كلمة المرور`,
+        text: letter(user.name, schoolName(user),
+          `Your code to choose a new password is ${code}. It is valid for 15 minutes.\n\nIf you did not request this, you may safely ignore this email; your password will not change.`,
+          `رمز اختيار كلمة مرور جديدة هو ${code}، وهو صالح لمدة 15 دقيقة.\n\nإن لم تطلبوا ذلك، يمكنكم تجاهل هذه الرسالة؛ ولن تتغير كلمة المرور.`),
       });
     }
     return { sent: true, expiresInSeconds: CODE_TTL_MS / 1000 };

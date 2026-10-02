@@ -137,7 +137,7 @@ class _DayTabState extends State<DayTab> {
           Text(arrived != null ? timeCairo(arrived) : '—',
               style: const TextStyle(fontSize: 34, fontWeight: FontWeight.w600, height: 1.05, letterSpacing: -.3, fontFeatures: [FontFeature.tabularFigures()])),
           if (arrived != null) ...[const SizedBox(height: 4), Text(s.throughGate, style: TextStyle(fontSize: 14, color: c.ink2))],
-          if (left != null) ...[const SizedBox(height: 6), Text(s.leftAt(timeCairo(left)), style: TextStyle(fontSize: 14, color: c.lFg, fontWeight: FontWeight.w600))],
+          if (left != null) ...[const SizedBox(height: 6), Text(s.leftAt(timeCairo(left), widget.data.child(_childId)?['gender'] as String?), style: TextStyle(fontSize: 14, color: c.lFg, fontWeight: FontWeight.w600))],
         ]),
       ),
       if (place != null) ...[

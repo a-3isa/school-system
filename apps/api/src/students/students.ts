@@ -257,7 +257,7 @@ export class StudentsService {
   children(parentId: string) {
     return this.prisma.student.findMany({
       where: { active: true, guardians: { some: { userId: parentId, restricted: false } } },
-      select: { id: true, firstName: true, lastName: true, nameAr: true, photoUrl: true, class: { select: { id: true, name: true } } },
+      select: { id: true, firstName: true, lastName: true, nameAr: true, gender: true, photoUrl: true, class: { select: { id: true, name: true } } },
     });
   }
 }

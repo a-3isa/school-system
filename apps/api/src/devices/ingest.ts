@@ -123,8 +123,8 @@ export class IngestService {
             schoolId: school.id,
             userId: g.userId,
             type: 'attendance.arrived',
-            title: `${student.firstName} arrived at school`,
-            body: `${student.firstName} came in through ${gw.name ?? 'the gate'} at ${at}.`,
+            title: `${student.firstName} has arrived at school`,
+            body: `${student.firstName} came in through ${gw.name ?? 'the school gate'} at ${at}.`,
             data: { studentId: student.id, date, time: at },
           })),
         );

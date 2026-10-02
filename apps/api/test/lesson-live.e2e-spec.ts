@@ -100,9 +100,9 @@ describe('The lesson happening now (e2e)', () => {
     const school = await prisma.school.findUniqueOrThrow({ where: { id: schoolId } });
     await evaluator.evaluateSchool(school, new Date());
     await evaluator.evaluateSchool(school, new Date());
-    expect(await titles(salmaParent)).toEqual(['Salma was absent from Math in Room 204', 'Salma arrived at school']);
+    expect(await titles(salmaParent)).toEqual(['Salma hasn’t joined Math in Room 204', 'Salma has arrived at school']);
     expect(await titles(omarParent)).toEqual([]); // not at school: the daily absence notice covers it
-    expect(await titles(karimParent)).toEqual(['Karim left school early', 'Karim arrived at school']); // went out before the lesson: no lesson message
+    expect(await titles(karimParent)).toEqual(['Karim left school early', 'Karim has arrived at school']); // went out before the lesson: no lesson message
     const open = await admin.get(`/api/attendance/exceptions?date=${local.date}&status=OPEN&type=NOT_IN_CLASS`).expect(200);
     expect(open.body.map((e: any) => e.studentId)).toEqual([ids.Salma]);
     const roster = await teacher.get(`/api/attendance/classes/${classId}/periods/${periodId}?date=${local.date}`).expect(200);
@@ -122,7 +122,7 @@ describe('The lesson happening now (e2e)', () => {
         ],
       })
       .expect(200);
-    expect(await titles(salmaParent)).toEqual(['Salma is in Math in Room 204', 'Salma was absent from Math in Room 204', 'Salma arrived at school']);
+    expect(await titles(salmaParent)).toEqual(['Salma is now in Math in Room 204', 'Salma hasn’t joined Math in Room 204', 'Salma has arrived at school']);
     expect(await titles(omarParent)).toEqual([]);
     const open = await admin.get(`/api/attendance/exceptions?date=${local.date}&status=OPEN&type=NOT_IN_CLASS`).expect(200);
     expect(open.body).toHaveLength(0);

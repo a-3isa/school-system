@@ -76,7 +76,7 @@ class _Row extends StatelessWidget {
       'attendance.absent' || 'attendance.lessonAbsent' => ('×', c.aFg, c.aBg),
       _ => ('i', c.eFg, c.eBg),
     };
-    final text = child == null ? n['title'] as String : s.notification(type, name, info, n['title'] as String);
+    final text = child == null ? n['title'] as String : s.notification(type, name, info, n['title'] as String, child['gender'] as String?);
     final who = child == null
         ? n['body'] as String
         : ltr([child['class']?['name'], '${child['firstName']} ${child['lastName']}'].whereType<String>().join(' · '));

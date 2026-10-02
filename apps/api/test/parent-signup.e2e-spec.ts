@@ -72,7 +72,7 @@ describe('Parents sign up in the app (e2e)', () => {
     // The checked mobile replaced the school's, and the school was told.
     expect(await guardian()).toEqual(expect.objectContaining({ phone: '+201600000099', phoneVerifiedAt: expect.any(String), emailVerifiedAt: expect.any(String) }));
     const notes = (await admin.get('/api/notifications').expect(200)).body;
-    expect(notes[0]).toEqual(expect.objectContaining({ type: 'parent.phoneChanged', title: 'Heba changed their mobile' }));
+    expect(notes[0]).toEqual(expect.objectContaining({ type: 'parent.phoneChanged', title: 'Heba updated their mobile number' }));
     expect(notes[0].body).toContain('+201600000001');
 
     const parent = await login(app, 'heba@x.eg', 'heba-pass-1');
@@ -93,7 +93,7 @@ describe('Parents sign up in the app (e2e)', () => {
 
   it('tells a parent who already signed up to sign in instead', async () => {
     await http().post('/api/auth/signup').send({ email: 'heba@x.eg' }).expect(201);
-    expect(app.get(EmailService).last('heba@x.eg')!.subject).toBe('You already have an account');
+    expect(app.get(EmailService).last('heba@x.eg')!.subject).toContain('you already have an account');
   });
 
   it('lets a parent change their mobile with a WhatsApp code, and tells the school', async () => {

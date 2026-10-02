@@ -219,8 +219,8 @@ export class AttendanceService {
           schoolId,
           userId: g.userId,
           type: 'attendance.lessonPresent',
-          title: `${s.firstName} is in ${where}`,
-          body: `The teacher marked ${s.firstName} present in ${where}. Ignore the earlier message.`,
+          title: `${s.firstName} is now in ${where}`,
+          body: `The teacher has marked ${s.firstName} present in ${where}. Please disregard the earlier message.`,
           data: { studentId: s.id, date, periodId, ...(slot.lesson ? { subject: slot.lesson.subject.name, room: slot.lesson.room.name } : {}) },
         })),
       );
@@ -446,8 +446,8 @@ export class AttendanceService {
             schoolId: school.id,
             userId: g.userId,
             type: 'attendance.absent',
-            title: `${s.firstName} is absent today`,
-            body: `${s.firstName} hasn’t been marked present at school today. If you know why, tell the school.`,
+            title: `${s.firstName} is marked absent today`,
+            body: `${s.firstName} hasn’t been marked present at school today. If ${s.firstName} is unwell or away, kindly let the school know.`,
             data: { studentId: s.id, date },
           })),
         );

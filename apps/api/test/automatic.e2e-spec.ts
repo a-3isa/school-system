@@ -120,7 +120,7 @@ describe('Automatic attendance (e2e)', () => {
     ]).expect(200);
     expect(res.body).toEqual({ stored: 6, unknown: 1 });
     const notes = await parent.get('/api/notifications').expect(200);
-    expect(notes.body[0]).toEqual(expect.objectContaining({ type: 'attendance.arrived', title: 'Ali arrived at school' }));
+    expect(notes.body[0]).toEqual(expect.objectContaining({ type: 'attendance.arrived', title: 'Ali has arrived at school' }));
     const presence = await prisma.gatePresence.findMany({ where: { studentId: { in: [ids.Ali, ids.Yara] } } });
     expect(presence.map((p) => p.studentId)).toEqual([ids.Ali]);
   });
