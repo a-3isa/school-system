@@ -186,7 +186,7 @@ The server enforces this: a teacher asking for school-wide data (the student lis
    - **Create account** (first time): email code, then mobile with a WhatsApp code, then a password (section 1).
    - **Forgot password:** a code by email, then a new password.
 2. **Consent** once.
-3. **The child's day:** arrival time and each lesson's status. With two children there is a switcher.
+3. **The child's day:** arrival time, **where the child is now** (the room or the gate where the strap was heard in the last minute, e.g. "In Math, Room 204 · heard 09:41"), and each lesson's status. With two children there is a switcher. Where the child is now shows only at schools with the straps subscription, only after the parent agreed on the consent screen, and only for today.
 4. **Notifications:** the list, marked read when opened.
 5. **Account:** name, email, mobile ("checked on WhatsApp"), **Change mobile**, and sign out.
 
@@ -221,7 +221,5 @@ The server enforces this: a teacher asking for school-wide data (the student lis
   - **Email:** needs an email account to send from (`SMTP_URL` in `apps/api/.env`). Until then, sign-up and password codes are written in the server log.
   - **WhatsApp:** needs a WhatsApp Business account with an approved code template (`WHATSAPP_*` in `apps/api/.env`). Until then, mobile codes are written in the server log.
   - **School emails to parents** (newsletters, announcements) come with the Messaging module, after Phase 1.
-- **Arabic:** the dashboard and app are English only. Arabic names are stored and shown.
 - **Hosting:** no production server, domain, HTTPS or MQTT broker is set up yet.
-- **Parents and live location:** they don't see their child's live location. Only staff do, until you decide otherwise.
 - **Passwords:** changing a password doesn't sign out sessions that are already open; deactivating the account does.

@@ -99,6 +99,7 @@ Screens:
 - **Child's day:**
   - the child switcher (for two children)
   - arrival time at the gate
+  - **where the child is now** (straps only): the room or the gate where the strap was heard in the last minute, e.g. "In Math, Room 204 · heard 09:41"
   - each lesson: period, subject, room, time, status
 - **Account:** name and email; mobile with "Checked on WhatsApp"; **Change mobile** (new number, then the WhatsApp code, then "Your mobile is now … The school has been told."); sign out.
 - **Notifications:** a list with unread state. The types:

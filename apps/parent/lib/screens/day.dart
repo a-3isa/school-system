@@ -31,7 +31,7 @@ class _DayTabState extends State<DayTab> {
     super.initState();
     widget.data.addListener(_childrenChanged);
     _childrenChanged();
-    _timer = Timer.periodic(const Duration(minutes: 1), (_) => _load());
+    _timer = Timer.periodic(const Duration(seconds: 30), (_) => _load());
   }
 
   @override

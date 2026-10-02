@@ -10,7 +10,7 @@ const MIN = 60_000;
 describe('Where students are (e2e)', () => {
   let app: INestApplication;
   const prisma = new PrismaClient();
-  let admin: Client, parent: Client;
+  let admin: Client, parent: Client, owner: Client;
   let schoolId: string;
   const gw: Record<string, { serial: string; secret: string }> = {};
   const ids: Record<string, string> = {};
@@ -23,7 +23,7 @@ describe('Where students are (e2e)', () => {
 
   beforeAll(async () => {
     app = await startApp();
-    const owner = await ownerClient(app, prisma, 'loc');
+    owner = await ownerClient(app, prisma, 'loc');
     schoolId = (await owner.post('/api/owner/schools', { name: 'Location School', plan: 'SMART', admin: { name: 'Admin', email: 'admin@loc.eg', password: 'admin-pass' } }).expect(201)).body.id;
     admin = await login(app, 'admin@loc.eg', 'admin-pass');
     await admin.get('/api/locations').expect(403); // tracking comes with automatic attendance
@@ -77,6 +77,16 @@ describe('Where students are (e2e)', () => {
     expect(by.Karim.state).toBe('notSeen');
     expect(by.Salma.state).toBe('noStrap');
     expect(res.body.places).toHaveLength(3);
+  });
+
+  it('tells a parent who agreed to tracking where their child is now, only with straps', async () => {
+    const place = async () => (await parent.get(`/api/parent/children/${ids.Layla}/today?date=${today.date}`).expect(200)).body.place;
+    expect(await place()).toBeNull(); // hasn't agreed yet
+    await parent.post('/api/parent/consent').expect(201);
+    expect(await place()).toEqual(expect.objectContaining({ name: 'Room 101', kind: 'ROOM' }));
+    await owner.patch(`/api/owner/schools/${schoolId}/modules/attendance/features`, { features: { automatic: false } }).expect(200);
+    expect(await place()).toBeNull();
+    await owner.patch(`/api/owner/schools/${schoolId}/modules/attendance/features`, { features: { automatic: true } }).expect(200);
   });
 
   it('stops worrying about children not heard once school is over', async () => {

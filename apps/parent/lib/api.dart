@@ -98,7 +98,7 @@ class Api {
   Future<void> consent() => post('/parent/consent');
   Future<List<dynamic>> children() async => await get('/parent/children') as List<dynamic>;
   Future<List<dynamic>> childDay(String id, String date) async => await get('/parent/children/$id/attendance?date=$date') as List<dynamic>;
-  /// The child's whole day: arrival, where the strap was heard in the last 10 minutes, and every lesson.
+  /// The child's whole day: arrival, where the strap was heard in the last minute, and every lesson.
   Future<Map<String, dynamic>> childToday(String id, String date) async => await get('/parent/children/$id/today?date=$date') as Map<String, dynamic>;
   Future<List<dynamic>> notifications() async => await get('/notifications') as List<dynamic>;
   Future<void> markRead(String id) => post('/notifications/$id/read');
