@@ -387,8 +387,15 @@ export class AttendanceService {
       if (!rows.has(r.periodId)) rows.set(r.periodId, { period: r.period.number, startTime: r.period.startTime, endTime: r.period.endTime, subject: null, room: null, status: r.status });
     }
 
+    // Where the child is now: only with the straps subscription, and only for a
+    // parent who agreed to tracking in the app.
     let place: { name: string; kind: string | null; heardAt: Date } | null = null;
-    if (student.strap && date === localParts(now, school.timezone).date) {
+    const [mod, parent] = await Promise.all([
+      this.prisma.schoolModule.findUnique({ where: { schoolId_key: { schoolId: student.schoolId, key: 'attendance' } } }),
+      this.prisma.user.findUnique({ where: { id: parentId }, select: { consentAt: true } }),
+    ]);
+    const tracking = !!(mod?.features as Record<string, boolean> | undefined)?.automatic && !!parent?.consentAt;
+    if (tracking && student.strap && date === localParts(now, school.timezone).date) {
       const heard = await this.locations.lastHeard(student.schoolId, rulesFor(school.detection).room.minRssi, new Date(now.getTime() - 10 * 60_000), now, [student.strap.id]);
       const h = heard.get(student.strap.id);
       if (h) {
