@@ -35,6 +35,8 @@ npm run test:e2e -w apps/api  # API tests against the database named in TEST_DAT
 
 ## Try the whole system locally
 
+Step by step from a fresh computer (clone, pull, database, tests, and what to check as each role): [docs/TESTING.md](docs/TESTING.md).
+
 ```bash
 # 1. API with a demo school
 cd apps/api

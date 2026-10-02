@@ -20,8 +20,9 @@ flutter test
   shown until they do.
 - **Language**: follows the phone the first time; change it on the sign-in screen or under
   Account. It's remembered.
-- **Fonts**: IBM Plex Sans and IBM Plex Sans Arabic are bundled in `assets/fonts`
-  (SIL Open Font License, see `assets/fonts/OFL.txt`), so cheap phones don't download them.
+- **Fonts**: IBM Plex Sans and IBM Plex Sans Arabic for text, Source Serif 4 and Noto Naskh
+  Arabic for titles, all bundled in `assets/fonts` (SIL Open Font License, see the `OFL*.txt`
+  files there), so cheap phones don't download them.
 
 Not done yet: real push notifications through Firebase (the Notifications tab lists them).
 Names, subjects and rooms are shown as the school typed them.
