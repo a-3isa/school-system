@@ -8,6 +8,7 @@ import { localParts, zonedTime } from '../common/time';
 import { LocationsService } from '../devices/locations';
 import { rulesFor } from '../devices/rules';
 import { dbDate, isoDate, weekday } from '../common/dates';
+import { SchoolCalendar } from '../setup/calendar';
 import { toMinutes } from '../common/validation';
 
 export interface Mark {
@@ -26,6 +27,7 @@ export class AttendanceService {
     private readonly audit: AuditService,
     private readonly notifications: NotificationsService,
     private readonly locations: LocationsService,
+    private readonly calendar: SchoolCalendar,
   ) {}
 
   private async school(schoolId: string) {
@@ -150,7 +152,7 @@ export class AttendanceService {
   async current(user: AuthUser, schoolId: string, now = new Date()) {
     const school = await this.school(schoolId);
     const { date, time } = localParts(now, school.timezone);
-    if (!school.schoolDays.includes(weekday(date))) return { date, now: null, next: null };
+    if (!(await this.calendar.isOpen(school, date))) return { date, now: null, next: null };
     const lessons = await this.myLessons(user, schoolId, date);
     return {
       date,
@@ -162,7 +164,8 @@ export class AttendanceService {
   async mark(user: AuthUser, schoolId: string, classId: string, periodId: string, date: string, marks: Mark[], now = new Date()) {
     const day = dbDate(date);
     const school = await this.school(schoolId);
-    if (!school.schoolDays.includes(weekday(date))) throw new BadRequestException('That day isn’t a school day.');
+    const status = await this.calendar.day(school, date);
+    if (!status.open) throw new BadRequestException(status.name ? `There’s no school that day: ${status.name}.` : 'That day isn’t a school day.');
     const slot = await this.loadSlot(schoolId, classId, periodId, date);
     const access = await this.access(user, schoolId, slot, date, now);
     if (!access.canEdit) throw new ForbiddenException(access.why);
@@ -422,7 +425,8 @@ export class AttendanceService {
     let sent = 0;
     for (const school of schools) {
       const { date, time, dayOfWeek } = localParts(now, school.timezone);
-      if (!school.schoolDays.includes(dayOfWeek) || toMinutes(time) < toMinutes(school.absenceNoticeTime)) continue;
+      // No "absent today" on a weekend, holiday or break.
+      if (!school.schoolDays.includes(dayOfWeek) || toMinutes(time) < toMinutes(school.absenceNoticeTime) || !(await this.calendar.isOpen(school, date))) continue;
       const day = dbDate(date);
       const absent = await this.prisma.student.findMany({
         where: {

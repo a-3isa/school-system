@@ -13,7 +13,7 @@ export const ROLES = 'roles';
 export const REQUIRES_MODULE = 'requiresModule';
 
 /** Every role that works at a school (everyone except parents and the platform owner). */
-export const STAFF: Role[] = [Role.SCHOOL_ADMIN, Role.TEACHER, Role.TRANSPORT, Role.NURSE, Role.CANTEEN, Role.ACCOUNTANT];
+export const STAFF: Role[] = [Role.SCHOOL_ADMIN, Role.TEACHER, Role.TRANSPORT, Role.NURSE, Role.CANTEEN, Role.ACCOUNTANT, Role.SOCIAL_WORKER];
 /** Staff who see the whole school. Teachers see only their own lessons. */
 export const SCHOOL_WIDE: Role[] = STAFF.filter((r) => r !== Role.TEACHER);
 

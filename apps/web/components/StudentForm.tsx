@@ -7,6 +7,7 @@ import { useI18n } from '@/lib/i18n';
 import { BLANK_PARENT, ParentFields, parentBody, ParentForm, RELATIONS } from './ParentFields';
 import { PaperFile, PaperPicker, REQUIRED_FILES } from './StudentFiles';
 import { ErrorNote, Field, Tabs } from './ui';
+import { ClassSelect } from './ClassPicker';
 
 const BLOOD = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 const TEXT = ['firstName', 'lastName', 'nameAr', 'code', 'classId', 'dateOfBirth', 'nationality', 'nationalId', 'passportNo', 'religion', 'placeOfBirth', 'address', 'previousSchool', 'enrolledOn', 'bloodType', 'allergies', 'medicalNotes', 'emergencyName', 'emergencyRelation', 'emergencyPhone'] as const;
@@ -87,6 +88,9 @@ export function StudentForm({ student, onSaved, onCancel }: { student?: any; onS
     await act.run(async () => onSaved(await post('/students', body)));
   }
 
+  // A class with its places taken (not counting this student, when editing their own class).
+  const chosen = classes.data?.find((c) => c.id === v.classId);
+  const full = chosen?.capacity && chosen._count.students - (student?.class?.id === chosen.id ? 1 : 0) >= chosen.capacity ? chosen : null;
   const takenBy = (i: number) => parents.filter((_, j) => j !== i).map((p) => p.relation);
   const missingKinds = REQUIRED_FILES.filter((k) => !files.some((f) => f.kind === k)).map((k) => t.papers.kinds[k]);
 
@@ -145,11 +149,8 @@ export function StudentForm({ student, onSaved, onCancel }: { student?: any; onS
 
       <section className="form">
         <div className="form-title">{t.enrol.secSchool}</div>
-        <Field label={t.common.class} id="s-class">
-          <select id="s-class" className="input" value={v.classId} onChange={set('classId')}>
-            <option value="">{t.students.noClass}</option>
-            {classes.data?.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
+        <Field label={t.common.class} id="s-class" error={full ? t.eg.overCapacity(full.name) : undefined}>
+          <ClassSelect id="s-class" classes={classes.data} value={v.classId} empty={t.students.noClass} onChange={(id) => setV((x) => ({ ...x, classId: id }))} />
         </Field>
         <Field label={t.enrol.enrolledOn} id="s-enr"><input id="s-enr" className="input" type="date" value={v.enrolledOn} onChange={set('enrolledOn')} /></Field>
         <Field label={t.enrol.previousSchool} id="s-prev" help={t.enrol.previousSchoolHelp}><input id="s-prev" className="input" value={v.previousSchool} onChange={set('previousSchool')} /></Field>

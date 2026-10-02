@@ -71,6 +71,13 @@ This describes every part that exists in the code today. Phase 1 is attendance. 
   - school days (Sunday–Thursday by default)
   - the time of the daily "absent today" message (08:15 by default)
 - **Grades, classes, rooms, subjects and bell periods.** Periods can't overlap.
+- **How the school is organised (as in Egypt):**
+  - **stages and grades:** KG (2 years), primary (6), preparatory (3), secondary (3). "Add these grades" creates the grades of the ticked stages with their English and Arabic names (Primary 4 · الصف الرابع الابتدائي); a school can add its own grades too
+  - **classes:** a grade and a section (4/1, Prep 2/3, Sec 1/2), with the system it follows (national Arabic, national languages, British, American, IB, French, German, Al-Azhar), boys, girls or mixed, the secondary stream (science, mathematics, literary; secondary only), the number of places and the homeroom teacher. The Classes tab groups classes by stage and shows how full each is; adding a student to a full class warns
+  - **school year:** first and last day, when the second term starts and the mid-year break. Outside the year, on the break, on the weekend and on holidays there is no school: no attendance, no "absent today" messages, no lesson alerts, and Today and the teacher's screen say why ("No school today: Armed Forces Day")
+  - **holidays:** "Add Egypt's fixed holidays" adds the fixed public holidays that fall on a school day of the year (Coptic Christmas, 25 January, Sinai Liberation Day, Labour Day, 30 June, 23 July, Armed Forces Day). The Eids, the Hijri new year and the Prophet's birthday move with the moon, so the school adds them when announced
+  - a school without a school year keeps working as before: every school weekday counts
+- **Social worker:** a staff role (أخصائي اجتماعي) that sees students, attendance and exceptions and resolves exceptions, to follow up absences with families.
 - **Timetable:** for each day and period, which class is in which room, with which subject and teacher. Clashes are refused with a clear message: the same class, room or teacher twice at once.
 - **Staff accounts:** add teachers and other staff; reset passwords; deactivate.
 - **Students:**
@@ -177,12 +184,13 @@ All messages arrive as **app notifications**, and every one is also kept in the 
 | **Take attendance:** every lesson; opens the same attendance screen for any lesson, any day | | ✓ | |
 | **Exceptions:** things a person should look at, each resolved with a note:<ul><li>at school but not in the lesson</li><li>left a lesson</li><li>left early</li><li>gateway offline / room without a gateway</li><li>low battery</li></ul> | | ✓ | |
 | **Where students are** (only with straps): live every 10 seconds:<ul><li>each room and the gate, with who is in it now</li><li>"needs a look": not heard for 10+ minutes during school hours</li><li>who went out through the gate</li><li>who hasn't been heard today</li></ul>Has search and a class filter. | | ✓ | |
+| **School structure & year:** stages and grades, classes (section, system, boys/girls, stream, places, homeroom), school year (terms, mid-year break), holidays, rooms, periods, subjects | | ✓ | |
 | **Students:** search; **Add a student** (details, health, emergency contact, parents, photo and papers); each student's page (photo, details and Edit details, papers, parents and guardian, class, where today, two weeks of attendance) | | ✓ | |
 | **Parents:** search by name, email, mobile or child; each parent's page (details, sign-up and tracking consent, their children with class; link another child) | | ✓ | |
 | **Classes:** each class's page (grade, homeroom teacher, students with their parents). Student, parent and class pages link to each other. | | ✓ | |
 | **Import from Excel:** template, check, import | | ✓ | |
 | **Staff:** accounts | | ✓ | |
-| **Timetable** (whole school), **Classes, rooms & periods** | | ✓ | |
+| **Timetable** (whole school), **School structure & year** | | ✓ | |
 | **Devices** (only with straps): gateways, straps, detection rules | | ✓ | |
 | **Modules & settings:** school days, absence message time, whether straps are in the subscription | | ✓ | |
 | **Audit log** | | ✓ | |

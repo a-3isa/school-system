@@ -5,6 +5,7 @@ import { NotificationsService } from '../notifications/notifications';
 import { localParts, zonedTime } from '../common/time';
 import { dbDate } from '../common/dates';
 import { toMinutes } from '../common/validation';
+import { SchoolCalendar } from '../setup/calendar';
 import { decidePeriod, DetectionRules, rulesFor } from './rules';
 
 const MINUTE = 60_000;
@@ -24,6 +25,7 @@ export class AttendanceEvaluator {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
+    private readonly calendar: SchoolCalendar,
   ) {}
 
   async tick(now = new Date()) {
@@ -42,7 +44,7 @@ export class AttendanceEvaluator {
 
   async evaluateSchool(school: School, now: Date) {
     const { date, time, dayOfWeek } = localParts(now, school.timezone);
-    if (!school.schoolDays.includes(dayOfWeek)) return;
+    if (!school.schoolDays.includes(dayOfWeek) || !(await this.calendar.isOpen(school, date))) return;
     const rules = rulesFor(school.detection);
     const periods = await this.prisma.period.findMany({ where: { schoolId: school.id }, orderBy: { number: 'asc' } });
     if (!periods.length) return;

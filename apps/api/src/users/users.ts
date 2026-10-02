@@ -8,7 +8,7 @@ import { hashPassword } from '../auth/auth';
 import { mapPrismaError } from '../common/validation';
 
 // Staff roles a school admin can create. Parents are created from a student's record.
-const STAFF_ROLES = [Role.SCHOOL_ADMIN, Role.TEACHER, Role.TRANSPORT, Role.NURSE, Role.CANTEEN, Role.ACCOUNTANT] as const;
+const STAFF_ROLES = [Role.SCHOOL_ADMIN, Role.TEACHER, Role.TRANSPORT, Role.NURSE, Role.CANTEEN, Role.ACCOUNTANT, Role.SOCIAL_WORKER] as const;
 
 export class CreateStaffDto {
   @IsString() @MinLength(1) name: string;

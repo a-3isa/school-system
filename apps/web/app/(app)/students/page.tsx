@@ -5,7 +5,8 @@ import { useState } from 'react';
 import { useApi } from '@/lib/hooks';
 import { useI18n } from '@/lib/i18n';
 import { useSession } from '@/lib/session';
-import { Empty, ErrorNote, PageHead, Pill, Tabs } from '@/components/ui';
+import { Empty, ErrorNote, PageHead, Pill } from '@/components/ui';
+import { ClassSelect } from '@/components/ClassPicker';
 
 export default function StudentsPage() {
   const { me } = useSession();
@@ -29,7 +30,9 @@ export default function StudentsPage() {
         )}
       />
       <input type="search" className="input" aria-label={t.students.search} placeholder={t.students.search} value={q} onChange={(e) => setQ(e.target.value)} />
-      <Tabs label={t.common.class} value={classId} onChange={setClassId} items={[['', t.common.allClasses], ...(classes.data ?? []).map((c): [string, string] => [c.id, c.name])]} />
+      <div className="row wrap" style={{ gap: 10 }}>
+        <span style={{ minWidth: 200 }}><ClassSelect classes={classes.data} value={classId} onChange={setClassId} empty={t.common.allClasses} /></span>
+      </div>
       <ErrorNote error={students.error} />
       <div className="panel scroll">
         {students.data?.length ? (

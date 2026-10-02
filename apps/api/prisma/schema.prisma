@@ -29,7 +29,46 @@ enum Role {
   NURSE
   CANTEEN
   ACCOUNTANT
+  // Follows up absences and behaviour with the families (أخصائي اجتماعي).
+  SOCIAL_WORKER
   PARENT
+}
+
+// The stages of Egyptian schooling: two years of KG, six of primary, three of
+// preparatory and three of secondary.
+enum Stage {
+  KG
+  PRIMARY
+  PREPARATORY
+  SECONDARY
+  OTHER
+}
+
+// The system a class follows: the national curriculum in Arabic or in
+// languages, an international one, or Al-Azhar.
+enum SchoolSystem {
+  NATIONAL_ARABIC
+  NATIONAL_LANGUAGES
+  BRITISH
+  AMERICAN
+  IB
+  FRENCH
+  GERMAN
+  AZHAR
+  OTHER
+}
+
+enum ClassGender {
+  MIXED
+  BOYS
+  GIRLS
+}
+
+// The stream a student picks in the later years of secondary (Thanaweya Amma).
+enum SecondaryStream {
+  SCIENCE
+  MATHEMATICS
+  LITERARY
 }
 
 enum RoomKind {
@@ -61,6 +100,8 @@ model School {
   createdAt         DateTime       @default(now())
 
   modules    SchoolModule[]
+  years      AcademicYear[]
+  holidays   Holiday[]
   studentFiles StudentFile[]
   users      User[]
   grades     Grade[]
@@ -125,6 +166,8 @@ model Grade {
   id       String @id @default(cuid())
   schoolId String
   name     String
+  nameAr   String?
+  stage    Stage  @default(OTHER)
   order    Int
 
   school  School  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
@@ -138,7 +181,14 @@ model Class {
   schoolId          String
   gradeId           String
   name              String
+  // The section within the grade, e.g. 1 in 4/1.
+  section           String?
   homeroomTeacherId String?
+  system            SchoolSystem?
+  gender            ClassGender     @default(MIXED)
+  stream            SecondaryStream?
+  // How many students the class takes.
+  capacity          Int?
 
   school          School           @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   grade           Grade            @relation(fields: [gradeId], references: [id], onDelete: Restrict)
@@ -279,6 +329,35 @@ model StudentFile {
   student Student? @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@index([schoolId, studentId])
+}
+
+// A school year: two terms with a mid-year break between them.
+model AcademicYear {
+  id            String   @id @default(cuid())
+  schoolId      String
+  name          String   // e.g. 2026/2027
+  startsOn      DateTime @db.Date
+  endsOn        DateTime @db.Date
+  term2StartsOn DateTime? @db.Date
+  breakFrom     DateTime? @db.Date
+  breakTo       DateTime? @db.Date
+
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@unique([schoolId, name])
+}
+
+// A day or days off: a public holiday, Eid, a school event.
+model Holiday {
+  id       String   @id @default(cuid())
+  schoolId String
+  name     String
+  fromDate DateTime @db.Date
+  toDate   DateTime @db.Date
+
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId, fromDate])
 }
 
 enum Gender {

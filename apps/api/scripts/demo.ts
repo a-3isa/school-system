@@ -85,9 +85,14 @@ async function main() {
 
   const hana = await A('POST', '/staff', { name: 'Hana Nabil', role: 'TEACHER', email: 'hana@demo.school', password: 'demo-teacher-1' });
   const sherif = await A('POST', '/staff', { name: 'Sherif Kamal', role: 'TEACHER', email: 'sherif@demo.school', password: 'demo-teacher-1' });
-  const g4 = await A('POST', '/grades', { name: 'Grade 4', order: 4 });
-  const c4a = await A('POST', '/classes', { name: '4-A', gradeId: g4.id, homeroomTeacherId: hana.id });
-  const c4b = await A('POST', '/classes', { name: '4-B', gradeId: g4.id, homeroomTeacherId: sherif.id });
+  // An Egyptian primary school: Primary 1–6, two classes of Primary 4 (4/1 and 4/2) in the languages system.
+  const grades: any[] = await A('POST', '/grades/egypt', { stages: ['PRIMARY'] });
+  const g4 = grades.find((g) => g.name === 'Primary 4');
+  const c4a = await A('POST', '/classes', { name: '4/1', section: '1', gradeId: g4.id, homeroomTeacherId: hana.id, system: 'NATIONAL_LANGUAGES', capacity: 30 });
+  const c4b = await A('POST', '/classes', { name: '4/2', section: '2', gradeId: g4.id, homeroomTeacherId: sherif.id, system: 'NATIONAL_LANGUAGES', capacity: 30 });
+  // The school year: two terms with the mid-year break, and Egypt's fixed public holidays.
+  const year = await A('POST', '/school/years', { name: '2026/2027', startsOn: '2026-09-13', endsOn: '2027-06-30', term2StartsOn: '2027-02-07', breakFrom: '2027-01-24', breakTo: '2027-02-04' });
+  await A('POST', '/school/holidays/egypt', { yearId: year.id, lang: 'en' });
   const r204 = await A('POST', '/rooms', { name: 'Room 204' });
   const r205 = await A('POST', '/rooms', { name: 'Room 205' });
   const lab = await A('POST', '/rooms', { name: 'Science lab', kind: 'LAB' });
@@ -110,7 +115,7 @@ async function main() {
 
   for (let i = 0; i < 24; i++) {
     // Every student comes with a parent. Some brothers and sisters share a mother
-    // (one in 4-A, one in 4-B), and the last child is looked after by a guardian.
+    // (one in 4/1, one in 4/2), and the last child is looked after by a guardian.
     // Demo parents get a password straight away; real parents sign up in the app with their email.
     const sibling = i >= 12 && i % 4 === 0 ? i - 12 : i;
     const first = FIRST[(sibling === i ? i : i + 5) % FIRST.length];
