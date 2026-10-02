@@ -7,6 +7,8 @@ import { useI18n } from './i18n';
 export interface Me {
   id: string;
   name: string;
+  /** MR, MS, MRS or DR for staff. */
+  honorific?: string | null;
   email: string | null;
   role: 'OWNER' | 'SCHOOL_ADMIN' | 'TEACHER' | 'TRANSPORT' | 'NURSE' | 'CANTEEN' | 'ACCOUNTANT' | 'PARENT';
   schoolId: string | null;
@@ -35,7 +37,16 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const { t } = useI18n();
 
-  const refresh = async () => setMe(await api<Me>('/auth/me'));
+  const refresh = async () => {
+    const m = await api<Me>('/auth/me');
+    // Remembered so the sign-in page can show the school's name next time.
+    try {
+      if (m.schoolName) localStorage.setItem('sp-school', JSON.stringify({ en: m.schoolName, ar: m.schoolNameAr ?? null }));
+    } catch {
+      /* storage unavailable */
+    }
+    setMe(m);
+  };
 
   useEffect(() => {
     if (!getToken()) {

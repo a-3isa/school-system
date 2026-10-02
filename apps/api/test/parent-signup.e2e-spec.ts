@@ -77,6 +77,9 @@ describe('Parents sign up in the app (e2e)', () => {
 
     const parent = await login(app, 'heba@x.eg', 'heba-pass-1');
     expect((await parent.get('/api/parent/children').expect(200)).body.map((c: any) => c.firstName)).toEqual(['Mona']);
+    // The app shows the school's name and crest; a parent may read it (no crest uploaded yet).
+    expect((await parent.get('/api/auth/me').expect(200)).body).toEqual(expect.objectContaining({ schoolName: expect.any(String), schoolLogo: false }));
+    await parent.get('/api/school/logo').expect(404);
   });
 
   it('refuses a mobile another account already uses', async () => {

@@ -54,7 +54,12 @@ interface I18n {
   x: (s: string) => string;
   /** Date-only "YYYY-MM-DD" as words, e.g. "Thursday 1 October" / "الخميس 1 أكتوبر". */
   day: (date: string, opts?: Intl.DateTimeFormatOptions) => string;
+  /** A member of staff as they are addressed: "Ms. Hana Nabil" / «مس Hana Nabil». */
+  staff: (u: { name: string; honorific?: string | null } | null | undefined) => string;
 }
+
+/** How staff are addressed, in each language. */
+export const HONORIFICS = { en: { MR: 'Mr.', MS: 'Ms.', MRS: 'Mrs.', DR: 'Dr.' }, ar: { MR: 'مستر', MS: 'مس', MRS: 'مدام', DR: 'د.' } } as const;
 
 const I18nContext = createContext<I18n | null>(null);
 
@@ -92,6 +97,11 @@ export function LangProvider({ children }: { children: ReactNode }) {
       t: DICTS[lang],
       setLang,
       x: lang === 'ar' ? (s: string) => isolateLatin(serverTextAr(s)) : (s: string) => s,
+      staff: (u) => {
+        if (!u) return '';
+        const title = u.honorific ? HONORIFICS[lang][u.honorific as keyof (typeof HONORIFICS)['en']] : undefined;
+        return title ? `${title} ${u.name}` : u.name;
+      },
       day: (date, opts = { weekday: 'long', day: 'numeric', month: 'long' }) =>
         new Intl.DateTimeFormat(locale, { ...opts, timeZone: 'UTC' }).format(new Date(`${date}T00:00:00Z`)),
     };

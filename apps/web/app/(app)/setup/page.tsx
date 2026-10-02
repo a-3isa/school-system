@@ -48,7 +48,7 @@ function suggestName(grade: any, section: string) {
 }
 
 export default function SetupPage() {
-  const { t, x, lang } = useI18n();
+  const { t, x, lang, staff } = useI18n();
   const gradeName = useGradeName();
   const grades = useApi<any[]>('/grades');
   const classes = useApi<any[]>('/classes');
@@ -192,7 +192,7 @@ export default function SetupPage() {
             <Field label={t.setup.homeroom} id="c-home">
               <select id="c-home" className="input" value={cls.homeroomTeacherId} onChange={(e) => setCls({ ...cls, homeroomTeacherId: e.target.value })}>
                 <option value="">{t.setup.homeroom}</option>
-                {teachers.data?.map((tc) => <option key={tc.id} value={tc.id}>{tc.name}</option>)}
+                {teachers.data?.map((tc) => <option key={tc.id} value={tc.id}>{staff(tc)}</option>)}
               </select>
             </Field>
             <div className="form-actions"><button className="btn primary" type="submit" disabled={act.busy}>{t.common.add}</button></div>

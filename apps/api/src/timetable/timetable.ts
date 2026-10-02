@@ -21,7 +21,7 @@ const entryInclude = {
   period: true,
   room: { select: { id: true, name: true, kind: true } },
   subject: { select: { id: true, name: true } },
-  teacher: { select: { id: true, name: true } },
+  teacher: { select: { id: true, name: true, honorific: true } },
 } satisfies Prisma.TimetableEntryInclude;
 
 @Injectable()

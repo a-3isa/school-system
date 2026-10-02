@@ -1,7 +1,9 @@
-/* The look of a good private school's own stationery: warm ivory paper, deep
-   navy for structure and actions, a little brass-gold for distinction, and a
-   serif for headings and figures. Every status has a colour, a glyph and a
-   word, so it still reads without colour. Dark mode follows the computer. */
+/* Ivory, Oxford navy and a crest: the school's own register. Ivory grounds,
+   Oxford navy for action and the sidebar, a burgundy-and-gold crest for
+   identity, and serif headings that read like a school prospectus. No card
+   shadows: surfaces separate by a hairline and a tone step. Every status has a
+   colour, a glyph and a word, so it still reads without colour. Dark mode
+   follows the computer, and gold takes over from navy for actions. */
 /* IBM Plex, served with the dashboard (SIL Open Font License, public/fonts/OFL.txt). */
 @font-face { font-family: 'IBM Plex Sans'; font-weight: 400; font-display: swap; src: url('/fonts/IBMPlexSans-Regular.ttf') format('truetype'); }
 @font-face { font-family: 'IBM Plex Sans'; font-weight: 500; font-display: swap; src: url('/fonts/IBMPlexSans-Medium.ttf') format('truetype'); }
@@ -22,50 +24,56 @@
 @font-face { font-family: 'IBM Plex Mono'; font-weight: 500; font-display: swap; src: url('/fonts/IBMPlexMono-Medium.ttf') format('truetype'); }
 
 :root {
-  --bg: #F6F3EC;
-  --side: #14213D;
+  --bg: #F6F4EF;
+  --side: #1B2A4E;
+  --side-edge: #121D38;
   --surface: #FFFFFF;
-  --surface-2: #FAF8F3;
-  --ink: #172033;
-  --muted: #4E5566;
-  --cap: #6A7080;
-  --line: #E2DCCF;
-  --line-soft: #EDE8DE;
-  --line-strong: #C3BBA9;
-  --scroll-thumb: #CDC5B4;
-  --scroll-thumb-hover: #9C9584;
-  --dash: #D4CCBA;
-  --seg: #ECE7DC;
-  --accent: #1C2E5A;
-  --accent-hover: #13224A;
-  --accent-tint: #E3E8F2;
-  --accent-wash: #F3F5F9;
+  --surface-2: #FAF8F4;
+  --sunk: #EEEBE3;
+  --ink: #1A1D24;
+  --muted: #4A4F5A;
+  --cap: #666B76;
+  --line: #DEDAD0;
+  --line-soft: #EAE6DD;
+  --line-strong: #CFCABF;
+  --scroll-thumb: #CFCABF;
+  --scroll-thumb-hover: #9E998D;
+  --dash: #D4CFC4;
+  --seg: #E6E2D8;
+  --accent: #1B2A4E;
+  --accent-hover: #121D38;
+  --accent-tint: #E4E7EF;
+  --accent-wash: #F3F4F8;
   --on-accent: #FFFFFF;
-  --gold: #A6823C;
-  --gold-soft: #F4ECDB;
-  --gold-line: #DCC8A0;
-  --gold-ink: #86662A; /* gold for text on light grounds: 4.8:1 on --bg */
-  --mark-ink: #3B4252;
-  --hover: rgba(28, 46, 90, .04);
-  --shadow: rgba(23, 32, 51, .16);
-  --shadow-card: 0 1px 2px rgba(23, 32, 51, .04), 0 6px 20px -14px rgba(23, 32, 51, .18);
-  --shadow-pop: 0 2px 6px rgba(23, 32, 51, .06), 0 18px 40px -20px rgba(23, 32, 51, .35);
+  --mark-ink: #3A3F4A;
+  --hover: rgba(27, 42, 78, .04);
+  --shadow: rgba(29, 33, 31, .14);
 
-  /* the navy sidebar */
-  --side-ink: #ECE6D8;
-  --side-muted: #98A1B6;
+  /* the crest and the navy sidebar */
+  --crest: #7A1F2E;
+  --gold: #C9A75A;
+  --crest-ink: #F3E7C9;
+  --side-ink: #F3EFE6;
+  --side-muted: #B7BED0;
+  --side-gold-line: rgba(201, 167, 90, .35);
+  --side-line: rgba(255, 255, 255, .14);
   --side-hover: rgba(255, 255, 255, .06);
-  --side-active: rgba(255, 255, 255, .1);
-  --side-line: rgba(255, 255, 255, .1);
+  --side-active: rgba(255, 255, 255, .10);
+  --side-ring: rgba(201, 167, 90, .6);
+  --side-seg: rgba(255, 255, 255, .08);
+  --side-seg-on: #F6F4EF;
+  --toast-bg: #1A1D24;
+  --toast-ink: #F6F4EF;
+  --toast-action: #D9B76A;
 
-  /* edges: one family of corners */
-  --r-xs: 6px; --r-sm: 8px; --r-md: 10px; --r-lg: 14px;
+  /* corners: 4 chips and tags, 6 controls, 8 big buttons, 10 panels */
+  --r-xs: 4px; --r-sm: 6px; --r-md: 8px; --r-lg: 10px;
 
   /* status: Present, Late, Absent, Excused, On a trip */
-  --p: #1F6A41; --p-bg: #E3EFE6; --p-dot: #2E8550;
-  --l: #8A5A00; --l-bg: #F8EDD5;
-  --a: #A0291F; --a-bg: #F8E4E0; --a-dot: #C8432F; --a-row: #FCF1EE; --a-line: #E9C8C2;
-  --e: #4A5566; --e-bg: #E9ECF1;
+  --p: #23683F; --p-bg: #E2EFE5; --p-dot: #2E8550;
+  --l: #8A5A00; --l-bg: #F8ECD2;
+  --a: #A3291F; --a-bg: #F8E3DF; --a-dot: #C8432F; --a-row: #FBEDEA; --a-line: #E7C3BD;
+  --e: #4A5566; --e-bg: #E6E9EE;
   --t: #3B5876; --t-bg: #E2EAF1;
   --changed-row: #FDF8EC;
   --warn-ink: #5C3D00;
@@ -82,42 +90,39 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #0F1420;
-    --side: #0A0F19;
-    --surface: #161C29;
-    --surface-2: #131926;
-    --ink: #ECE7DC;
-    --muted: #B3B2AC;
-    --cap: #8E8E8A;
-    --line: #283041;
-    --line-soft: #1F2635;
-    --line-strong: #46506A;
-    --scroll-thumb: #333C50;
-    --scroll-thumb-hover: #55607A;
-    --dash: #333C50;
-    --seg: #1D2433;
-    --accent: #9DB3E3;
-    --accent-hover: #B5C7EC;
-    --accent-tint: #1E2A44;
-    --accent-wash: #182032;
-    --on-accent: #0F1420;
-    --gold: #D4B475;
-    --gold-soft: #2C2516;
-    --gold-line: #5A4A2A;
-    --gold-ink: #D4B475;
+    --bg: #12141A;
+    --side: #0E1015;
+    --side-edge: #2A2E38;
+    --surface: #1A1D25;
+    --surface-2: #161920;
+    --sunk: #0E1015;
+    --ink: #EEEAE0;
+    --muted: #B6B4AE;
+    --cap: #8E8D8A;
+    --line: #2A2E38;
+    --line-soft: #22252E;
+    --line-strong: #3A3F4A;
+    --scroll-thumb: #3A3F4A;
+    --scroll-thumb-hover: #565C69;
+    --dash: #3A3F4A;
+    --seg: #22252E;
+    --accent: #D6BA75;
+    --accent-hover: #E3CB8F;
+    --accent-tint: #1F2A40;
+    --accent-wash: #1A2130;
+    --on-accent: #12141A;
     --mark-ink: #D3CFC5;
-    --hover: rgba(236, 231, 220, .05);
+    --hover: rgba(238, 234, 224, .05);
     --shadow: rgba(0, 0, 0, .5);
-    --shadow-card: 0 1px 2px rgba(0, 0, 0, .3);
-    --shadow-pop: 0 18px 40px -20px rgba(0, 0, 0, .7);
-    --side-ink: #E6E0D2;
-    --side-muted: #8D95A8;
-    --side-line: rgba(255, 255, 255, .07);
-    --p: #7FCB98; --p-bg: #1C3226; --p-dot: #5FAF7C;
-    --l: #E6B75A; --l-bg: #382D14;
-    --a: #F08A7B; --a-bg: #3B1F1B; --a-dot: #E06A5A; --a-row: #281918; --a-line: #58302A;
-    --e: #AEB7C4; --e-bg: #242B37;
-    --t: #9DB8D6; --t-bg: #1E2A37;
+    --side-seg-on: #EEEAE0;
+    --toast-bg: #EEEAE0;
+    --toast-ink: #12141A;
+    --toast-action: #7A5A12;
+    --p: #7FCB98; --p-bg: #1E3326; --p-dot: #5FAF7C;
+    --l: #E6B75A; --l-bg: #3A2E14;
+    --a: #F08A7B; --a-bg: #3D1F1B; --a-dot: #E06A5A; --a-row: #281918; --a-line: #58302A;
+    --e: #AEB7C4; --e-bg: #262B32;
+    --t: #9DB8D6; --t-bg: #1F2A36;
     --changed-row: #26200F;
     --warn-ink: #E6B75A;
     --info-ink: #AEB7C4;
@@ -169,7 +174,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .side { background: var(--side); border-inline-end: 1px solid var(--line); padding: 20px 12px; display: flex; flex-direction: column; gap: 20px; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
 .side-school { display: flex; flex-direction: column; gap: 2px; padding: 4px 10px 0; }
 .side-school b { font-size: 16px; font-weight: 700; letter-spacing: -.005em; }
-.side-school span { font-size: 12px; color: var(--muted); }
+.side-school .sub { font-size: 12px; color: var(--muted); }
 .nav { display: flex; flex-direction: column; gap: 2px; }
 .nav-label { font-size: 11px; color: var(--muted); font-weight: 600; letter-spacing: .06em; text-transform: uppercase; padding: 0 10px 6px; }
 html[lang='ar'] .nav-label { letter-spacing: 0; font-size: 12px; }
@@ -204,7 +209,7 @@ html[lang='ar'] .nav-label { letter-spacing: 0; font-size: 12px; }
 .topbar { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding-bottom: 14px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
 .topbar-school { display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; }
 .topbar-school b { font-size: 16px; font-weight: 700; }
-.topbar-school span { font-size: 13px; color: var(--muted); }
+.topbar-school .sub { font-size: 13px; color: var(--muted); }
 .topbar-right { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
 .topbar .avatar { width: 32px; height: 32px; font-size: 12px; }
 .loading { padding: 40px; color: var(--muted); }
@@ -274,6 +279,7 @@ td.strong, .strong { font-weight: 600; font-size: 15px; }
 .input[aria-invalid='true'] { border-color: var(--a); }
 .input.mono { font-family: var(--mono); font-size: 14px; }
 textarea.input { height: auto; padding: 8px 12px; }
+.input.small-select { height: 36px; width: 88px; font-size: 14px; padding: 0 8px; }
 input[type='search'].input { max-width: 420px; padding: 0 14px; }
 .form { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; align-items: start; }
 .form .full { grid-column: 1 / -1; }
@@ -550,105 +556,74 @@ html[lang='ar'] .stage-head { text-transform: none; letter-spacing: 0; font-size
 .day-banner { display: flex; gap: 10px; align-items: center; padding: 12px 16px; border-radius: var(--r-md); background: var(--e-bg, var(--surface-2)); border: 1px solid var(--line); font-size: 15px; }
 
 /* ======================================================================
-   Premium layer: navy sidebar, serif headings and figures, soft depth.
+   The crest, the navy sidebar and the serif (design direction v2).
    ====================================================================== */
 
-/* Type: a serif for titles and figures, the sans for everything you read and do. */
-h1, .kpi-value, .section-head h2, .side-school b, .signin-side p, .signin-main h1, .save { font-family: var(--serif); }
-html[lang='ar'] :is(h1, .kpi-value, .section-head h2, .side-school b, .signin-side p, .signin-main h1) { font-family: var(--serif-ar); }
-h1 { font-weight: 600; font-size: 34px; letter-spacing: -.012em; color: var(--ink); }
-html[lang='ar'] h1 { font-weight: 700; letter-spacing: 0; line-height: 1.35; }
-.section-head h2 { font-size: 19px; font-weight: 600; letter-spacing: -.005em; }
-html[lang='ar'] .section-head h2 { font-weight: 700; }
-.kpi-value { font-weight: 600; font-size: 38px; letter-spacing: -.02em; }
-.head-sub { font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--gold-ink); }
-html[lang='ar'] .head-sub { font-size: 14px; letter-spacing: 0; text-transform: none; }
-.crumb a { color: var(--gold-ink); }
+/* Headings in the serif: the prospectus voice. Data and controls stay in Plex. */
+h1, h2, .side-school b, .topbar-school b, .signin-side .school-name, .signin-side p { font-family: var(--serif); }
+html[lang='ar'] :is(h1, h2, .side-school b, .topbar-school b, .signin-side .school-name, .signin-side p) { font-family: var(--serif-ar); font-weight: 700; letter-spacing: 0; }
+html[lang='ar'] h1 { line-height: 1.4; }
 
-/* The navy sidebar, with a brass mark on the current page. */
-.side { color: var(--side-ink); border-inline-end: 0; background: linear-gradient(180deg, #17264A 0%, var(--side) 60%); }
-@media (prefers-color-scheme: dark) { .side { background: var(--side); border-inline-end: 1px solid var(--side-line); } }
-.side-school { flex-direction: row; align-items: center; gap: 12px; padding: 4px 8px 6px; }
-.side-school b { color: #FFFFFF; font-size: 17px; font-weight: 600; line-height: 1.25; }
+/* The crest: a burgundy shield with a gold edge and the school's initials,
+   or the crest the school uploaded. */
+.crest { width: 38px; height: 44px; flex: none; display: grid; place-items: center; overflow: hidden; background: var(--crest); border: 1.5px solid var(--gold); border-radius: 5px 5px 19px 19px; color: var(--crest-ink); font-family: var(--serif); font-weight: 600; font-size: 14px; letter-spacing: .02em; line-height: 1; direction: ltr; }
+.crest.image { background: #FFFFFF; }
+.crest img { width: 100%; height: 100%; object-fit: contain; padding: 3px; display: block; }
+.crest.sm { width: 32px; height: 38px; border-radius: 5px 5px 16px 16px; font-size: 12px; }
+.crest.lg { width: 46px; height: 54px; border-radius: 5px 5px 23px 23px; font-size: 17px; }
+.crest.xl { width: 64px; height: 76px; border-radius: 6px 6px 32px 32px; font-size: 24px; }
+
+/* The navy sidebar. */
+.side { background: var(--side); color: var(--side-ink); border-inline-end: 1px solid var(--side-edge); padding: 22px 12px; gap: 22px; }
+.side-school { flex-direction: row; gap: 12px; align-items: center; padding: 0 8px 18px; border-bottom: 1px solid var(--side-gold-line); }
 .side-school .school-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
-.side-school .school-text span { color: var(--gold); font-size: 11.5px; letter-spacing: .06em; text-transform: uppercase; font-weight: 600; }
-html[lang='ar'] .side-school .school-text span { letter-spacing: 0; text-transform: none; font-size: 12.5px; }
-.nav-label { color: var(--side-muted); }
-.nav a { color: var(--side-ink); border-radius: var(--r-sm); transition: background-color .15s ease, color .15s ease; }
-.nav a:hover { background: var(--side-hover); color: #FFFFFF; }
-.nav a[aria-current='page'] { background: var(--side-active); box-shadow: inset 2px 0 0 var(--gold); color: #FFFFFF; }
-html[dir='rtl'] .nav a[aria-current='page'] { box-shadow: inset -2px 0 0 var(--gold); }
+.side-school b { font-size: 16px; font-weight: 600; line-height: 1.25; letter-spacing: 0; }
+.side-school span.sub { font-size: 12px; color: var(--side-muted); }
+.nav-label { color: var(--gold); letter-spacing: .08em; }
+.nav a { color: var(--side-ink); }
+.nav a:hover { background: var(--side-hover); color: var(--side-ink); }
+.nav a[aria-current='page'] { background: var(--side-active); box-shadow: inset 0 0 0 1px var(--side-ring); color: var(--side-ink); }
 .nav a[aria-current='page']::before { background: var(--gold); }
-.side .count { background: var(--gold); color: var(--side); }
-.side-foot { border-top-color: var(--side-line); }
-.side .me-text b { color: #FFFFFF; }
+.side .side-foot { border-top-color: var(--side-line); }
+.side .avatar { background: var(--gold); color: #1B2A4E; font-weight: 700; }
 .side .me-text span { color: var(--side-muted); }
-.side .avatar { background: var(--gold); color: #14213D; }
-.side .lang { background: rgba(255, 255, 255, .08); }
+.side .lang { background: var(--side-seg); }
 .side .lang button { color: var(--side-ink); }
-.side .lang button[aria-pressed='true'] { background: #FFFFFF; color: #14213D; }
-.side .signout { color: var(--gold); }
-.side:hover, .side:focus-within { scrollbar-color: rgba(255, 255, 255, .22) transparent; }
+.side .lang button[aria-pressed='true'] { background: var(--side-seg-on); color: #1B2A4E; }
+.side .signout { color: var(--side-ink); }
 .side :focus-visible { outline-color: var(--gold); }
+.side { scrollbar-color: transparent transparent; }
+.side:hover, .side:focus-within { scrollbar-color: rgba(255, 255, 255, .25) transparent; }
 
-/* The school's crest, or its monogram in a brass ring. */
-.crest { width: 44px; height: 44px; border-radius: 50%; flex: none; display: grid; place-items: center; overflow: hidden; background: #FFFFFF; box-shadow: 0 0 0 1.5px var(--gold); }
-.crest img { width: 100%; height: 100%; object-fit: contain; }
-.crest.monogram { background: transparent; color: var(--gold); font-family: var(--serif); font-weight: 600; font-size: 17px; letter-spacing: .02em; }
-.topbar .crest { width: 36px; height: 36px; font-size: 14px; }
-.topbar .crest.monogram { color: var(--accent); box-shadow: 0 0 0 1.5px var(--gold); }
-.topbar-school { align-items: center !important; }
-.topbar-school b { font-family: var(--serif); font-size: 18px; }
-html[lang='ar'] .topbar-school b { font-family: var(--serif-ar); }
+/* The classroom PC's top bar. */
+.topbar-school { align-items: center; flex-wrap: nowrap; }
+.topbar-school .school-text { display: flex; flex-direction: column; gap: 1px; }
+.topbar-school b { font-size: 17px; font-weight: 600; }
+.topbar-school span.sub { font-size: 12px; color: var(--muted); }
 
-/* Cards: hairline edges and a whisper of depth. */
-:is(.panel, .kpi, .form, .editor, .place, .roster, .step-body, .secret, .stage-col) { border-color: var(--line); box-shadow: var(--shadow-card); }
-.kpi { padding: 18px 20px; gap: 10px; }
-.kpi-label { font-size: 12px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--cap); }
-html[lang='ar'] .kpi-label { font-size: 13.5px; letter-spacing: 0; text-transform: none; }
+/* Floating layers are the only ones with a shadow. */
+.toast { background: var(--toast-bg); color: var(--toast-ink); border-radius: var(--r-md); box-shadow: 0 8px 24px var(--shadow); }
+.toast button, .toast .action { color: var(--toast-action); }
 
-/* Tables: quiet headers, calm rows. */
-th { background: var(--surface-2); color: var(--cap); font-size: 11.5px; letter-spacing: .06em; text-transform: uppercase; padding-block: 12px; }
-html[lang='ar'] th { font-size: 13px; letter-spacing: 0; text-transform: none; }
-tr.click:hover td { background: var(--accent-wash); }
-td { padding-block: 14px; }
+/* Sign in: the navy prospectus panel. */
+.signin-side { background: var(--side); color: var(--side-ink); border-inline-end: 0; gap: 40px; }
+.signin-brand { display: flex; gap: 14px; align-items: center; }
+.signin-brand > span:last-child { display: flex; flex-direction: column; gap: 4px; }
+.signin-side .school-name { font-weight: 600; font-size: 21px; line-height: 1.2; }
+.signin-side .portal { font-size: 13px; color: var(--gold); font-weight: 600; letter-spacing: .04em; }
+.signin-side .pitch { display: flex; flex-direction: column; gap: 22px; max-width: 460px; }
+.signin-side p { font-size: 36px; line-height: 1.2; font-weight: 600; max-width: 460px; }
+.signin-side small { color: var(--side-muted); }
+.signin-ruler { margin-bottom: 0; max-width: 460px; }
+.signin-ruler span { background: rgba(243, 239, 230, .12); }
+.signin-ruler span.done { background: rgba(243, 239, 230, .32); }
+.signin-ruler span.now { height: 14px; background: var(--gold); border-radius: 3px; }
+.signin-ruler span.gap { background: transparent; }
 
-/* Buttons and fields: confident, never loud. */
-.btn { border-radius: var(--r-sm); transition: background-color .15s ease, border-color .15s ease, box-shadow .15s ease; }
-.btn:hover { border-color: var(--line-strong); }
-.btn.primary { box-shadow: 0 1px 0 rgba(255, 255, 255, .12) inset, 0 1px 2px rgba(23, 32, 51, .2); }
-.btn.primary:hover { border-color: var(--accent-hover); }
-.btn:active { transform: translateY(.5px); }
-.input, select.input, textarea.input { border-radius: var(--r-sm); transition: border-color .15s ease, box-shadow .15s ease; }
-.input:hover { border-color: var(--line-strong); }
-.input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-tint); }
-:focus-visible { outline-color: var(--gold); }
-.tabs { background: var(--seg); }
-.tabs button[aria-selected='true'] { box-shadow: 0 1px 2px rgba(23, 32, 51, .1); }
-.form-title { font-family: var(--serif); font-size: 17px; }
-html[lang='ar'] .form-title { font-family: var(--serif-ar); font-weight: 700; }
-
-/* Messages and toasts. */
-.toast { background: var(--accent); color: #FFFFFF; border-inline-start: 3px solid var(--gold); box-shadow: var(--shadow-pop); }
-.note { border: 1px solid var(--line-soft); }
-
-/* Sign-in: a navy panel with the platform's mark and a brass rule. */
-.signin-side { background: radial-gradient(120% 90% at 0% 0%, #22346A 0%, #14213D 55%, #0E1830 100%); color: #ECE6D8; border-inline-end: 0; }
-.signin-side > b { color: #FFFFFF; display: flex; align-items: center; gap: 12px; font-size: 16px; letter-spacing: .02em; }
-.signin-side p { color: #FFFFFF; font-size: 32px; line-height: 1.3; font-weight: 500; }
-html[lang='ar'] .signin-side p { line-height: 1.6; font-weight: 600; }
-.signin-side small { color: #9AA3B7; }
-.signin-rule { display: flex; align-items: center; gap: 10px; color: var(--gold); margin-bottom: 22px; max-width: 440px; }
-.signin-rule::before, .signin-rule::after { content: ''; height: 1px; flex: 1; background: linear-gradient(90deg, transparent, var(--gold)); }
-.signin-rule::after { background: linear-gradient(90deg, var(--gold), transparent); }
-.signin-main { background: var(--bg); }
-.signin-main form { background: var(--surface); padding: 32px; border-radius: var(--r-lg); border: 1px solid var(--line); box-shadow: var(--shadow-card); }
-
-/* Teacher's register: the big Save in navy with a brass edge when there is something to save. */
-.save:not(:disabled) { box-shadow: 0 0 0 1px var(--accent), 0 0 0 4px var(--gold-soft); }
-
-@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
-
-.crest-lg .crest { width: 64px; height: 64px; font-size: 24px; }
+/* The crest panel in School settings. */
 .settings-row > span.crest-row { flex-direction: row; align-items: center; gap: 16px; }
 .crest-row .crest-text { display: flex; flex-direction: column; gap: 3px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}

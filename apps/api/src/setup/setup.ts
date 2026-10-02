@@ -374,7 +374,7 @@ export class ClassesController {
   list(@SchoolId() schoolId: string) {
     return this.prisma.class.findMany({
       where: { schoolId },
-      include: { grade: true, homeroomTeacher: { select: { id: true, name: true } }, _count: { select: { students: true } } },
+      include: { grade: true, homeroomTeacher: { select: { id: true, name: true, honorific: true } }, _count: { select: { students: true } } },
       orderBy: [{ grade: { order: 'asc' } }, { name: 'asc' }],
     });
   }
@@ -387,7 +387,7 @@ export class ClassesController {
       where: { id, schoolId },
       include: {
         grade: true,
-        homeroomTeacher: { select: { id: true, name: true } },
+        homeroomTeacher: { select: { id: true, name: true, honorific: true } },
         students: {
           where: { active: true },
           select: { id: true, code: true, firstName: true, lastName: true, nameAr: true, guardians: { select: { relation: true, user: { select: { id: true, name: true } } }, orderBy: { relation: 'asc' } } },

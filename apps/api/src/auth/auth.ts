@@ -310,7 +310,7 @@ export class AuthService {
     const user = await this.prisma.user.findUniqueOrThrow({
       where: { id: auth.id },
       select: {
-        id: true, name: true, email: true, phone: true, phoneVerifiedAt: true, role: true, schoolId: true, consentAt: true,
+        id: true, name: true, honorific: true, email: true, phone: true, phoneVerifiedAt: true, role: true, schoolId: true, consentAt: true,
         school: { select: { name: true, nameAr: true, attendanceMode: true, logoMime: true } },
       },
     });

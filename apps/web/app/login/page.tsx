@@ -1,9 +1,10 @@
 'use client';
-import { FormEvent, Suspense, useState } from 'react';
+import { FormEvent, Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { post, setToken } from '@/lib/api';
 import { useI18n } from '@/lib/i18n';
 import { ErrorNote, Field } from '@/components/ui';
+import { Crest } from '@/components/Crest';
 
 type Mode = 'signin' | 'forgot' | 'code';
 
@@ -89,12 +90,30 @@ function LoginForm() {
 
 export default function LoginPage() {
   const { t, lang, setLang } = useI18n();
+  // The school this computer last signed in to; the platform's name before that.
+  const [school, setSchool] = useState<{ en: string; ar: string | null } | null>(null);
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('sp-school');
+      if (saved) setSchool(JSON.parse(saved));
+    } catch {
+      /* storage unavailable */
+    }
+  }, []);
+  const name = (lang === 'ar' && school?.ar) || school?.en || t.common.platformName;
   return (
     <div className="signin">
       <section className="signin-side">
-        <b><span className="crest monogram">S</span>{t.common.platformName}</b>
-        <div>
-          <div className="signin-rule" aria-hidden="true">✦</div>
+        <div className="signin-brand">
+          <Crest name={school?.en ?? t.common.platformName} size="lg" />
+          <span><span className="school-name">{name}</span><span className="portal">{t.login.portal}</span></span>
+        </div>
+        <div className="pitch">
+          <div className="signin-ruler" aria-hidden="true">
+            <span className="done" style={{ flex: 45 }} /><span className="done" style={{ flex: 45 }} /><span className="gap" style={{ flex: 20 }} />
+            <span className="now" style={{ flex: 45 }} /><span style={{ flex: 45 }} /><span className="gap" style={{ flex: 20 }} />
+            <span style={{ flex: 45 }} /><span style={{ flex: 45 }} />
+          </div>
           <p>{t.login.tagline}</p>
         </div>
         <small>{t.login.help}</small>

@@ -114,6 +114,7 @@ class _LoginScreenState extends State<LoginScreen> {
     return AutofillGroup(
       child: switch (_mode) {
         _Mode.signIn => _SignIn(
+            school: widget.api.lastSchool(s.isAr),
             email: _email,
             password: _password,
             error: _error,
@@ -195,7 +196,9 @@ class _LoginScreenState extends State<LoginScreen> {
 }
 
 class _SignIn extends StatelessWidget {
-  const _SignIn({required this.email, required this.password, required this.error, required this.busy, required this.onSignIn, required this.onForgot, required this.onCreate});
+  const _SignIn({required this.school, required this.email, required this.password, required this.error, required this.busy, required this.onSignIn, required this.onForgot, required this.onCreate});
+  /// The school this phone last signed in to, shown with its crest.
+  final String? school;
   final TextEditingController email;
   final TextEditingController password;
   final String? error;
@@ -226,11 +229,13 @@ class _SignIn extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  Text(s.appName.toUpperCase(), style: TextStyle(fontSize: 12, color: c.gold, fontWeight: FontWeight.w600, letterSpacing: Directionality.of(context) == TextDirection.rtl ? 0 : 1.2)),
+                  Row(children: [
+                    Crest(name: school ?? s.appName, width: 30),
+                    const SizedBox(width: 10),
+                    Expanded(child: Text(school ?? s.appName, style: Brand.display(context, size: 15, height: 1.25).copyWith(color: c.ink))),
+                  ]),
                   const SizedBox(height: 8),
                   Text(s.signIn, style: Brand.display(context, size: 28, height: 1.2)),
-                  const SizedBox(height: 6),
-                  Text(s.signInSub, style: TextStyle(fontSize: 15, color: c.ink2, height: 1.5)),
                   const SizedBox(height: 18),
                   if (error != null) ...[ErrorBox(error!), const SizedBox(height: 18)],
                   EmailField(controller: email, label: s.email),

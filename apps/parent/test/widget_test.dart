@@ -56,14 +56,14 @@ void main() {
     expect(find.text('Sign in'), findsNWidgets(2)); // the title and the button
     expect(find.text('Email'), findsOneWidget);
     expect(find.text('Password'), findsOneWidget);
-    expect(find.text('Create your account'), findsOneWidget);
+    expect(find.text('Activate your account'), findsOneWidget);
   });
 
   testWidgets('new parents create their account in three steps, starting with the email the school registered', (tester) async {
     await start(tester, {'lang': 'en'});
-    await tester.ensureVisible(find.text('Create your account'));
+    await tester.ensureVisible(find.text('Activate your account'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Create your account'));
+    await tester.tap(find.text('Activate your account'));
     await tester.pumpAndSettle();
     expect(find.text('Step 1 of 3'), findsOneWidget);
     expect(find.text('Send me a code'), findsOneWidget);
@@ -81,7 +81,7 @@ void main() {
 
   testWidgets('shows the child’s day: arrival, and every lesson with its status', (tester) async {
     await start(tester, {'lang': 'en', 'token': 't'}, school());
-    expect(find.text('Arrived at school'), findsOneWidget);
+    expect(find.text('Arrived safely at school'), findsOneWidget);
     expect(find.text('07:42'), findsOneWidget);
     expect(find.text('Math'), findsOneWidget);
     expect(find.text('Present'), findsOneWidget);
@@ -95,16 +95,16 @@ void main() {
     expect(find.text('1'), findsOneWidget); // unread badge on the tab
     await tester.tap(find.text('الإشعارات'));
     await tester.pumpAndSettle();
-    expect(find.text('عدم حضور Salma حصة Math في Room 204'), findsOneWidget);
-    expect(find.text('وصول Salma إلى المدرسة'), findsOneWidget);
+    expect(find.text('غياب Salma عن حصة Math في Room 204. وتتابع شؤون الطلبة الأمر.'), findsOneWidget);
+    expect(find.text('وصول Salma إلى المدرسة بالسلامة'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });
 
   test('Arabic agrees with the child’s gender', () {
-    expect(S.ar.notification('attendance.arrived', 'سلمى', {}, '', 'FEMALE'), 'وصلت سلمى إلى المدرسة');
-    expect(S.ar.notification('attendance.arrived', 'عمر', {}, '', 'MALE'), 'وصل عمر إلى المدرسة');
+    expect(S.ar.notification('attendance.arrived', 'سلمى', {}, '', 'FEMALE'), 'وصلت سلمى المدرسة بالسلامة');
+    expect(S.ar.notification('attendance.arrived', 'عمر', {}, '', 'MALE'), 'وصل عمر المدرسة بالسلامة');
     expect(S.ar.notification('attendance.left', 'نور', {}, ''), 'انصراف نور من المدرسة مبكرًا'); // gender not recorded
-    expect(S.en.notification('attendance.absent', 'Omar', {}, '', 'MALE'), 'Omar is marked absent today');
+    expect(S.en.notification('attendance.absent', 'Omar', {}, '', 'MALE'), 'Omar is absent today');
   });
 
   test('phone numbers', () {

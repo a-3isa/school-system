@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
@@ -12,8 +13,12 @@ import 'notifications.dart';
 /// What every tab shares: the parent's children and their notifications,
 /// refreshed every minute while the app is open.
 class HomeData extends ChangeNotifier {
-  HomeData(this.api);
+  HomeData(this.api, [this.me = const {}]);
   final Api api;
+  /// The signed-in parent, with their school's name.
+  final Map<String, dynamic> me;
+  /// The school's crest image, once it has loaded (null: initials instead).
+  Uint8List? crest;
   List<Map<String, dynamic>> children = [];
   List<Map<String, dynamic>> notifications = [];
   String? error;
@@ -27,6 +32,16 @@ class HomeData extends ChangeNotifier {
     }
     return null;
   }
+
+  Future<void> loadCrest() async {
+    if (me['schoolLogo'] != true) return;
+    crest = await api.crest();
+    notifyListeners();
+  }
+
+  /// The school's name in the app's language.
+  String schoolName(bool arabic) =>
+      ((arabic ? me['schoolNameAr'] : null) as String?)?.trim().isNotEmpty == true ? me['schoolNameAr'] as String : (me['schoolName'] as String? ?? '');
 
   Future<void> load() async {
     try {
@@ -58,7 +73,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  late final HomeData _data = HomeData(widget.api);
+  late final HomeData _data = HomeData(widget.api, widget.me);
   int _tab = 0;
   Timer? _timer;
 
@@ -66,6 +81,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _data.load();
+    _data.loadCrest();
     _timer = Timer.periodic(const Duration(minutes: 1), (_) => _data.load());
   }
 

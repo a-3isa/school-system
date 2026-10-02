@@ -18,7 +18,7 @@ const REFRESH_MS = 15_000;
  * - Without straps: everyone starts as present; tap the absent ones and save.
  */
 export function AttendanceList({ classId, periodId, date, crumb }: { classId: string; periodId: string; date: string; crumb?: boolean }) {
-  const { t, x } = useI18n();
+  const { t, x, staff } = useI18n();
   const roster = useApi(`/attendance/classes/${classId}/periods/${periodId}?date=${date}`);
   const isToday = date === todayCairo();
   const periods = useApi<any[]>(isToday ? '/periods' : null);
@@ -144,7 +144,7 @@ export function AttendanceList({ classId, periodId, date, crumb }: { classId: st
               state = { cls: 'out', text: `${t.att.notInRoom} · ${t.att.lastHeard(l.lastPlace, timeCairo(l.lastHeardAt))}${told}` };
             } else state = { cls: 'notheard', text: t.att.strapNotHeard };
           }
-          const savedBy = !changed && s.status && s.source === 'MANUAL' && s.markedBy ? t.att.savedBy(s.markedBy) : null;
+          const savedBy = !changed && s.status && s.source === 'MANUAL' && s.markedBy ? t.att.savedBy(staff({ name: s.markedBy, honorific: s.markedByHonorific })) : null;
           return (
             <li key={s.id} className={now === 'ABSENT' ? 'absent' : changed ? 'changed' : undefined}>
               <div className="who">

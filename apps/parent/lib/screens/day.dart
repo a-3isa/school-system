@@ -93,7 +93,15 @@ class _DayTabState extends State<DayTab> {
         padding: const EdgeInsets.fromLTRB(20, 10, 20, 24),
         children: [
           Row(children: [
-            Expanded(child: Text(s.dayLine(todayCairo()), style: TextStyle(fontSize: 13, color: c.ink2))),
+            Crest(name: data.schoolName(Directionality.of(context) == TextDirection.rtl), image: data.crest),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(s.greeting(nowCairoHour(), data.me['name'] as String?), style: Brand.display(context, size: 17, height: 1.2)),
+                const SizedBox(height: 1),
+                Text(s.dayLine(todayCairo()), style: TextStyle(fontSize: 12, color: c.ink2)),
+              ]),
+            ),
             if (_loadedAt != null) _Updated(at: _loadedAt!),
           ]),
           const SizedBox(height: 14),
@@ -101,7 +109,7 @@ class _DayTabState extends State<DayTab> {
           if (kids.isEmpty && data.error == null) Padding(padding: const EdgeInsets.only(top: 24), child: Text(s.noChildren, style: TextStyle(color: c.ink2, fontSize: 15, height: 1.5))),
           if (kids.length > 1) ...[_ChildSwitch(kids: kids, selected: _childId, onPick: _pick), const SizedBox(height: 14)],
           if (kids.length == 1) ...[
-            Text('${kids.first['firstName']}', style: Brand.display(context, size: 22)),
+            Text('${kids.first['firstName']}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
             if (kids.first['class']?['name'] != null) Text(ltr(kids.first['class']['name'] as String), style: TextStyle(fontSize: 13, color: c.ink2)),
             const SizedBox(height: 14),
           ],
@@ -132,10 +140,10 @@ class _DayTabState extends State<DayTab> {
       Semantics(
         container: true,
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(arrived != null ? s.arrived : s.notArrived, style: TextStyle(fontSize: 13, color: c.ink2)),
+          Text(arrived != null ? s.arrived(widget.data.child(_childId)?['gender'] as String?) : s.notArrived, style: TextStyle(fontSize: 13, color: c.ink2)),
           const SizedBox(height: 4),
           Text(arrived != null ? timeCairo(arrived) : '—',
-              style: Brand.display(context, size: 36, height: 1.05).copyWith(fontFamily: 'SourceSerif4', height: 1.05, fontFeatures: const [FontFeature.tabularFigures(), FontFeature.liningFigures()])),
+              style: const TextStyle(fontSize: 34, fontWeight: FontWeight.w600, height: 1.05, letterSpacing: -.3, fontFeatures: [FontFeature.tabularFigures()])),
           if (arrived != null) ...[const SizedBox(height: 4), Text(s.throughGate, style: TextStyle(fontSize: 14, color: c.ink2))],
           if (left != null) ...[const SizedBox(height: 6), Text(s.leftAt(timeCairo(left), widget.data.child(_childId)?['gender'] as String?), style: TextStyle(fontSize: 14, color: c.lFg, fontWeight: FontWeight.w600))],
         ]),

@@ -65,7 +65,7 @@ const OWNER_NAV: { group: NavKey; items: NavItem[] }[] = [
 
 export function Shell({ children }: { children: ReactNode }) {
   const { me, logout } = useSession();
-  const { t, lang } = useI18n();
+  const { t, lang, staff } = useI18n();
   const pathname = usePathname();
   const router = useRouter();
   const roleName = t.roles[me.role as keyof Dict['roles']] ?? me.role;
@@ -100,11 +100,11 @@ export function Shell({ children }: { children: ReactNode }) {
       <div className="app solo">
         <main className="main">
           <div className="topbar">
-            <span className="topbar-school"><Crest name={schoolName} hasLogo={me.schoolLogo} /><b>{lang === 'ar' && me.schoolNameAr ? me.schoolNameAr : schoolName}</b><span>{strapsLabel}</span></span>
+            <span className="topbar-school"><Crest name={schoolName} hasLogo={me.schoolLogo} size="sm" /><span className="school-text"><b>{lang === 'ar' && me.schoolNameAr ? me.schoolNameAr : schoolName}</b><span className="sub">{strapsLabel}</span></span></span>
             <div className="topbar-right">
               <span className="me">
                 <span className="avatar" aria-hidden="true">{initials(me.name)}</span>
-                <span className="me-text"><b>{me.name}</b><span>{roleName}</span></span>
+                <span className="me-text"><b>{staff(me)}</b><span>{roleName}</span></span>
               </span>
               <LangSwitch />
               <button type="button" className="signout" onClick={logout}>{t.shell.signOut}</button>
@@ -124,7 +124,7 @@ export function Shell({ children }: { children: ReactNode }) {
           <Crest name={schoolName} hasLogo={me.schoolLogo} />
           <span className="school-text">
             <b>{lang === 'ar' && me.schoolNameAr ? me.schoolNameAr : schoolName}</b>
-            <span>{strapsLabel}</span>
+            <span className="sub">{strapsLabel}</span>
           </span>
         </div>
         {groups.map((g) => (
@@ -141,7 +141,7 @@ export function Shell({ children }: { children: ReactNode }) {
         <div className="side-foot">
           <div className="me">
             <span className="avatar" aria-hidden="true">{initials(me.name)}</span>
-            <span className="me-text"><b>{me.name}</b><span>{roleName}</span></span>
+            <span className="me-text"><b>{staff(me)}</b><span>{roleName}</span></span>
           </div>
           <LangSwitch />
           <button type="button" className="signout" onClick={logout}>{t.shell.signOut}</button>

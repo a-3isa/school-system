@@ -20,13 +20,19 @@ class _ConsentScreenState extends State<ConsentScreen> {
   bool _busy = false;
   String? _error;
   String? _child;
+  String? _gender;
 
   @override
   void initState() {
     super.initState();
     // Name the child when there's one, so the sentence is about them.
     widget.api.children().then((kids) {
-      if (mounted && kids.length == 1) setState(() => _child = kids.first['firstName'] as String?);
+      if (mounted && kids.length == 1) {
+        setState(() {
+          _child = kids.first['firstName'] as String?;
+          _gender = kids.first['gender'] as String?;
+        });
+      }
     }).catchError((_) {});
   }
 
@@ -49,7 +55,7 @@ class _ConsentScreenState extends State<ConsentScreen> {
   Widget build(BuildContext context) {
     final s = S.of(context);
     final c = context.c;
-    final rows = [('✓', c.pFg, s.c1), ('✓', c.pFg, s.c2), ('×', c.aFg, s.c3), ('–', c.ink2, s.c4)];
+    final rows = [('✓', c.pFg, s.c1(_gender)), ('✓', c.pFg, s.c2), ('×', c.aFg, s.c3), ('–', c.ink2, s.c4)];
     return Scaffold(
       body: SafeArea(
         child: LayoutBuilder(
@@ -59,11 +65,11 @@ class _ConsentScreenState extends State<ConsentScreen> {
               constraints: BoxConstraints(minHeight: box.maxHeight - 64),
               child: IntrinsicHeight(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                  Text(s.oneTime.toUpperCase(), style: TextStyle(fontSize: 12, color: c.gold, fontWeight: FontWeight.w600, letterSpacing: Directionality.of(context) == TextDirection.rtl ? 0 : 1.2)),
+                  Text(s.oneTime, style: TextStyle(fontSize: 13, color: c.ink2, fontWeight: FontWeight.w600)),
                   const SizedBox(height: 8),
                   Text(s.consentTitle, style: Brand.display(context, size: 26)),
                   const SizedBox(height: 18),
-                  Text(s.consentBody(_child), style: TextStyle(fontSize: 15, height: 1.55, color: c.ink2)),
+                  Text(s.consentBody(_child, _gender), style: TextStyle(fontSize: 15, height: 1.55, color: c.ink2)),
                   const SizedBox(height: 18),
                   Divider(color: c.line, height: 1),
                   for (final (glyph, color, text) in rows)
