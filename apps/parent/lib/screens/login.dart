@@ -229,9 +229,9 @@ class _SignIn extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 24),
+                  // The school's crest once this phone has signed in to it; the app's name before that.
                   Row(children: [
-                    Crest(name: school ?? s.appName, width: 30),
-                    const SizedBox(width: 10),
+                    if (school != null) ...[Crest(name: school!, width: 30), const SizedBox(width: 10)],
                     Expanded(child: Text(school ?? s.appName, style: Brand.display(context, size: 15, height: 1.25).copyWith(color: c.ink))),
                   ]),
                   const SizedBox(height: 8),

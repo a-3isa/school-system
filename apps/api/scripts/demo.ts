@@ -64,6 +64,8 @@ async function call(token: string | null, method: string, path: string, body?: u
 
 const FIRST = ['Layla', 'Omar', 'Yara', 'Ali', 'Karim', 'Salma', 'Mariam', 'Youssef', 'Hana', 'Ziad', 'Nour', 'Adam'];
 const GIRLS = new Set(['Layla', 'Yara', 'Salma', 'Mariam', 'Hana', 'Nour']);
+// Mothers' own names (in Egypt a mother keeps her family name).
+const MOTHERS = ['Dina', 'Rania', 'Mona', 'Heba', 'Nadia', 'Amira', 'Yasmin', 'Ghada', 'Reem', 'Salwa', 'Nermeen', 'Marwa'];
 const LAST = ['Hussein', 'Kamal', 'Mostafa', 'Ramadan', 'Fathy', 'Nabil', 'Adel', 'Gamal'];
 
 async function main() {
@@ -123,8 +125,8 @@ async function main() {
     const sibling = i >= 12 && i % 4 === 0 ? i - 12 : i;
     const first = FIRST[(sibling === i ? i : i + 5) % FIRST.length];
     const parent = i === 23
-      ? { relation: 'GUARDIAN', name: `Grandmother of ${first}`, email: `guardian${i + 1}@demo.school`, password: 'demo-parent-1' }
-      : { relation: 'MOTHER', name: `Mother of ${FIRST[sibling % FIRST.length]}`, email: `parent${sibling + 1}@demo.school`, phone: `+20100${String(1000000 + sibling)}`, password: 'demo-parent-1' };
+      ? { relation: 'GUARDIAN', name: 'Fatma Hussein', email: `guardian${i + 1}@demo.school`, password: 'demo-parent-1' }
+      : { relation: 'MOTHER', name: `${MOTHERS[sibling % MOTHERS.length]} ${LAST[(sibling * 5 + 2) % LAST.length]}`, email: `parent${sibling + 1}@demo.school`, phone: `+20100${String(1000000 + sibling)}`, password: 'demo-parent-1' };
     // Born in 2016 or 2017 in Cairo; the national number agrees with the birth date and gender.
     const girl = GIRLS.has(first);
     const born = new Date(Date.UTC(i < 12 ? 2016 : 2017, i % 12, 1 + i));

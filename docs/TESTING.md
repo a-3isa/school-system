@@ -126,7 +126,7 @@ cd apps/parent && flutter run -d chrome --dart-define=API_URL=http://localhost:3
 | Who | Email | Password |
 |---|---|---|
 | Platform owner | the email you chose | the password you chose |
-| School admin | admin@demo.school | demo-admin-1 |
+| Student Affairs (school admin) | admin@demo.school (Ms. Samia Adel) | demo-admin-1 |
 | Teacher | hana@demo.school | demo-teacher-1 |
 | Parents | parent1@demo.school … parent23@demo.school, and guardian24@demo.school | demo-parent-1 |
 
@@ -137,7 +137,7 @@ Sign in at http://localhost:3001 as admin@demo.school.
 1. **Sign-in page**
    - It has the navy panel and serif headings.
    - Try **Forgot password?**. The code appears in Terminal 1.
-2. **Modules & settings**
+2. **School settings**
    - Upload a square PNG as the school crest. It appears in the sidebar.
    - **Remove** brings back the gold initials.
    - An SVG or a PDF is refused.
@@ -160,8 +160,8 @@ Sign in at http://localhost:3001 as admin@demo.school.
 8. **Import from Excel**
    - Download the template.
    - Upload it with one bad row, fix that row, and import.
-9. **Timetable**, **Staff**, **Devices**, **Audit log**: each page opens and shows the demo data.
-10. **Today**, **Follow-ups**, **Student locations**: these show the day the demo played.
+9. **Timetable**, **Faculty & staff** (set each person's title), **Smart band readers**, **Activity log**: each page opens and shows the demo data.
+10. **Today**, **Follow-ups**, **On campus now**: these show the day the demo played.
 
 ## 9. Check the classroom PC as a teacher
 
@@ -179,7 +179,7 @@ Sign in at http://localhost:3001 as admin@demo.school.
      --macs DC:0D:30:00:00:00,DC:0D:30:00:00:01
    ```
 
-2. Those two children appear in Room 204 under **Student locations**.
+2. Those two children appear in Room 204 under **On campus now**.
 3. If the simulator answers `401`, sign in as the owner, open **Gateways**, press **New secret**, and use the new secret.
 
 ## 11. Check the parent app
