@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=Noto+Naskh+Arabic:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>body{margin:0;background:#E7E4DC;font-family:"IBM Plex Sans","IBM Plex Sans Arabic",sans-serif}a{color:#1B2A4E}a:hover{color:#121D38}</style>
+</helmet>
+<div style="padding:48px;display:flex;flex-direction:column;gap:56px;width:max-content">
+<header style="display:flex;flex-direction:column;gap:6px;max-width:720px"><h1 style="font-family:'Source Serif 4','Noto Naskh Arabic',serif;margin:0;font-size:32px;font-weight:600;color:#1A1D24">Parent app · Nile Valley Language School</h1><p style="margin:0;font-size:15px;line-height:1.55;color:#4A4F5A">360 × 760 phone. Same ivory-and-navy tokens and crest as the staff portal; dark mode swaps navy for gold. Status pills keep glyph + word. Parents activate their account with the email registered at Student Affairs, then verify their mobile on WhatsApp. Messages reassure first: “arrived safely”, “Student Affairs is following up”.</p></header>
+<section style="display:flex;flex-direction:column;gap:16px">
+<h2 style="font-family:'Source Serif 4','Noto Naskh Arabic',serif;margin:0;font-size:18px;font-weight:600;color:#1A1D24">English · light</h2>
+<div style="display:flex;gap:28px;align-items:flex-start">
+<div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;color:#4A4F5A">Sign in</span><dc-import name="Parent Screen" screen="signin" lang="en" theme="light" hint-size="360px,760px"></dc-import></div>
+<div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;color:#4A4F5A">Activate account · 1 email</span><dc-import name="Parent Screen" screen="create1" lang="en" theme="light" hint-size="360px,760px"></dc-import></div>
+<div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;color:#4A4F5A">Activate account · 2 code + mobile</span><dc-import name="Parent Screen" screen="create2" lang="en" theme="light" hint-size="360px,760px"></dc-import></div>
+<div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;color:#4A4F5A">Activate account · 3 WhatsApp + password</span><dc-import name="Parent Screen" screen="create3" lang="en" theme="light" hint-size="360px,760px"></dc-import></div>
+<div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;color:#4A4F5A">Consent</span><dc-import name="Parent Screen" screen="consent" lang="en" theme="light" hint-size="360px,760px"></dc-import></div>
+<div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;color:#4A4F5A">At school</span><dc-import name="Parent Screen" screen="day" lang="en" theme="light" hint-size="360px,760px"></dc-import></div>
+<div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;color:#4A4F5A">Notifications</span><dc-import name="Parent Screen" screen="notifs" lang="en" theme="light" hint-size="360px,760px"></dc-import></div>
+<div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;color:#4A4F5A">Account</span><dc-import name="Parent Screen" screen="account" lang="en" theme="light" hint-size="360px,760px"></dc-import></div>
+<div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;color:#4A4F5A">Change mobile · 1 new number</span><dc-import name="Parent Screen" screen="mobile1" lang="en" theme="light" hint-size="360px,760px"></dc-import></div>
+<div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;color:#4A4F5A">Change mobile · 2 WhatsApp code</span><dc-import name="Parent Screen" screen="mobile2" lang="en" theme="light" hint-size="360px,760px"></dc-import></div>
+<div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;color:#4A4F5A">Change mobile · done</span><dc-import name="Parent Screen" screen="mobile3" lang="en" theme="light" hint-size="360px,760px"></dc-import></div>
+<div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;color:#4A4F5A">Forgot password · 1</span><dc-import name="Parent Screen" screen="forgot1" lang="en" theme="light" hint-size="360px,760px"></dc-import></div>
+<div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;color:#4A4F5A">Forgot password · 2</span><dc-import name="Parent Screen" screen="forgot2" lang="en" theme="light" hint-size="360px,760px"></dc-import></div>
+</div>
+</section>
+<section style="display:flex;flex-direction:column;gap:16px">
+<h2 style="font-family:'Source Serif 4','Noto Naskh Arabic',serif;margin:0;font-size:18px;font-weight:600;color:#1A1D24">العربية · فاتح</h2>
+<div style="display:flex;gap:28px;align-items:flex-start">
+<div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;color:#4A4F5A">Sign in</span><dc-import name="Parent Screen" screen="signin" lang="ar" theme="light" hint-size="360px,760px"></dc-import></div>
+<div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;color:#4A4F5A">Activate account · 1 email</span><dc-import name="Parent Screen" screen="create1" lang="ar" theme="light" hint-size="360px,760px"></dc-import></div>
+<div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;color:#4A4F5A">Activate account · 2 code + mobile</span><dc-import name="Parent Screen" screen="create2" lang="ar" theme="light" hint-size="360px,760px"></dc-import></div>
+<div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;color:#4A4F5A">Activate account · 3 WhatsApp + password</span><dc-import name="Parent Screen" screen="create3" lang="ar" theme="light" hint-size="360px,760px"></dc-import></div>
+<div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;color:#4A4F5A">Consent</span><dc-import name="Parent Screen" screen="consent" lang="ar" theme="light" hint-size="360px,760px"></dc-import></div>
+<div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;color:#4A4F5A">At school</span><dc-import name="Parent Screen" screen="day" lang="ar" theme="light" hint-size="360px,760px"></dc-import></div>
+<div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;color:#4A4F5A">Notifications</span><dc-import name="Parent Screen" screen="notifs" lang="ar" theme="light" hint-size="360px,760px"></dc-import></div>
+<div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;color:#4A4F5A">Account</span><dc-import name="Parent Screen" screen="account" lang="ar" theme="light" hint-size="360px,760px"></dc-import></div>
+<div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;color:#4A4F5A">Change mobile · 1 new number</span><dc-import name="Parent Screen" screen="mobile1" lang="ar" theme="light" hint-size="360px,760px"></dc-import></div>
+<div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;color:#4A4F5A">Change mobile · 2 WhatsApp code</span><dc-import name="Parent Screen" screen="mobile2" lang="ar" theme="light" hint-size="360px,760px"></dc-import></div>
+<div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;color:#4A4F5A">Change mobile · done</span><dc-import name="Parent Screen" screen="mobile3" lang="ar" theme="light" hint-size="360px,760px"></dc-import></div>
+<div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;color:#4A4F5A">Forgot password · 1</span><dc-import name="Parent Screen" screen="forgot1" lang="ar" theme="light" hint-size="360px,760px"></dc-import></div>
+<div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;color:#4A4F5A">Forgot password · 2</span><dc-import name="Parent Screen" screen="forgot2" lang="ar" theme="light" hint-size="360px,760px"></dc-import></div>
+</div>
+</section>
+<section style="display:flex;flex-direction:column;gap:16px">
+<h2 style="font-family:'Source Serif 4','Noto Naskh Arabic',serif;margin:0;font-size:18px;font-weight:600;color:#1A1D24">English · dark</h2>
+<div style="display:flex;gap:28px;align-items:flex-start">
+<div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;color:#4A4F5A">Sign in</span><dc-import name="Parent Screen" screen="signin" lang="en" theme="dark" hint-size="360px,760px"></dc-import></div>
+<div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;color:#4A4F5A">Activate account · 1 email</span><dc-import name="Parent Screen" screen="create1" lang="en" theme="dark" hint-size="360px,760px"></dc-import></div>
+<div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;color:#4A4F5A">Activate account · 2 code + mobile</span><dc-import name="Parent Screen" screen="create2" lang="en" theme="dark" hint-size="360px,760px"></dc-import></div>
+<div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;color:#4A4F5A">Activate account · 3 WhatsApp + password</span><dc-import name="Parent Screen" screen="create3" lang="en" theme="dark" hint-size="360px,760px"></dc-import></div>
+<div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;color:#4A4F5A">Consent</span><dc-import name="Parent Screen" screen="consent" lang="en" theme="dark" hint-size="360px,760px"></dc-import></div>
+<div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;color:#4A4F5A">At school</span><dc-import name="Parent Screen" screen="day" lang="en" theme="dark" hint-size="360px,760px"></dc-import></div>
+<div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;color:#4A4F5A">Notifications</span><dc-import name="Parent Screen" screen="notifs" lang="en" theme="dark" hint-size="360px,760px"></dc-import></div>
+<div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;color:#4A4F5A">Account</span><dc-import name="Parent Screen" screen="account" lang="en" theme="dark" hint-size="360px,760px"></dc-import></div>
+<div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;color:#4A4F5A">Change mobile · 1 new number</span><dc-import name="Parent Screen" screen="mobile1" lang="en" theme="dark" hint-size="360px,760px"></dc-import></div>
+<div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;color:#4A4F5A">Change mobile · 2 WhatsApp code</span><dc-import name="Parent Screen" screen="mobile2" lang="en" theme="dark" hint-size="360px,760px"></dc-import></div>
+<div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;color:#4A4F5A">Change mobile · done</span><dc-import name="Parent Screen" screen="mobile3" lang="en" theme="dark" hint-size="360px,760px"></dc-import></div>
+<div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;color:#4A4F5A">Forgot password · 1</span><dc-import name="Parent Screen" screen="forgot1" lang="en" theme="dark" hint-size="360px,760px"></dc-import></div>
+<div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;color:#4A4F5A">Forgot password · 2</span><dc-import name="Parent Screen" screen="forgot2" lang="en" theme="dark" hint-size="360px,760px"></dc-import></div>
+</div>
+</section>
+<section style="display:flex;flex-direction:column;gap:16px">
+<h2 style="font-family:'Source Serif 4','Noto Naskh Arabic',serif;margin:0;font-size:18px;font-weight:600;color:#1A1D24">العربية · داكن</h2>
+<div style="display:flex;gap:28px;align-items:flex-start">
+<div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;color:#4A4F5A">Sign in</span><dc-import name="Parent Screen" screen="signin" lang="ar" theme="dark" hint-size="360px,760px"></dc-import></div>
+<div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;color:#4A4F5A">Activate account · 1 email</span><dc-import name="Parent Screen" screen="create1" lang="ar" theme="dark" hint-size="360px,760px"></dc-import></div>
+<div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;color:#4A4F5A">Activate account · 2 code + mobile</span><dc-import name="Parent Screen" screen="create2" lang="ar" theme="dark" hint-size="360px,760px"></dc-import></div>
+<div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;color:#4A4F5A">Activate account · 3 WhatsApp + password</span><dc-import name="Parent Screen" screen="create3" lang="ar" theme="dark" hint-size="360px,760px"></dc-import></div>
+<div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;color:#4A4F5A">Consent</span><dc-import name="Parent Screen" screen="consent" lang="ar" theme="dark" hint-size="360px,760px"></dc-import></div>
+<div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;color:#4A4F5A">At school</span><dc-import name="Parent Screen" screen="day" lang="ar" theme="dark" hint-size="360px,760px"></dc-import></div>
+<div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;color:#4A4F5A">Notifications</span><dc-import name="Parent Screen" screen="notifs" lang="ar" theme="dark" hint-size="360px,760px"></dc-import></div>
+<div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;color:#4A4F5A">Account</span><dc-import name="Parent Screen" screen="account" lang="ar" theme="dark" hint-size="360px,760px"></dc-import></div>
+<div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;color:#4A4F5A">Change mobile · 1 new number</span><dc-import name="Parent Screen" screen="mobile1" lang="ar" theme="dark" hint-size="360px,760px"></dc-import></div>
+<div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;color:#4A4F5A">Change mobile · 2 WhatsApp code</span><dc-import name="Parent Screen" screen="mobile2" lang="ar" theme="dark" hint-size="360px,760px"></dc-import></div>
+<div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;color:#4A4F5A">Change mobile · done</span><dc-import name="Parent Screen" screen="mobile3" lang="ar" theme="dark" hint-size="360px,760px"></dc-import></div>
+<div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;color:#4A4F5A">Forgot password · 1</span><dc-import name="Parent Screen" screen="forgot1" lang="ar" theme="dark" hint-size="360px,760px"></dc-import></div>
+<div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;color:#4A4F5A">Forgot password · 2</span><dc-import name="Parent Screen" screen="forgot2" lang="ar" theme="dark" hint-size="360px,760px"></dc-import></div>
+</div>
+</section>
+
+
+</div>
+</x-dc>
+</body>
+</html>

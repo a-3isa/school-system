@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=Noto+Naskh+Arabic:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F6F4EF;color:#1A1D24;font-family:"IBM Plex Sans","IBM Plex Sans Arabic",sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#1B2A4E}a:hover{color:#121D38}
+*:focus-visible{outline:2px solid #1B2A4E;outline-offset:2px}
+</style>
+</helmet>
+<div style="max-width:1240px;margin:0 auto;padding:56px 40px 120px;display:flex;flex-direction:column;gap:72px">
+
+<header style="display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:48px;align-items:end;border-bottom:1px solid #DEDAD0;padding-bottom:40px">
+  <div style="display:flex;flex-direction:column;gap:16px">
+    <div style="font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:#4A4F5A;font-weight:600">Design direction · v2</div>
+    <h1 style="font-family:'Source Serif 4','Noto Naskh Arabic',serif;margin:0;font-size:52px;line-height:1.05;font-weight:600;letter-spacing:-.02em;text-wrap:balance">Ivory, Oxford navy &amp; a crest. The school’s own register.</h1>
+  </div>
+  <p style="margin:0;font-size:17px;line-height:1.6;color:#4A4F5A;text-wrap:pretty">Made for Egypt’s private and language schools: ivory grounds, Oxford navy for action, a burgundy-and-gold crest for identity, and serif headings that read like a school prospectus. Teachers are Ms. and Mr.; parents are addressed with respect and reassured first. Status colours still carry a shape and a word. <span style="font-family:'IBM Plex Sans Arabic'" dir="rtl">راقٍ، هادئ، يمكن الوثوق به.</span></p>
+</header>
+
+<section style="display:flex;flex-direction:column;gap:24px">
+  <h2 style="font-family:'Source Serif 4','Noto Naskh Arabic',serif;margin:0;font-size:24px;font-weight:600">1 · Colour tokens</h2>
+  <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px">
+    <div style="background:#FFFFFF;border:1px solid #DEDAD0;border-radius:10px;padding:24px;display:flex;flex-direction:column;gap:14px">
+      <div style="font-weight:600">Light</div>
+      <sc-for list="{{ lightTokens }}" as="tk" hint-placeholder-count="10">
+        <div style="display:grid;grid-template-columns:40px 1fr auto;gap:14px;align-items:center">
+          <div style="width:40px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.12);background:{{ tk.hex }}"></div>
+          <div style="display:flex;flex-direction:column"><span style="font-size:14px;font-weight:500">{{ tk.name }}</span><span style="font-size:12px;color:#666B76">{{ tk.use }}</span></div>
+          <code style="font-family:'IBM Plex Mono';font-size:12px;color:#4A4F5A">{{ tk.hex }}</code>
+        </div>
+      </sc-for>
+    </div>
+    <div style="background:#1A1D25;border:1px solid #2A2E38;border-radius:10px;padding:24px;display:flex;flex-direction:column;gap:14px;color:#EEEAE0">
+      <div style="font-weight:600">Dark</div>
+      <sc-for list="{{ darkTokens }}" as="tk" hint-placeholder-count="10">
+        <div style="display:grid;grid-template-columns:40px 1fr auto;gap:14px;align-items:center">
+          <div style="width:40px;height:28px;border-radius:6px;border:1px solid rgba(255,255,255,.14);background:{{ tk.hex }}"></div>
+          <div style="display:flex;flex-direction:column"><span style="font-size:14px;font-weight:500">{{ tk.name }}</span><span style="font-size:12px;color:#8E8D8A">{{ tk.use }}</span></div>
+          <code style="font-family:'IBM Plex Mono';font-size:12px;color:#B6B4AE">{{ tk.hex }}</code>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+</section>
+
+<section style="display:flex;flex-direction:column;gap:24px">
+  <div style="display:flex;justify-content:space-between;align-items:baseline;gap:24px;flex-wrap:wrap">
+    <h2 style="font-family:'Source Serif 4','Noto Naskh Arabic',serif;margin:0;font-size:24px;font-weight:600">2 · Status system</h2>
+    <p style="margin:0;color:#4A4F5A;font-size:14px;max-width:560px">Every status = colour + glyph + word. Remove the colour and it still reads. Text on tints passes AA (≥ 5.8:1).</p>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px">
+    <sc-for list="{{ statuses }}" as="s" hint-placeholder-count="5">
+      <div style="background:#FFFFFF;border:1px solid #DEDAD0;border-radius:10px;padding:18px;display:flex;flex-direction:column;gap:14px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="width:40px;height:40px;border-radius:8px;background:{{ s.bg }};color:{{ s.fg }};border:2px solid {{ s.fg }};display:grid;place-items:center;font-weight:700;font-size:17px">{{ s.letter }}</span>
+          <span style="font-family:'IBM Plex Sans Arabic';font-size:20px;color:{{ s.fg }};font-weight:600">{{ s.arLetter }}</span>
+        </div>
+        <span style="display:inline-flex;align-self:flex-start;align-items:center;gap:6px;padding:3px 10px 3px 8px;border-radius:999px;background:{{ s.bg }};color:{{ s.fg }};font-size:13px;font-weight:600"><span style="font-size:12px">{{ s.glyph }}</span>{{ s.label }}</span>
+        <div style="display:flex;flex-direction:column;gap:2px;font-size:12px;color:#4A4F5A">
+          <span style="font-family:'IBM Plex Sans Arabic'" dir="rtl">{{ s.ar }}</span>
+          <code style="font-family:'IBM Plex Mono'">fg {{ s.fg }} · bg {{ s.bg }}</code>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px">
+    <sc-for list="{{ liveStates }}" as="l" hint-placeholder-count="4">
+      <div style="background:#FFFFFF;border:1px solid #DEDAD0;border-radius:10px;padding:16px 18px;display:flex;align-items:center;gap:12px">
+        <span style="width:10px;height:10px;border-radius:50%;box-sizing:border-box;flex:none;background:{{ l.fill }};border:2px {{ l.line }} {{ l.color }}"></span>
+        <div style="display:flex;flex-direction:column"><span style="font-weight:600;font-size:15px;color:{{ l.text }}">{{ l.label }}</span><span style="font-size:12px;color:#666B76">{{ l.shape }}</span></div>
+      </div>
+    </sc-for>
+  </div>
+</section>
+
+<section style="display:flex;flex-direction:column;gap:24px">
+  <h2 style="font-family:'Source Serif 4','Noto Naskh Arabic',serif;margin:0;font-size:24px;font-weight:600">3 · Type</h2>
+  <p style="margin:-12px 0 0;color:#4A4F5A;font-size:14px;max-width:720px">Headings: Source Serif 4 + Noto Naskh Arabic, the prospectus voice. UI and data: IBM Plex Sans + IBM Plex Sans Arabic, designed as one family so mixed lines sit on the same rhythm. Arabic runs one step larger at the same token (x-height parity) and +0.15 line-height. Times always Latin, tabular figures. Plex Mono only for codes and device addresses.</p>
+  <div style="background:#FFFFFF;border:1px solid #DEDAD0;border-radius:10px;overflow:hidden">
+    <sc-for list="{{ typeScale }}" as="ty" hint-placeholder-count="7">
+      <div style="display:grid;grid-template-columns:140px minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:baseline;padding:16px 24px;border-bottom:1px solid #EAE6DD">
+        <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:13px;font-weight:600">{{ ty.token }}</span><code style="font-family:'IBM Plex Mono';font-size:11px;color:#666B76">{{ ty.spec }}</code></div>
+        <div style="font-family:{{ ty.ff }};font-size:{{ ty.en }}px;font-weight:{{ ty.w }};line-height:1.25;font-variant-numeric:tabular-nums">{{ ty.sampleEn }}</div>
+        <div dir="rtl" style="font-family:{{ ty.ffAr }};font-size:{{ ty.ar }}px;font-weight:{{ ty.w }};line-height:1.45">{{ ty.sampleAr }}</div>
+      </div>
+    </sc-for>
+  </div>
+</section>
+
+<section style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px">
+  <div style="display:flex;flex-direction:column;gap:16px">
+    <h2 style="font-family:'Source Serif 4','Noto Naskh Arabic',serif;margin:0;font-size:24px;font-weight:600">4 · Spacing</h2>
+    <div style="background:#FFFFFF;border:1px solid #DEDAD0;border-radius:10px;padding:24px;display:flex;flex-direction:column;gap:10px">
+      <sc-for list="{{ spacing }}" as="sp" hint-placeholder-count="8">
+        <div style="display:grid;grid-template-columns:56px 1fr 120px;gap:12px;align-items:center;font-size:13px">
+          <code style="font-family:'IBM Plex Mono'">{{ sp.name }}</code>
+          <div style="height:12px;background:#E4E7EF;border-radius:2px;width:{{ sp.px }}px"></div>
+          <span style="color:#666B76">{{ sp.use }}</span>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:16px">
+    <h2 style="font-family:'Source Serif 4','Noto Naskh Arabic',serif;margin:0;font-size:24px;font-weight:600">5 · Radius &amp; elevation</h2>
+    <div style="background:#FFFFFF;border:1px solid #DEDAD0;border-radius:10px;padding:24px;display:grid;grid-template-columns:repeat(4,1fr);gap:16px">
+      <div style="display:flex;flex-direction:column;gap:8px;align-items:center;font-size:12px"><div style="width:64px;height:64px;border:1.5px solid #1A1D24;border-radius:4px"></div><b>4</b><span style="color:#666B76">chips, tags</span></div>
+      <div style="display:flex;flex-direction:column;gap:8px;align-items:center;font-size:12px"><div style="width:64px;height:64px;border:1.5px solid #1A1D24;border-radius:6px"></div><b>6</b><span style="color:#666B76">controls</span></div>
+      <div style="display:flex;flex-direction:column;gap:8px;align-items:center;font-size:12px"><div style="width:64px;height:64px;border:1.5px solid #1A1D24;border-radius:10px"></div><b>10</b><span style="color:#666B76">panels</span></div>
+      <div style="display:flex;flex-direction:column;gap:8px;align-items:center;font-size:12px"><div style="width:64px;height:64px;border:1.5px solid #1A1D24;border-radius:999px"></div><b>full</b><span style="color:#666B76">badges</span></div>
+      <p style="grid-column:1/-1;margin:8px 0 0;font-size:13px;color:#4A4F5A;line-height:1.55">No card shadows. Surfaces separate by a 1px <code style="font-family:'IBM Plex Mono'">line</code> and a tone step. One shadow exists — for floating layers only (toast, menu): <code style="font-family:'IBM Plex Mono'">0 8px 24px rgba(29,33,31,.14)</code>.</p>
+    </div>
+  </div>
+</section>
+
+<section style="display:flex;flex-direction:column;gap:24px">
+  <h2 style="font-family:'Source Serif 4','Noto Naskh Arabic',serif;margin:0;font-size:24px;font-weight:600">6 · Components</h2>
+  <div style="display:grid;grid-template-columns:260px minmax(0,1fr);gap:24px;align-items:start">
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div style="font-size:12px;color:#666B76;font-weight:600;text-transform:uppercase;letter-spacing:.06em">Sidebar</div>
+      <div style="background:#1B2A4E;color:#F3EFE6;border-radius:10px;padding:18px 12px;display:flex;flex-direction:column;gap:18px">
+        <div style="display:flex;gap:10px;align-items:center;padding:0 8px 14px;border-bottom:1px solid rgba(201,167,90,.35)"><span aria-hidden="true" style="width:34px;height:40px;flex:none;box-sizing:border-box;background:#7A1F2E;border:1.5px solid #C9A75A;border-radius:5px 5px 17px 17px;display:grid;place-items:center;color:#F3E7C9;font-family:'Source Serif 4',serif;font-weight:600;font-size:13px;letter-spacing:.02em;line-height:1">NV</span><div style="display:flex;flex-direction:column;gap:2px"><span style="font-family:'Source Serif 4','Noto Naskh Arabic',serif;font-weight:600;font-size:15px;line-height:1.2">Nile Valley Language School</span><span style="font-size:12px;color:#B7BED0">Demo · Smart bands</span></div></div>
+        <div style="display:flex;flex-direction:column;gap:2px">
+          <div style="font-size:11px;color:#C9A75A;font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:0 8px 6px">Attendance</div>
+          <div style="display:flex;align-items:center;gap:10px;padding:9px 8px;border-radius:6px;background:rgba(255,255,255,.10);box-shadow:inset 0 0 0 1px rgba(201,167,90,.6);font-weight:600;font-size:14px"><span style="width:6px;height:6px;border-radius:50%;background:#C9A75A"></span>Attendance register</div>
+          <div style="padding:9px 8px 9px 24px;font-size:14px">Follow-ups</div>
+          <div style="padding:9px 8px 9px 24px;font-size:14px">On campus now</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;padding:12px 8px 0;border-top:1px solid rgba(255,255,255,.14)"><span style="width:30px;height:30px;border-radius:50%;background:#C9A75A;color:#1B2A4E;display:grid;place-items:center;font-size:12px;font-weight:700">MS</span><div style="display:flex;flex-direction:column"><span style="font-size:13px;font-weight:600">Ms. Mona Said</span><span style="font-size:12px;color:#B7BED0">Student Affairs</span></div></div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:24px">
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="font-size:12px;color:#666B76;font-weight:600;text-transform:uppercase;letter-spacing:.06em">Page header + period ruler</div>
+        <div style="background:#FFFFFF;border:1px solid #DEDAD0;border-radius:10px;padding:24px;display:flex;flex-direction:column;gap:18px">
+          <div style="display:flex;justify-content:space-between;align-items:end;gap:16px;flex-wrap:wrap">
+            <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;color:#4A4F5A;font-weight:500">Period 3 · 09:50–10:35</span><h3 style="font-family:'Source Serif 4','Noto Naskh Arabic',serif;margin:0;font-size:30px;font-weight:600;letter-spacing:-.01em">Grade 4-A · Math · Room 204</h3></div>
+            <span style="font-size:13px;color:#666B76;display:flex;align-items:center;gap:8px"><span style="width:6px;height:6px;border-radius:50%;background:#2E8550"></span>Updated just now</span>
+          </div>
+          <div style="display:grid;grid-template-columns:45fr 45fr 20fr 45fr 45fr 20fr 45fr 45fr;gap:3px;align-items:end">
+            <div style="height:6px;background:#D4CFC4;border-radius:2px"></div><div style="height:6px;background:#D4CFC4;border-radius:2px"></div><div></div>
+            <div style="height:14px;background:#1B2A4E;border-radius:3px;position:relative"><div style="position:absolute;top:-4px;bottom:-4px;left:49%;width:2px;background:#1A1D24"></div></div>
+            <div style="height:6px;background:#EAE6DD;border-radius:2px"></div><div></div>
+            <div style="height:6px;background:#EAE6DD;border-radius:2px"></div><div style="height:6px;background:#EAE6DD;border-radius:2px"></div>
+          </div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px">
+        <sc-for list="{{ kpis }}" as="k" hint-placeholder-count="4">
+          <div style="background:#FFFFFF;border:1px solid #DEDAD0;border-radius:10px;padding:16px 18px;display:flex;flex-direction:column;gap:6px">
+            <span style="font-size:13px;color:#4A4F5A">{{ k.label }}</span>
+            <span style="font-size:32px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1;color:{{ k.color }}">{{ k.value }}</span>
+            <span style="font-size:12px;color:#666B76">{{ k.sub }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <div style="font-size:12px;color:#666B76;font-weight:600;text-transform:uppercase;letter-spacing:.06em">Attendance row — status control + live line (smart bands only)</div>
+    <div style="background:#FFFFFF;border:1px solid #DEDAD0;border-radius:10px;overflow:hidden">
+      <div style="display:flex;flex-wrap:wrap;align-items:center;gap:14px 24px;padding:16px 24px;border-bottom:1px solid #EAE6DD;background:#FBEDEA">
+        <div style="flex:1 1 280px;display:flex;flex-direction:column;gap:4px"><span style="font-weight:600;font-size:22px">Ali Kamal</span><span style="display:flex;align-items:center;gap:8px;font-size:15px;color:#4A4F5A"><span style="width:10px;height:10px;border-radius:50%;background:#EAE6DD;border:2px solid #B5B1A6;box-sizing:border-box"></span>Band not detected today</span></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><span style="min-width:118px;height:60px;border-radius:8px;border:1px solid #CFCABF;background:#FFFFFF;color:#3A3F4A;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:500;font-size:17px;box-sizing:border-box"><span style="font-size:14px;opacity:.55">✓</span>Present</span><span style="min-width:118px;height:60px;border-radius:8px;border:1px solid #CFCABF;background:#FFFFFF;color:#3A3F4A;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:500;font-size:17px;box-sizing:border-box"><span style="font-size:14px;opacity:.55">◔</span>Late</span><span style="min-width:118px;height:60px;border-radius:8px;border:2px solid #A3291F;background:#F8E3DF;color:#A3291F;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:700;font-size:17px;box-sizing:border-box"><span style="font-size:14px">✕</span>Absent</span><span style="min-width:118px;height:60px;border-radius:8px;border:1px solid #CFCABF;background:#FFFFFF;color:#3A3F4A;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:500;font-size:17px;box-sizing:border-box"><span style="font-size:14px;opacity:.55">–</span>Excused</span></div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;align-items:center;gap:14px 24px;padding:16px 24px;border-bottom:1px solid #EAE6DD;background:#FBEDEA">
+        <div style="flex:1 1 280px;display:flex;flex-direction:column;gap:4px"><span style="font-weight:600;font-size:22px">Salma Gamal</span><span style="display:flex;align-items:center;gap:8px;font-size:15px;color:#A3291F"><span style="width:10px;height:10px;border-radius:50%;border:2px solid #C8432F;box-sizing:border-box"></span>Not in class · last seen at Main gate, 07:42 · parent notified 10:00</span></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><span style="min-width:118px;height:60px;border-radius:8px;border:1px solid #CFCABF;background:#FFFFFF;color:#3A3F4A;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:500;font-size:17px;box-sizing:border-box"><span style="font-size:14px;opacity:.55">✓</span>Present</span><span style="min-width:118px;height:60px;border-radius:8px;border:1px solid #CFCABF;background:#FFFFFF;color:#3A3F4A;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:500;font-size:17px;box-sizing:border-box"><span style="font-size:14px;opacity:.55">◔</span>Late</span><span style="min-width:118px;height:60px;border-radius:8px;border:2px solid #A3291F;background:#F8E3DF;color:#A3291F;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:700;font-size:17px;box-sizing:border-box"><span style="font-size:14px">✕</span>Absent</span><span style="min-width:118px;height:60px;border-radius:8px;border:1px solid #CFCABF;background:#FFFFFF;color:#3A3F4A;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:500;font-size:17px;box-sizing:border-box"><span style="font-size:14px;opacity:.55">–</span>Excused</span></div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;align-items:center;gap:14px 24px;padding:16px 24px;border-bottom:1px solid #EAE6DD;background:#FFFFFF">
+        <div style="flex:1 1 280px;display:flex;flex-direction:column;gap:4px"><span style="font-weight:600;font-size:22px">Karim Fathy</span><span style="display:flex;align-items:center;gap:8px;font-size:15px;color:#23683F"><span style="width:10px;height:10px;border-radius:50%;background:#2E8550"></span>In class</span><span style="font-size:14px;font-weight:600;color:#23683F">Saved by Ms. Hana Nabil</span></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><span style="min-width:118px;height:60px;border-radius:8px;border:2px solid #23683F;background:#E2EFE5;color:#23683F;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:700;font-size:17px;box-sizing:border-box"><span style="font-size:14px">✓</span>Present</span><span style="min-width:118px;height:60px;border-radius:8px;border:1px solid #CFCABF;background:#FFFFFF;color:#3A3F4A;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:500;font-size:17px;box-sizing:border-box"><span style="font-size:14px;opacity:.55">◔</span>Late</span><span style="min-width:118px;height:60px;border-radius:8px;border:1px solid #CFCABF;background:#FFFFFF;color:#3A3F4A;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:500;font-size:17px;box-sizing:border-box"><span style="font-size:14px;opacity:.55">✕</span>Absent</span><span style="min-width:118px;height:60px;border-radius:8px;border:1px solid #CFCABF;background:#FFFFFF;color:#3A3F4A;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:500;font-size:17px;box-sizing:border-box"><span style="font-size:14px;opacity:.55">–</span>Excused</span></div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;align-items:center;gap:14px 24px;padding:16px 24px;border-bottom:1px solid #EAE6DD;background:#FDF8EC">
+        <div style="flex:1 1 280px;display:flex;flex-direction:column;gap:4px"><span style="font-weight:600;font-size:22px">Layla Hussein</span><span style="font-size:14px;font-weight:600;color:#8A5A00">Changed · not saved yet</span></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><span style="min-width:118px;height:60px;border-radius:8px;border:2px solid #23683F;background:#E2EFE5;color:#23683F;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:700;font-size:17px;box-sizing:border-box"><span style="font-size:14px">✓</span>Present</span><span style="min-width:118px;height:60px;border-radius:8px;border:1px solid #CFCABF;background:#FFFFFF;color:#3A3F4A;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:500;font-size:17px;box-sizing:border-box"><span style="font-size:14px;opacity:.55">◔</span>Late</span><span style="min-width:118px;height:60px;border-radius:8px;border:1px solid #CFCABF;background:#FFFFFF;color:#3A3F4A;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:500;font-size:17px;box-sizing:border-box"><span style="font-size:14px;opacity:.55">✕</span>Absent</span><span style="min-width:118px;height:60px;border-radius:8px;border:1px solid #CFCABF;background:#FFFFFF;color:#3A3F4A;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:500;font-size:17px;box-sizing:border-box"><span style="font-size:14px;opacity:.55">–</span>Excused</span></div>
+      </div>
+    </div>
+    <p style="margin:0;font-size:13px;color:#4A4F5A;line-height:1.5">Absent rows are tinted. Under the name: the band line (smart bands only), then “Saved by …” or “not saved yet”. Without smart bands the line is simply absent; the row is otherwise identical. Save lives in the page header: <b>Save (1)</b> / <b>✓ Saved</b>.</p>
+  </div>
+
+  <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div style="font-size:12px;color:#666B76;font-weight:600;text-transform:uppercase;letter-spacing:.06em">Place panel + name chips</div>
+      <div style="background:#FFFFFF;border:1px solid #DEDAD0;border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-weight:600">Room 204</span><span style="font-size:13px;color:#4A4F5A">4-A Math · 9</span></div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">
+          <span style="font-size:13px;padding:4px 8px;border-radius:4px;background:#F6F4EF;border:1px solid #EAE6DD">Layla Hussein</span>
+          <span style="font-size:13px;padding:4px 8px;border-radius:4px;background:#F6F4EF;border:1px solid #EAE6DD">Omar Ramadan</span>
+          <span style="font-size:13px;padding:4px 8px;border-radius:4px;background:#F6F4EF;border:1px solid #EAE6DD">Yara Adel</span>
+          <span style="font-size:13px;padding:4px 8px;border-radius:4px;background:#FFFFFF;border:1px dashed #B5B1A6;color:#4A4F5A;display:inline-flex;gap:6px">Nour Adel<span style="color:#8A5A00;font-weight:600">4 min ago</span></span>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div style="font-size:12px;color:#666B76;font-weight:600;text-transform:uppercase;letter-spacing:.06em">Timeline</div>
+      <div style="background:#FFFFFF;border:1px solid #DEDAD0;border-radius:10px;padding:16px 18px;display:flex;flex-direction:column">
+        <sc-for list="{{ timeline }}" as="tl" hint-placeholder-count="4">
+          <div style="display:grid;grid-template-columns:92px 14px 1fr;gap:10px;align-items:start;min-height:34px">
+            <span style="font-size:13px;font-variant-numeric:tabular-nums;color:#4A4F5A;padding-top:1px">{{ tl.time }}</span>
+            <span style="display:flex;flex-direction:column;align-items:center;height:100%"><span style="width:9px;height:9px;border-radius:50%;background:{{ tl.dot }};margin-top:5px;flex:none"></span><span style="flex:1;width:1px;background:#DEDAD0"></span></span>
+            <span style="font-size:14px;font-weight:500">{{ tl.place }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div style="font-size:12px;color:#666B76;font-weight:600;text-transform:uppercase;letter-spacing:.06em">Notice · toast</div>
+      <div style="background:#F8ECD2;border-radius:10px;padding:14px 16px;display:flex;gap:12px;color:#5C3D00">
+        <span style="font-weight:700">!</span>
+        <div style="display:flex;flex-direction:column;gap:4px;font-size:14px;line-height:1.45"><b>The reader in Room 205 is offline</b><span>Please mark Grade 4-B by hand until it’s back.</span></div>
+      </div>
+      <div style="background:#1A1D24;color:#F6F4EF;border-radius:8px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:14px;box-shadow:0 8px 24px rgba(29,33,31,.14)"><span>Saved 1 change</span><span style="color:#D9B76A;font-weight:600">Undo</span></div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div style="font-size:12px;color:#666B76;font-weight:600;text-transform:uppercase;letter-spacing:.06em">Form fields</div>
+      <div style="background:#FFFFFF;border:1px solid #DEDAD0;border-radius:10px;padding:20px;display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <label style="display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600">Full name<input value="Salma Gamal" style="height:44px;border:1px solid #DEDAD0;border-radius:6px;padding:0 12px;font:inherit;font-weight:400;font-size:15px;background:#FFFFFF;color:#1A1D24"></label>
+        <label style="display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600">Name in Arabic<input dir="rtl" value="سلمى جمال" style="height:44px;border:1px solid #DEDAD0;border-radius:6px;padding:0 12px;font-family:'IBM Plex Sans Arabic';font-size:16px;font-weight:400;background:#FFFFFF;color:#1A1D24"></label>
+        <label style="display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600">Class<span style="height:44px;border:2px solid #1B2A4E;border-radius:6px;padding:0 11px;display:flex;align-items:center;justify-content:space-between;font-weight:400;font-size:15px;box-sizing:border-box">4-A<span>▾</span></span><span style="font-weight:400;color:#666B76">Focused</span></label>
+        <label style="display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600">Student code<span style="height:44px;border:1px solid #A3291F;border-radius:6px;padding:0 12px;display:flex;align-items:center;font-weight:400;font-family:'IBM Plex Mono';font-size:14px">NV-4A-06</span><span style="font-weight:400;color:#A3291F">This code is already used by Salma Gamal.</span></label>
+        <div style="grid-column:1/-1;display:flex;gap:10px">
+          <span style="height:44px;padding:0 18px;border-radius:6px;background:#1B2A4E;color:#fff;display:inline-flex;align-items:center;font-weight:600;font-size:15px">Add student</span>
+          <span style="height:44px;padding:0 18px;border-radius:6px;border:1px solid #DEDAD0;display:inline-flex;align-items:center;font-weight:500;font-size:15px">Cancel</span>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div style="font-size:12px;color:#666B76;font-weight:600;text-transform:uppercase;letter-spacing:.06em">Empty state</div>
+      <div style="background:#FFFFFF;border:1px solid #DEDAD0;border-radius:10px;padding:40px 28px;display:flex;flex-direction:column;gap:10px;align-items:flex-start">
+        <span style="font-size:13px;color:#4A4F5A">Free period</span>
+        <span style="font-size:24px;font-weight:600">Next: 4-B · Science · Science lab</span>
+        <span style="font-size:15px;color:#4A4F5A">Period 5 · 11:40–12:25 · starts in 18 min</span>
+        <span style="margin-top:8px;height:44px;padding:0 16px;border-radius:6px;border:1px solid #DEDAD0;display:inline-flex;align-items:center;font-weight:500">Open the register now</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <div style="font-size:12px;color:#666B76;font-weight:600;text-transform:uppercase;letter-spacing:.06em">Table</div>
+    <div style="background:#FFFFFF;border:1px solid #DEDAD0;border-radius:10px;overflow:hidden">
+      <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1.4fr;gap:16px;padding:10px 20px;font-size:12px;font-weight:600;color:#4A4F5A;border-bottom:1px solid #DEDAD0;background:#F6F4EF"><span>Name</span><span>Class</span><span>Last detected</span><span>Where</span></div>
+      <sc-for list="{{ tableRows }}" as="r" hint-placeholder-count="3">
+        <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1.4fr;gap:16px;padding:12px 20px;font-size:14px;border-bottom:1px solid #EAE6DD;align-items:center">
+          <div style="display:flex;flex-direction:column"><span style="font-weight:600">{{ r.name }}</span><span dir="rtl" style="font-family:'IBM Plex Sans Arabic';font-size:13px;color:#666B76;text-align:left">{{ r.ar }}</span></div>
+          <span>{{ r.cls }}</span><span style="font-variant-numeric:tabular-nums">{{ r.last }}</span><span>{{ r.where }}</span>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+</section>
+
+<section style="display:flex;flex-direction:column;gap:12px;border-top:1px solid #DEDAD0;padding-top:32px">
+  <h2 style="font-family:'Source Serif 4','Noto Naskh Arabic',serif;margin:0;font-size:24px;font-weight:600">7 · Rules of the room</h2>
+  <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px;font-size:14px;line-height:1.6;color:#4A4F5A">
+    <p style="margin:0"><b style="color:#1A1D24">Live, never jumpy.</b> Rows don't re-sort mid-lesson once a teacher has touched one; values crossfade in place; "Updated just now" is the only signal. Focus is never moved by a refresh.</p>
+    <p style="margin:0"><b style="color:#1A1D24">Red is information.</b> Absent uses a clear brick red on a pale tint, never a filled red row. The word always appears beside it.</p>
+    <p style="margin:0"><b style="color:#1A1D24">RTL by mirroring, not rewriting.</b> Layouts use logical sides; times stay Latin (07:42) and read LTR inside Arabic sentences.</p>
+  </div>
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      lightTokens: [
+        {name:'bg',hex:'#F6F4EF',use:'App ground — ivory'},
+        {name:'surface',hex:'#FFFFFF',use:'Panels, tables, inputs'},
+        {name:'sunk',hex:'#EEEBE3',use:'Table head, segmented controls'},
+        {name:'line',hex:'#DEDAD0',use:'Borders, dividers'},
+        {name:'ink',hex:'#1A1D24',use:'Primary text'},
+        {name:'ink-2',hex:'#4A4F5A',use:'Secondary text (7.6:1)'},
+        {name:'ink-3',hex:'#666B76',use:'Meta text (4.9:1)'},
+        {name:'primary',hex:'#1B2A4E',use:'Oxford navy — actions, sidebar'},
+        {name:'crest',hex:'#7A1F2E',use:'Burgundy — crest only'},
+        {name:'gold',hex:'#C9A75A',use:'Crest edge, labels on navy'}
+      ],
+      darkTokens: [
+        {name:'bg',hex:'#12141A',use:'App ground'},
+        {name:'surface',hex:'#1A1D25',use:'Panels'},
+        {name:'sunk',hex:'#0E1015',use:'Sidebar'},
+        {name:'line',hex:'#2A2E38',use:'Borders'},
+        {name:'line-soft',hex:'#22252E',use:'Row separators'},
+        {name:'ink',hex:'#EEEAE0',use:'Primary text'},
+        {name:'ink-2',hex:'#B6B4AE',use:'Secondary text'},
+        {name:'ink-3',hex:'#8E8D8A',use:'Meta text'},
+        {name:'primary',hex:'#D6BA75',use:'Gold — actions on dark'},
+        {name:'primary-soft',hex:'#1F2A40',use:'Selected, hover'}
+      ],
+      statuses: [
+        {letter:'P',arLetter:'ح',glyph:'✓',label:'Present',ar:'حاضر',fg:'#23683F',bg:'#E2EFE5'},
+        {letter:'L',arLetter:'م',glyph:'◔',label:'Late',ar:'متأخر',fg:'#8A5A00',bg:'#F8ECD2'},
+        {letter:'A',arLetter:'غ',glyph:'✕',label:'Absent',ar:'غائب',fg:'#A3291F',bg:'#F8E3DF'},
+        {letter:'E',arLetter:'ع',glyph:'–',label:'Excused',ar:'بعذر',fg:'#4A5566',bg:'#E6E9EE'},
+        {letter:'T',arLetter:'ر',glyph:'↗',label:'On a trip',ar:'في رحلة',fg:'#3B5876',bg:'#E2EAF1'}
+      ],
+      liveStates: [
+        {label:'In class',shape:'Solid dot',fill:'#2E8550',line:'solid',color:'#2E8550',text:'#23683F'},
+        {label:'Not in class',shape:'Open ring',fill:'transparent',line:'solid',color:'#C8432F',text:'#A3291F'},
+        {label:'No band',shape:'Dashed ring',fill:'transparent',line:'dashed',color:'#666B76',text:'#4A4F5A'},
+        {label:'Not detected today',shape:'Pale ring',fill:'#EAE6DD',line:'solid',color:'#B5B1A6',text:'#4A4F5A'}
+      ],
+      typeScale: [
+        {token:'display',ff:"'Source Serif 4',serif",ffAr:"'Noto Naskh Arabic',serif",spec:'40/48 · 600',en:40,ar:42,w:600,sampleEn:'9 of 12 in class',sampleAr:'٩ من ١٢ في الفصل'},
+        {token:'title-1',ff:"'Source Serif 4',serif",ffAr:"'Noto Naskh Arabic',serif",spec:'30/36 · 600',en:30,ar:32,w:600,sampleEn:'Grade 4-A · Math · Room 204',sampleAr:'٤-أ · رياضيات · قاعة 204'},
+        {token:'title-2',ff:"'Source Serif 4',serif",ffAr:"'Noto Naskh Arabic',serif",spec:'22/28 · 600',en:22,ar:24,w:600,sampleEn:'On campus now',sampleAr:'داخل المدرسة الآن'},
+        {token:'row (teacher)',ff:"'IBM Plex Sans'",ffAr:"'IBM Plex Sans Arabic'",spec:'17/24 · 600',en:17,ar:19,w:600,sampleEn:'Salma Gamal',sampleAr:'سلمى جمال'},
+        {token:'body',ff:"'IBM Plex Sans'",ffAr:"'IBM Plex Sans Arabic'",spec:'15/22 · 400',en:15,ar:16,w:400,sampleEn:'Salma arrived safely at school, 07:42',sampleAr:'وصلت سلمى المدرسة بالسلامة 07:42'},
+        {token:'small',ff:"'IBM Plex Sans'",ffAr:"'IBM Plex Sans Arabic'",spec:'13/18 · 400',en:13,ar:14,w:400,sampleEn:'Last seen: Main gate, 07:42',sampleAr:'آخر رصد: البوابة الرئيسية، 07:42'},
+        {token:'label',ff:"'IBM Plex Sans'",ffAr:"'IBM Plex Sans Arabic'",spec:'12/16 · 600',en:12,ar:13,w:600,sampleEn:'PLEASE CHECK ON',sampleAr:'يُرجى المتابعة'}
+      ],
+      spacing: [
+        {name:'1',px:4,use:'icon gaps'},{name:'2',px:8,use:'chip gaps'},{name:'3',px:12,use:'field gaps'},
+        {name:'4',px:16,use:'panel padding'},{name:'5',px:20,use:'row padding'},{name:'6',px:24,use:'section gap'},
+        {name:'8',px:32,use:'page gutter'},{name:'12',px:48,use:'page top'}
+      ],
+      kpis: [
+        {label:'Arrived through the gate',value:'22',sub:'of 24 students',color:'#1A1D24'},
+        {label:'Present · Period 3',value:'20',sub:'2 late',color:'#23683F'},
+        {label:'Absent',value:'2',sub:'Parents notified',color:'#A3291F'},
+        {label:'Open follow-ups',value:'4',sub:'Oldest 09:58',color:'#8A5A00'}
+      ],
+      timeline: [
+        {time:'07:49–07:49',place:'Main gate',dot:'#1B2A4E'},
+        {time:'08:00–09:29',place:'Room 204',dot:'#2E8550'},
+        {time:'09:30–09:48',place:'Not detected',dot:'#B5B1A6'},
+        {time:'09:50–now',place:'Room 204',dot:'#2E8550'}
+      ],
+      tableRows: [
+        {name:'Salma Gamal',ar:'سلمى جمال',cls:'4-A',last:'08:20',where:'Main gate'},
+        {name:'Ziad Ramadan',ar:'زياد رمضان',cls:'4-A',last:'09:58',where:'Room 204'}
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

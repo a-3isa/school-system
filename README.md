@@ -87,6 +87,18 @@ The parent app needs Flutter with Dart 3.6 or newer (`flutter --version`).
 
 What every part does, in plain words: [docs/SYSTEM.md](docs/SYSTEM.md). Brief for a redesign: [docs/DESIGN-BRIEF.md](docs/DESIGN-BRIEF.md).
 
+## Working with Claude Code
+
+The repo is set up for [Claude Code](https://claude.com/claude-code):
+- `CLAUDE.md` is the project memory: layout, commands, rules, voice and look. It loads automatically.
+- `.claude/settings.json` holds shared permissions. Safe commands run without asking. Database resets and force-pushes are blocked.
+- `/check` runs everything CI runs.
+- `/run-local` starts the whole system with demo data.
+- `PLAN.md` section 8 lists every product decision.
+- `docs/design-handoff/` holds the design the UI follows.
+
+Your own preferences go in `CLAUDE.local.md` or `.claude/settings.local.json`; both stay on your computer.
+
 ## Phase 1 status
 
 | Part | State |
