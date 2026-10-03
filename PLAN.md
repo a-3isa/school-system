@@ -335,6 +335,16 @@ Each phase ends with something a school can use and pay for. Nothing gets rebuil
 | R11 | Canteen hardware | ESP32 BLE unit paired with an Android tablet; canteen staff close the day on the tablet with the cash counted, and the admin sees any difference |
 | R12 | Channels for parents | Push notifications from the app for attendance; email for account codes and school emails; no WhatsApp |
 | R13 | Hosting | Development on an EU cloud region; permanent choice later |
+| S1 | Parents' live location | Kept. The app shows where the child is now only if a reader heard the band in the **last minute** (not 10). It needs the smart-band subscription and the parent's consent |
+| S2 | Parent required | Every student has at least one parent or guardian on file. A child with no parent at the school gets the responsible adult as guardian. Up to three: mother, father, guardian. The last one can't be removed |
+| S3 | Profiles | Students, Parents and Classes each have their own tab and profile page, linked both ways (student ↔ parent, student ↔ class) |
+| S4 | Enrolment | A full enrolment form following Egyptian school practice: national number (checked against date of birth and gender), nationality, religion, health, emergency contact, parents. Documents can be photos or scans. The student's photo and birth certificate are required |
+| S5 | School structure | Egyptian stages (KG 2, Primary 6, Preparatory 3, Secondary 3). A class is a year group plus a section, e.g. 4/1, with programme, boys/girls, stream (upper secondary) and places. An academic year has two terms, a mid-year break and holidays. On closed days no registers are taken and no messages are sent |
+| S6 | Audience and voice | Egypt's private, language and international schools (A/B-class families). British English; polite Modern Standard Arabic; Arabic agrees with the child's gender; parents are reassured first |
+| S7 | Visual design | Claude Design handoff v2, "Ivory, Oxford navy & a crest" (`docs/design-handoff/`) |
+| S8 | School crest | Student Affairs uploads the school's crest (PNG, JPEG or WebP, up to 1 MB). Without one, a burgundy shield shows the school's initials |
+| S9 | Staff titles | Staff are addressed by title: Mr., Ms., Mrs., Dr. (مستر، مس، مدام، د.), set on Faculty & staff |
+| S10 | Admin role name | The school admin role is called **Student Affairs** (شؤون الطلبة) on screen |
 
 ## 9. How to charge schools
 

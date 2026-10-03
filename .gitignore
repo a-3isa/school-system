@@ -3,3 +3,8 @@ dist/
 coverage/
 .env
 *.log
+*.tsbuildinfo
+
+# Claude Code: personal settings and notes stay on each computer
+.claude/settings.local.json
+CLAUDE.local.md

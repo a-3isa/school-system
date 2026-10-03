@@ -1,0 +1,1261 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=Noto+Naskh+Arabic:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F6F4EF;color:#1A1D24;font-family:"IBM Plex Sans","IBM Plex Sans Arabic",sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#1B2A4E}a:hover{color:#121D38}
+button,input,select,textarea{font:inherit;color:inherit}
+*:focus-visible{outline:2px solid #1B2A4E;outline-offset:2px}
+@keyframes dcfade{from{opacity:.35}to{opacity:1}}
+</style>
+</helmet>
+<div dir="{{ dir }}" lang="{{ lang }}" style="display:grid;grid-template-columns:{{ gridCols }};min-height:100vh;background:#F6F4EF;color:#1A1D24;font-family:'IBM Plex Sans','IBM Plex Sans Arabic',sans-serif">
+
+<sc-if value="{{ hasSidebar }}" hint-placeholder-val="{{ false }}"><aside style="background:#1B2A4E;color:#F3EFE6;border-inline-end:1px solid #121D38;padding:22px 12px;display:flex;flex-direction:column;gap:22px;position:sticky;top:0;height:100vh;box-sizing:border-box;overflow-y:auto">
+  <div style="display:flex;gap:12px;align-items:center;padding:0 8px 18px;border-bottom:1px solid rgba(201,167,90,.35)">
+    <span aria-hidden="true" style="width:38px;height:44px;flex:none;box-sizing:border-box;background:#7A1F2E;border:1.5px solid #C9A75A;border-radius:5px 5px 19px 19px;display:grid;place-items:center;color:#F3E7C9;font-family:'Source Serif 4',serif;font-weight:600;font-size:14px;letter-spacing:.02em;line-height:1">NV</span>
+    <div style="display:flex;flex-direction:column;gap:3px;min-width:0"><span style="font-family:'Source Serif 4','Noto Naskh Arabic',serif;font-weight:600;font-size:16px;line-height:1.25">{{ t.school }}</span><span style="font-size:12px;color:#B7BED0">{{ strapsLabel }}</span></div>
+  </div>
+  <sc-for list="{{ navGroups }}" as="g" hint-placeholder-count="2">
+    <nav style="display:flex;flex-direction:column;gap:2px">
+      <div style="font-size:11px;color:#C9A75A;font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:0 10px 6px">{{ g.label }}</div>
+      <sc-for list="{{ g.items }}" as="it" hint-placeholder-count="5">
+        <button onClick="{{ it.go }}" aria-current="{{ it.current }}" style="display:flex;align-items:center;gap:10px;min-height:40px;padding:0 10px;border-radius:6px;border:0;background:{{ it.bg }};box-shadow:{{ it.ring }};font-size:14px;font-weight:{{ it.weight }};cursor:pointer;text-align:start;color:#F3EFE6">
+          <span style="width:6px;height:6px;border-radius:50%;flex:none;background:{{ it.dot }}"></span>
+          <span style="flex:1">{{ it.label }}</span>
+          <sc-if value="{{ it.count }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;font-weight:600;background:#F8E3DF;color:#A3291F;border-radius:999px;padding:1px 8px;font-variant-numeric:tabular-nums">{{ it.count }}</span></sc-if>
+        </button>
+      </sc-for>
+    </nav>
+  </sc-for>
+  <div style="margin-top:auto;display:flex;flex-direction:column;gap:12px;border-top:1px solid rgba(255,255,255,.14);padding:14px 6px 0">
+    <div style="display:flex;align-items:center;gap:10px">
+      <span style="width:34px;height:34px;border-radius:50%;background:#C9A75A;color:#1B2A4E;display:grid;place-items:center;font-size:13px;font-weight:700;flex:none">{{ me.initials }}</span>
+      <div style="display:flex;flex-direction:column;min-width:0"><span style="font-size:14px;font-weight:600">{{ me.name }}</span><span style="font-size:12px;color:#B7BED0">{{ me.role }}</span></div>
+    </div>
+    <div role="group" aria-label="Language" style="display:grid;grid-template-columns:1fr 1fr;background:rgba(255,255,255,.08);border-radius:6px;padding:3px;gap:3px">
+      <button onClick="{{ setEn }}" style="height:32px;border:0;border-radius:4px;cursor:pointer;font-size:13px;font-weight:600;background:{{ sbEnBg }};color:{{ sbEnFg }}">English</button>
+      <button onClick="{{ setAr }}" style="height:32px;border:0;border-radius:4px;cursor:pointer;font-size:14px;font-weight:600;font-family:'IBM Plex Sans Arabic';background:{{ sbArBg }};color:{{ sbArFg }}">عربي</button>
+    </div>
+  </div>
+</aside></sc-if>
+
+<main style="padding:20px 40px 120px;display:flex;flex-direction:column;gap:24px;min-width:0;max-width:1480px;box-sizing:border-box;width:100%;margin:0 auto">
+<sc-if value="{{ isTeacher }}" hint-placeholder-val="{{ true }}">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;padding-bottom:14px;border-bottom:1px solid #DEDAD0;flex-wrap:wrap">
+    <span style="display:flex;gap:12px;align-items:center"><span aria-hidden="true" style="width:32px;height:38px;flex:none;box-sizing:border-box;background:#7A1F2E;border:1.5px solid #C9A75A;border-radius:5px 5px 16px 16px;display:grid;place-items:center;color:#F3E7C9;font-family:'Source Serif 4',serif;font-weight:600;font-size:12px;letter-spacing:.02em;line-height:1">NV</span><span style="display:flex;flex-direction:column;gap:1px"><b style="font-family:'Source Serif 4','Noto Naskh Arabic',serif;font-size:17px;font-weight:600">{{ t.school }}</b><span style="font-size:12px;color:#4A4F5A">{{ strapsLabel }}</span></span></span>
+    <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
+      <span style="display:flex;align-items:center;gap:10px"><span style="width:32px;height:32px;border-radius:50%;background:#1B2A4E;color:#fff;display:grid;place-items:center;font-size:12px;font-weight:600">{{ me.initials }}</span><span style="display:flex;flex-direction:column;line-height:1.25"><b style="font-size:14px;font-weight:600">{{ me.name }}</b><span style="font-size:12px;color:#4A4F5A">{{ me.role }}</span></span></span>
+      <div role="group" aria-label="Language" style="display:grid;grid-template-columns:1fr 1fr;background:#E6E2D8;border-radius:6px;padding:3px;gap:3px">
+      <button onClick="{{ setEn }}" style="height:32px;padding:0 12px;border:0;border-radius:4px;cursor:pointer;font-size:13px;font-weight:600;background:{{ enBg }}">English</button>
+      <button onClick="{{ setAr }}" style="height:32px;padding:0 12px;border:0;border-radius:4px;cursor:pointer;font-size:14px;font-weight:600;font-family:'IBM Plex Sans Arabic';background:{{ arBg }}">عربي</button>
+    </div>
+      <a href="Staff Sign In.dc.html" style="font-size:14px;font-weight:600;text-decoration:none;padding:8px 4px">{{ t2.signOut }}</a>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ isMyClass }}" hint-placeholder-val="{{ true }}">
+<sc-if value="{{ hasLesson }}" hint-placeholder-val="{{ true }}">
+  <header style="display:flex;flex-direction:column;gap:16px">
+    <sc-if value="{{ isRoster }}" hint-placeholder-val="{{ false }}"><nav style="display:flex;gap:6px;font-size:13px;color:#4A4F5A;align-items:center"><button onClick="{{ goTake }}" style="border:0;background:none;padding:6px 0;color:#1B2A4E;font-weight:600;cursor:pointer;font-size:13px">{{ crumbBack }}</button><span>/</span><span>{{ t2.rosterCrumb }}</span></nav></sc-if>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap">
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <span style="font-size:16px;color:#4A4F5A;font-weight:500;font-variant-numeric:tabular-nums">{{ t.periodLine }}</span>
+        <h1 style="font-family:'Source Serif 4','Noto Naskh Arabic',serif;margin:0;font-size:36px;line-height:1.12;font-weight:600;letter-spacing:-.01em">{{ t.lessonTitle }}</h1>
+      </div>
+      <button onClick="{{ save }}" disabled="{{ saveDisabled }}" aria-live="polite" style="min-height:64px;min-width:200px;padding:0 30px;border-radius:8px;border:{{ saveBorder }};background:{{ saveBg }};color:{{ saveFg }};font-size:20px;font-weight:600;cursor:{{ saveCursor }};display:flex;align-items:center;justify-content:center;gap:10px;font-variant-numeric:tabular-nums">{{ saveLabel }}</button>
+    </div>
+    <div style="display:flex;gap:3px;align-items:flex-end">
+      <sc-for list="{{ ruler }}" as="seg" hint-placeholder-count="8">
+        <div style="flex:{{ seg.flex }};display:flex;flex-direction:column;gap:6px;min-width:0">
+          <div style="height:{{ seg.h }}px;background:{{ seg.bg }};border-radius:3px;position:relative">
+            <sc-if value="{{ seg.isNow }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;top:-5px;bottom:-5px;inset-inline-start:49%;width:2px;background:#1A1D24;border-radius:1px"></div></sc-if>
+          </div>
+          <span style="font-size:11px;color:{{ seg.labelColor }};font-variant-numeric:tabular-nums;font-weight:{{ seg.labelWeight }};white-space:nowrap;overflow:hidden">{{ seg.label }}</span>
+        </div>
+      </sc-for>
+    </div>
+  </header>
+
+  <section style="display:flex;flex-direction:column;gap:6px;border-top:1px solid #DEDAD0;padding-top:20px">
+    <div style="display:flex;align-items:baseline;gap:8px 20px;flex-wrap:wrap">
+      <span style="font-size:34px;line-height:1.1;font-weight:600;letter-spacing:-.01em;font-variant-numeric:tabular-nums">{{ summary }}</span>
+      <sc-if value="{{ hasStraps }}" hint-placeholder-val="{{ true }}"><span aria-live="polite" style="display:flex;align-items:center;gap:8px;font-size:13px;color:#4A4F5A;font-variant-numeric:tabular-nums"><span style="width:6px;height:6px;border-radius:50%;background:#2E8550"></span>{{ updated15 }}</span></sc-if>
+    </div>
+    <p style="margin:0;font-size:17px;line-height:1.5;color:#4A4F5A;max-width:760px;text-wrap:pretty">{{ summarySub }}</p>
+  </section>
+
+  <section style="display:flex;flex-direction:column;background:#FFFFFF;border:1px solid #DEDAD0;border-radius:10px;overflow:hidden">
+    <sc-for list="{{ rosterRows }}" as="r" hint-placeholder-count="8">
+      <div style="display:flex;flex-wrap:wrap;align-items:center;gap:14px 24px;padding:16px 24px;border-bottom:1px solid #EAE6DD;background:{{ r.rowBg }}">
+        <div style="flex:1 1 280px;display:flex;flex-direction:column;gap:4px;min-width:0">
+          <span style="font-weight:600;font-size:22px;line-height:1.25">{{ r.name }}</span>
+          <sc-if value="{{ r.line }}" hint-placeholder-val="{{ true }}"><span style="display:flex;align-items:center;gap:8px;font-size:15px;color:{{ r.lineColor }};font-variant-numeric:tabular-nums"><span style="width:10px;height:10px;border-radius:50%;box-sizing:border-box;flex:none;background:{{ r.dotFill }};border:2px {{ r.dotLine }} {{ r.dotColor }}"></span>{{ r.line }}</span></sc-if>
+          <sc-if value="{{ r.note }}" hint-placeholder-val="{{ false }}"><span style="font-size:14px;font-weight:600;color:{{ r.noteColor }}">{{ r.note }}</span></sc-if>
+        </div>
+        <div role="radiogroup" aria-label="{{ r.name }}" style="flex:0 0 auto;display:flex;gap:8px;flex-wrap:wrap">
+          <sc-for list="{{ r.buttons }}" as="b" hint-placeholder-count="4">
+            <button role="radio" aria-checked="{{ b.on }}" onClick="{{ b.pick }}" style="min-width:118px;height:60px;padding:0 16px;border-radius:8px;box-sizing:border-box;border:{{ b.border }};background:{{ b.bg }};color:{{ b.fg }};font-size:17px;font-weight:{{ b.weight }};cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px"><span aria-hidden="true" style="font-size:14px;opacity:{{ b.glyphOp }}">{{ b.glyph }}</span>{{ b.label }}</button>
+          </sc-for>
+        </div>
+      </div>
+    </sc-for>
+  </section>
+</sc-if>
+<sc-if value="{{ noLesson }}" hint-placeholder-val="{{ false }}">
+  <section style="display:flex;flex-direction:column;gap:12px;align-items:flex-start;padding:96px 0;max-width:720px">
+    <span style="font-size:18px;color:#4A4F5A">{{ t.noLesson }}</span>
+    <h1 style="font-family:'Source Serif 4','Noto Naskh Arabic',serif;margin:0;font-size:40px;font-weight:600;line-height:1.2;text-wrap:balance">{{ t.nextLesson }}</h1>
+    <span style="font-size:18px;color:#4A4F5A;font-variant-numeric:tabular-nums">{{ t.nextLessonWhen }}</span>
+  </section>
+</sc-if>
+</sc-if>
+
+<sc-if value="{{ isWhere }}" hint-placeholder-val="{{ false }}">
+  <header style="display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap">
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <span style="font-size:14px;color:#4A4F5A">{{ t.whereSub }}</span>
+      <h1 style="font-family:'Source Serif 4','Noto Naskh Arabic',serif;margin:0;font-size:32px;font-weight:600;letter-spacing:-.01em">{{ t.where }}</h1>
+    </div>
+    <span aria-live="polite" style="display:flex;align-items:center;gap:8px;font-size:13px;color:#4A4F5A;font-variant-numeric:tabular-nums"><span style="width:6px;height:6px;border-radius:50%;background:#2E8550"></span>{{ updated10 }}</span>
+  </header>
+  <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+    <input type="search" placeholder="{{ t.searchName }}" value="{{ search }}" onInput="{{ onSearch }}" style="flex:1 1 280px;max-width:420px;height:44px;border:1px solid #DEDAD0;border-radius:6px;padding:0 14px;background:#FFFFFF;font-size:15px">
+    <div role="group" style="display:flex;background:#E6E2D8;border-radius:6px;padding:3px;gap:3px">
+      <sc-for list="{{ classTabs }}" as="ct" hint-placeholder-count="3">
+        <button onClick="{{ ct.pick }}" aria-pressed="{{ ct.on }}" style="height:38px;padding:0 14px;border:0;border-radius:4px;background:{{ ct.bg }};font-size:14px;font-weight:600;cursor:pointer">{{ ct.label }}</button>
+      </sc-for>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
+    <sc-for list="{{ whereKpis }}" as="k" hint-placeholder-count="4">
+      <div style="background:#FFFFFF;border:1px solid #DEDAD0;border-radius:10px;padding:16px 18px;display:flex;flex-direction:column;gap:8px">
+        <span style="font-size:13px;color:#4A4F5A">{{ k.label }}</span>
+        <span style="font-size:34px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums;color:{{ k.color }}">{{ k.value }}</span>
+      </div>
+    </sc-for>
+  </div>
+  <section style="display:flex;flex-direction:column;gap:10px">
+    <h2 style="font-family:'Source Serif 4','Noto Naskh Arabic',serif;margin:0;font-size:18px;font-weight:600">{{ t.needsALook }}</h2>
+    <div style="background:#FFFFFF;border:1px solid #DEDAD0;border-radius:10px;overflow:hidden">
+      <div style="display:grid;grid-template-columns:minmax(0,2fr) minmax(0,.8fr) minmax(0,1.3fr) minmax(0,1.3fr) auto;gap:16px;padding:10px 20px;font-size:12px;font-weight:600;color:#4A4F5A;background:#F6F4EF;border-bottom:1px solid #DEDAD0"><span>{{ t.name }}</span><span>{{ t.cls }}</span><span>{{ t.lastHeard }}</span><span>{{ t.whereCol }}</span><span style="width:64px"></span></div>
+      <sc-for list="{{ needsLook }}" as="n" hint-placeholder-count="2">
+        <div style="display:grid;grid-template-columns:minmax(0,2fr) minmax(0,.8fr) minmax(0,1.3fr) minmax(0,1.3fr) auto;gap:16px;padding:12px 20px;font-size:14px;border-bottom:1px solid #EAE6DD;align-items:center">
+          <span style="font-weight:600;font-size:15px">{{ n.name }}</span><span>{{ n.cls }}</span>
+          <span style="font-variant-numeric:tabular-nums">{{ n.last }}</span><span>{{ n.where }}</span>
+          <button onClick="{{ n.open }}" style="width:64px;height:36px;border:1px solid #DEDAD0;border-radius:6px;background:#FFFFFF;font-size:13px;font-weight:600;cursor:pointer">{{ t.open }}</button>
+        </div>
+      </sc-for>
+      <sc-if value="{{ needsLookEmpty }}" hint-placeholder-val="{{ false }}"><div style="padding:16px 20px;font-size:14px;color:#4A4F5A">{{ t.nothingToLook }}</div></sc-if>
+    </div>
+  </section>
+  <section style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;align-items:start">
+    <sc-for list="{{ places }}" as="p" hint-placeholder-count="4">
+      <div style="background:#FFFFFF;border:1px {{ p.borderStyle }} #DEDAD0;border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:12px;min-height:96px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px">
+          <span style="font-weight:600;font-size:16px">{{ p.name }}</span>
+          <span style="font-size:13px;color:#4A4F5A;font-variant-numeric:tabular-nums">{{ p.meta }}</span>
+        </div>
+        <sc-if value="{{ p.note }}" hint-placeholder-val="{{ false }}"><span style="font-size:13px;color:#4A4F5A">{{ p.note }}</span></sc-if>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">
+          <sc-for list="{{ p.chips }}" as="c" hint-placeholder-count="6">
+            <span style="font-size:13px;padding:4px 8px;border-radius:4px;background:{{ c.bg }};border:1px {{ c.line }} {{ c.border }};display:inline-flex;gap:6px;align-items:baseline;font-variant-numeric:tabular-nums">{{ c.name }}<sc-if value="{{ c.extra }}" hint-placeholder-val="{{ false }}"><span style="color:{{ c.extraColor }};font-weight:600;font-size:12px">{{ c.extra }}</span></sc-if></span>
+          </sc-for>
+        </div>
+      </div>
+    </sc-for>
+  </section>
+</sc-if>
+
+<sc-if value="{{ isToday }}" hint-placeholder-val="{{ false }}">
+  <header style="display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap">
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <span style="font-size:14px;color:#4A4F5A">{{ t.dateLine }}</span>
+      <h1 style="font-family:'Source Serif 4','Noto Naskh Arabic',serif;margin:0;font-size:32px;font-weight:600;letter-spacing:-.01em">{{ t.today }}</h1>
+    </div>
+    <span style="font-size:13px;color:#4A4F5A;display:flex;gap:8px;align-items:center"><span style="width:6px;height:6px;border-radius:50%;background:#2E8550"></span>{{ updated15 }}</span>
+  </header>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
+    <sc-for list="{{ todayKpis }}" as="k" hint-placeholder-count="4">
+      <div style="background:#FFFFFF;border:1px solid #DEDAD0;border-radius:10px;padding:16px 18px;display:flex;flex-direction:column;gap:8px">
+        <span style="font-size:13px;color:#4A4F5A">{{ k.label }}</span>
+        <span style="font-size:34px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums;color:{{ k.color }}">{{ k.value }}</span>
+        <span style="font-size:13px;color:#4A4F5A">{{ k.sub }}</span>
+      </div>
+    </sc-for>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:24px;align-items:start">
+    <section style="display:flex;flex-direction:column;gap:10px">
+      <h2 style="font-family:'Source Serif 4','Noto Naskh Arabic',serif;margin:0;font-size:18px;font-weight:600">{{ t.todaysLessons }}</h2>
+      <div style="background:#FFFFFF;border:1px solid #DEDAD0;border-radius:10px;overflow:hidden">
+        <sc-for list="{{ lessons }}" as="ls" hint-placeholder-count="8">
+          <div style="display:grid;grid-template-columns:52px minmax(0,1fr) 150px;gap:14px;align-items:center;padding:12px 18px;border-bottom:1px solid #EAE6DD;background:{{ ls.bg }}">
+            <span style="display:flex;flex-direction:column;font-variant-numeric:tabular-nums"><b style="font-size:14px">{{ ls.p }}</b><span style="font-size:12px;color:#666B76">{{ ls.time }}</span></span>
+            <span style="display:flex;flex-direction:column;min-width:0"><span style="font-weight:600;font-size:15px">{{ ls.title }}</span><span style="font-size:13px;color:#4A4F5A">{{ ls.sub }}</span></span>
+            <span style="display:flex;flex-direction:column;gap:6px">
+              <span style="font-size:13px;font-weight:600;color:{{ ls.stateColor }}">{{ ls.state }}</span>
+              <span style="height:4px;border-radius:2px;background:#EAE6DD;overflow:hidden;display:block"><span style="display:block;height:100%;width:{{ ls.pct }};background:{{ ls.barColor }}"></span></span>
+            </span>
+          </div>
+        </sc-for>
+        <div style="padding:12px 18px;font-size:13px;color:#4A4F5A">{{ t.laterLessons }}</div>
+      </div>
+    </section>
+    <section style="display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline"><h2 style="font-family:'Source Serif 4','Noto Naskh Arabic',serif;margin:0;font-size:18px;font-weight:600">{{ t.needsAttention }}</h2><button onClick="{{ goExceptions }}" style="border:0;background:none;color:#1B2A4E;font-size:14px;font-weight:600;cursor:pointer;padding:6px 0">{{ seeAllExc }}</button></div>
+      <div style="background:#FFFFFF;border:1px solid #DEDAD0;border-radius:10px;overflow:hidden">
+        <sc-for list="{{ topExc }}" as="e" hint-placeholder-count="3">
+          <div style="display:flex;flex-direction:column;gap:6px;padding:14px 18px;border-bottom:1px solid #EAE6DD">
+            <span style="display:flex;gap:10px;align-items:center"><span style="font-size:12px;font-weight:600;padding:2px 8px;border-radius:4px;background:{{ e.tagBg }};color:{{ e.tagFg }}">{{ e.tag }}</span><span style="font-size:12px;color:#666B76;font-variant-numeric:tabular-nums">{{ e.time }}</span></span>
+            <span style="font-size:14px;line-height:1.5;text-wrap:pretty">{{ e.text }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+  </div>
+  <section style="display:flex;flex-direction:column;gap:10px">
+    <h2 style="font-family:'Source Serif 4','Noto Naskh Arabic',serif;margin:0;font-size:18px;font-weight:600">{{ t.byPeriod }}</h2>
+    <div style="background:#FFFFFF;border:1px solid #DEDAD0;border-radius:10px;overflow:auto">
+      <div style="display:grid;grid-template-columns:150px repeat(5,minmax(76px,1fr)) minmax(200px,2fr);gap:12px;padding:10px 20px;font-size:12px;font-weight:600;color:#4A4F5A;background:#F6F4EF;border-bottom:1px solid #DEDAD0;min-width:820px">
+        <span>{{ t.period }}</span>
+        <sc-for list="{{ statusHeads }}" as="sh" hint-placeholder-count="5"><span style="display:flex;gap:6px;align-items:center;color:{{ sh.fg }}"><span>{{ sh.glyph }}</span>{{ sh.label }}</span></sc-for>
+        <span></span>
+      </div>
+      <sc-for list="{{ byPeriod }}" as="bp" hint-placeholder-count="6">
+        <div style="display:grid;grid-template-columns:150px repeat(5,minmax(76px,1fr)) minmax(200px,2fr);gap:12px;padding:11px 20px;font-size:14px;border-bottom:1px solid #EAE6DD;align-items:center;font-variant-numeric:tabular-nums;color:{{ bp.ink }};min-width:820px">
+          <span style="display:flex;flex-direction:column"><b style="font-weight:600">{{ bp.p }}</b><span style="font-size:12px;color:#666B76">{{ bp.time }}</span></span>
+          <sc-for list="{{ bp.cells }}" as="c" hint-placeholder-count="5"><span>{{ c }}</span></sc-for>
+          <span style="display:flex;height:10px;border-radius:2px;overflow:hidden;background:#EEEBE3;gap:2px">
+            <sc-for list="{{ bp.bar }}" as="bb" hint-placeholder-count="3"><span style="flex:{{ bb.n }};background:{{ bb.c }}"></span></sc-for>
+          </span>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+  <section style="display:flex;flex-direction:column;gap:10px">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px"><h2 style="font-family:'Source Serif 4','Noto Naskh Arabic',serif;margin:0;font-size:18px;font-weight:600">{{ t2.msgsTitle }}</h2><sc-if value="{{ msgUnread }}" hint-placeholder-val="{{ true }}"><button onClick="{{ markAllRead }}" style="border:0;background:none;color:#1B2A4E;font-size:14px;font-weight:600;cursor:pointer;padding:6px 0">{{ t2.markAllRead }}</button></sc-if></div>
+    <div style="background:#FFFFFF;border:1px solid #DEDAD0;border-radius:10px;overflow:hidden">
+      <sc-for list="{{ msgs }}" as="m" hint-placeholder-count="2">
+        <div style="display:grid;grid-template-columns:10px minmax(0,1fr) auto;gap:14px;align-items:start;padding:14px 18px;border-bottom:1px solid #EAE6DD;background:{{ m.bg }}">
+          <span style="width:8px;height:8px;border-radius:50%;margin-top:7px;background:{{ m.dot }}"></span>
+          <span style="display:flex;flex-direction:column;gap:3px"><span style="font-size:15px;line-height:1.5;font-weight:{{ m.weight }};text-wrap:pretty;font-variant-numeric:tabular-nums">{{ m.text }}</span><span style="font-size:12px;color:#666B76;font-variant-numeric:tabular-nums">{{ m.meta }}</span></span>
+          <sc-if value="{{ m.unread }}" hint-placeholder-val="{{ true }}"><button onClick="{{ m.read }}" style="height:36px;padding:0 12px;border:1px solid #DEDAD0;border-radius:6px;background:#FFFFFF;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap">{{ t2.markRead }}</button></sc-if>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+</sc-if>
+
+<sc-if value="{{ isExceptions }}" hint-placeholder-val="{{ false }}">
+  <header style="display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap">
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <span style="font-size:14px;color:#4A4F5A">{{ t.excSub }}</span>
+      <h1 style="font-family:'Source Serif 4','Noto Naskh Arabic',serif;margin:0;font-size:32px;font-weight:600;letter-spacing:-.01em">{{ t.exceptions }}</h1>
+    </div>
+    <div role="tablist" style="display:flex;background:#E6E2D8;border-radius:6px;padding:3px;gap:3px">
+      <sc-for list="{{ excTabs }}" as="xt" hint-placeholder-count="2">
+        <button role="tab" aria-selected="{{ xt.on }}" onClick="{{ xt.pick }}" style="height:38px;padding:0 16px;border:0;border-radius:4px;background:{{ xt.bg }};font-size:14px;font-weight:600;cursor:pointer;font-variant-numeric:tabular-nums">{{ xt.label }}</button>
+      </sc-for>
+    </div>
+  </header>
+  <section style="background:#FFFFFF;border:1px solid #DEDAD0;border-radius:10px;overflow:hidden">
+    <sc-for list="{{ excList }}" as="e" hint-placeholder-count="6">
+      <article style="display:flex;flex-direction:column;gap:12px;padding:18px 20px;border-bottom:1px solid #EAE6DD">
+        <div style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap">
+          <div style="flex:1 1 420px;display:flex;flex-direction:column;gap:8px;min-width:0">
+            <span style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span style="font-size:12px;font-weight:600;padding:2px 8px;border-radius:4px;background:{{ e.tagBg }};color:{{ e.tagFg }}">{{ e.tag }}</span><span style="font-size:13px;color:#666B76;font-variant-numeric:tabular-nums">{{ e.time }}</span></span>
+            <span style="font-size:16px;line-height:1.5;text-wrap:pretty;font-variant-numeric:tabular-nums">{{ e.text }}</span>
+            <sc-if value="{{ e.resolvedNote }}" hint-placeholder-val="{{ false }}"><span style="font-size:13px;color:#23683F">{{ e.resolvedNote }}</span></sc-if>
+          </div>
+          <div style="display:flex;gap:8px;flex:0 0 auto">
+            <sc-if value="{{ e.canOpen }}" hint-placeholder-val="{{ false }}"><button onClick="{{ e.open }}" style="height:44px;padding:0 14px;border:1px solid #DEDAD0;border-radius:6px;background:#FFFFFF;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap">{{ t.openStudent }}</button></sc-if>
+            <sc-if value="{{ e.canResolve }}" hint-placeholder-val="{{ true }}"><button onClick="{{ e.startResolve }}" style="height:44px;padding:0 16px;border:0;border-radius:6px;background:#1B2A4E;color:#fff;font-size:14px;font-weight:600;cursor:pointer">{{ t.resolve }}</button></sc-if>
+          </div>
+        </div>
+        <sc-if value="{{ e.resolving }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;background:#F6F4EF;border-radius:8px;padding:12px">
+            <label style="flex:1 1 360px;display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600">{{ t.note }}<input value="{{ e.note }}" onInput="{{ e.onNote }}" placeholder="{{ t.notePh }}" style="height:44px;border:1px solid #DEDAD0;border-radius:6px;padding:0 12px;background:#FFFFFF;font-size:15px;font-weight:400"></label>
+            <button onClick="{{ e.confirm }}" style="height:44px;padding:0 16px;border:0;border-radius:6px;background:#1B2A4E;color:#fff;font-size:14px;font-weight:600;cursor:pointer">{{ t.markResolved }}</button>
+            <button onClick="{{ cancelResolve }}" style="height:44px;padding:0 14px;border:1px solid #DEDAD0;border-radius:6px;background:#FFFFFF;font-size:14px;font-weight:500;cursor:pointer">{{ t.cancel }}</button>
+          </div>
+        </sc-if>
+      </article>
+    </sc-for>
+    <sc-if value="{{ excEmpty }}" hint-placeholder-val="{{ false }}"><div style="padding:40px 20px;display:flex;flex-direction:column;gap:6px"><span style="font-size:18px;font-weight:600">{{ t.allClear }}</span><span style="font-size:14px;color:#4A4F5A">{{ t.allClearSub }}</span></div></sc-if>
+  </section>
+</sc-if>
+
+<sc-if value="{{ isStudent }}" hint-placeholder-val="{{ false }}">
+  <header style="display:flex;flex-direction:column;gap:14px">
+    <nav style="font-size:13px;color:#4A4F5A;display:flex;gap:6px"><span>{{ t.students }}</span><span>/</span><span style="color:#1A1D24">{{ stu.name }}</span></nav>
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap">
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <h1 style="font-family:'Source Serif 4','Noto Naskh Arabic',serif;margin:0;font-size:32px;font-weight:600;letter-spacing:-.01em">{{ stu.name }}</h1>
+        <span style="font-size:17px;color:#4A4F5A">{{ stu.alt }}</span>
+      </div>
+      <div style="display:flex;gap:24px;font-size:13px;color:#4A4F5A;flex-wrap:wrap">
+        <span style="display:flex;flex-direction:column;gap:2px">{{ t.code }}<b style="font-family:'IBM Plex Mono';font-size:14px;color:#1A1D24;font-weight:500;unicode-bidi:plaintext">NV-4A-06</b></span>
+        <span style="display:flex;flex-direction:column;gap:2px">{{ t.cls }}<b style="font-size:15px;color:#1A1D24;unicode-bidi:plaintext">4-A</b></span>
+        <sc-if value="{{ canEditParents }}" hint-placeholder-val="{{ false }}"><span style="display:flex;flex-direction:column;gap:2px">{{ t.strap }}<b style="font-size:15px;color:#1A1D24;font-variant-numeric:tabular-nums">{{ t.strapVal }}</b></span></sc-if>
+        <sc-if value="{{ hasStraps }}" hint-placeholder-val="{{ true }}"><span style="display:flex;flex-direction:column;gap:2px">{{ t.now }}<b style="font-size:15px;color:#23683F;display:flex;align-items:center;gap:6px"><span style="width:9px;height:9px;border-radius:50%;background:#2E8550"></span>{{ t.stuNow }}</b></span></sc-if>
+      </div>
+    </div>
+  </header>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:24px;align-items:start">
+    <div style="display:flex;flex-direction:column;gap:24px;min-width:0">
+      <sc-if value="{{ hasStraps }}" hint-placeholder-val="{{ true }}"><section style="display:flex;flex-direction:column;gap:10px">
+        <h2 style="font-family:'Source Serif 4','Noto Naskh Arabic',serif;margin:0;font-size:18px;font-weight:600">{{ t.whereToday }}</h2>
+        <div style="background:#FFFFFF;border:1px solid #DEDAD0;border-radius:10px;padding:18px 20px;display:flex;flex-direction:column">
+          <sc-for list="{{ stuTimeline }}" as="tl" hint-placeholder-count="5">
+            <div style="display:grid;grid-template-columns:104px 14px 1fr;gap:12px;align-items:start;min-height:40px">
+              <span style="font-size:14px;font-variant-numeric:tabular-nums;color:#4A4F5A;padding-top:1px;direction:ltr;text-align:start">{{ tl.time }}</span>
+              <span style="display:flex;flex-direction:column;align-items:center;align-self:stretch"><span style="width:10px;height:10px;border-radius:50%;box-sizing:border-box;margin-top:5px;flex:none;background:{{ tl.fill }};border:2px solid {{ tl.dot }}"></span><span style="flex:1;width:1px;background:{{ tl.lineColor }}"></span></span>
+              <span style="display:flex;flex-direction:column;padding-bottom:12px"><span style="font-size:15px;font-weight:600;color:{{ tl.ink }}">{{ tl.place }}</span><sc-if value="{{ tl.note }}" hint-placeholder-val="{{ false }}"><span style="font-size:13px;color:#4A4F5A">{{ tl.note }}</span></sc-if></span>
+            </div>
+          </sc-for>
+        </div>
+      </section></sc-if>
+      <section style="display:flex;flex-direction:column;gap:10px">
+        <h2 style="font-family:'Source Serif 4','Noto Naskh Arabic',serif;margin:0;font-size:18px;font-weight:600">{{ t.lastTwoWeeks }}</h2>
+        <div style="background:#FFFFFF;border:1px solid #DEDAD0;border-radius:10px;overflow:hidden">
+          <div style="display:grid;grid-template-columns:96px minmax(0,1.2fr) 120px minmax(0,1.4fr);gap:14px;padding:10px 18px;font-size:12px;font-weight:600;color:#4A4F5A;background:#F6F4EF;border-bottom:1px solid #DEDAD0"><span>{{ t.date }}</span><span>{{ t.period }}</span><span>{{ t.status }}</span><span>{{ t.how }}</span></div>
+          <sc-for list="{{ stuHistory }}" as="h" hint-placeholder-count="8">
+            <div style="display:grid;grid-template-columns:96px minmax(0,1.2fr) 120px minmax(0,1.4fr);gap:14px;padding:10px 18px;font-size:14px;border-bottom:1px solid #EAE6DD;align-items:center;font-variant-numeric:tabular-nums">
+              <span style="color:#4A4F5A">{{ h.date }}</span><span>{{ h.period }}</span>
+              <span style="justify-self:start;display:inline-flex;gap:6px;align-items:center;padding:2px 9px 2px 7px;border-radius:999px;font-size:13px;font-weight:600;background:{{ h.bg }};color:{{ h.fg }}"><span style="font-size:11px">{{ h.glyph }}</span>{{ h.status }}</span>
+              <span style="color:#4A4F5A;font-size:13px">{{ h.how }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+    </div>
+    <section style="display:flex;flex-direction:column;gap:10px;min-width:0">
+      <h2 style="font-family:'Source Serif 4','Noto Naskh Arabic',serif;margin:0;font-size:18px;font-weight:600">{{ t.parents }}</h2>
+      <div style="background:#FFFFFF;border:1px solid #DEDAD0;border-radius:10px;overflow:hidden">
+        <sc-for list="{{ parents }}" as="pa" hint-placeholder-count="1">
+          <div style="display:flex;flex-direction:column;gap:10px;padding:16px 18px;border-bottom:1px solid #EAE6DD">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
+              <div style="display:flex;flex-direction:column;gap:3px;min-width:0">
+                <span style="display:flex;gap:8px;align-items:baseline"><b style="font-size:16px;font-weight:600">{{ pa.name }}</b><span style="font-size:13px;color:#4A4F5A">{{ pa.rel }}</span></span>
+                <span style="font-size:14px;color:#1A1D24;unicode-bidi:plaintext;overflow-wrap:anywhere">{{ pa.email }}</span>
+                <span style="font-size:14px;color:#4A4F5A;font-variant-numeric:tabular-nums;unicode-bidi:plaintext">{{ pa.phone }}</span>
+              </div>
+              <sc-if value="{{ canEditParents }}" hint-placeholder-val="{{ false }}"><div style="display:flex;gap:8px;flex-wrap:wrap">
+                <sc-if value="{{ pa.canCheck }}" hint-placeholder-val="{{ false }}"><button onClick="{{ pa.markChecked }}" style="height:40px;padding:0 14px;border:0;border-radius:6px;background:#1B2A4E;color:#fff;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap">{{ t2.markChecked }}</button></sc-if>
+                <button onClick="{{ pa.toggleRestrict }}" style="height:40px;padding:0 14px;border:1px solid #DEDAD0;border-radius:6px;background:#FFFFFF;font-size:14px;font-weight:500;cursor:pointer">{{ pa.restrictLabel }}</button>
+                <button onClick="{{ pa.remove }}" style="height:40px;padding:0 14px;border:1px solid #E7C3BD;border-radius:6px;background:#FFFFFF;color:#A3291F;font-size:14px;font-weight:500;cursor:pointer">{{ t.remove }}</button>
+              </div></sc-if>
+            </div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap"><sc-for list="{{ pa.tags }}" as="tg" hint-placeholder-count="2"><span style="padding:3px 9px;border-radius:999px;font-size:12px;font-weight:600;background:{{ tg.bg }};color:{{ tg.fg }}">{{ tg.label }}</span></sc-for></div>
+          </div>
+        </sc-for>
+        <sc-if value="{{ canAddParent }}" hint-placeholder-val="{{ true }}">
+          <form onSubmit="{{ addParent }}" noValidate="{{ true }}" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;padding:18px;background:#FAF8F4">
+            <div style="grid-column:1/-1;font-weight:600;font-size:15px">{{ t.addParent }}</div>
+            <label style="display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600">{{ t.relation }}<select value="{{ pRel }}" onChange="{{ onPRel }}" style="height:44px;border:1px solid #DEDAD0;border-radius:6px;padding:0 10px;background:#FFFFFF;font-size:15px;font-weight:400"><sc-for list="{{ relOpts }}" as="ro" hint-placeholder-count="2"><option value="{{ ro.v }}">{{ ro.l }}</option></sc-for></select></label>
+            <label style="display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600">{{ t.fullName }}<input value="{{ pName }}" onInput="{{ onPName }}" style="height:44px;border:1px solid #DEDAD0;border-radius:6px;padding:0 12px;background:#FFFFFF;font-size:15px;font-weight:400;min-width:0"></label>
+            <label style="grid-column:1/-1;display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600">{{ t2.emailReq }}<input type="email" dir="ltr" required="{{ true }}" value="{{ pEmail }}" onInput="{{ onPEmail }}" placeholder="name@example.com" aria-invalid="{{ pErr }}" style="height:44px;border:1px solid {{ pEmailBd }};border-radius:6px;padding:0 12px;background:#FFFFFF;font-size:15px;font-weight:400;text-align:start"><sc-if value="{{ pErr }}" hint-placeholder-val="{{ false }}"><span role="alert" style="font-weight:400;color:#A3291F">{{ t2.emailNeeded }}</span></sc-if></label>
+            <label style="grid-column:1/-1;display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600">{{ t2.mobileOpt }}
+              <span dir="ltr" style="display:flex;gap:6px"><select value="{{ pCode }}" onChange="{{ onPCode }}" aria-label="{{ t2.countryCode }}" style="flex:0 0 96px;height:44px;border:1px solid #DEDAD0;border-radius:6px;padding:0 8px;background:#FFFFFF;font-size:15px;font-weight:400"><option value="+20">EG +20</option><option value="+966">SA +966</option><option value="+971">AE +971</option><option value="+44">UK +44</option></select><input dir="ltr" value="{{ pPhone }}" onInput="{{ onPPhone }}" placeholder="100 555 0192" style="flex:1;min-width:0;height:44px;border:1px solid #DEDAD0;border-radius:6px;padding:0 12px;background:#FFFFFF;font-size:15px;font-weight:400;font-variant-numeric:tabular-nums"></span>
+            </label>
+            <p style="grid-column:1/-1;margin:0;font-size:13px;line-height:1.5;color:#4A4F5A">{{ t2.signupHelp }}</p>
+            <div style="grid-column:1/-1"><button type="submit" style="height:44px;padding:0 18px;border:0;border-radius:6px;background:#1B2A4E;color:#fff;font-size:15px;font-weight:600;cursor:pointer">{{ t.addParentBtn }}</button></div>
+          </form>
+        </sc-if>
+        <sc-if value="{{ parentsFull }}" hint-placeholder-val="{{ false }}"><div style="padding:14px 18px;font-size:13px;color:#4A4F5A">{{ t.parentsFull }}</div></sc-if>
+      </div>
+    </section>
+  </div>
+</sc-if>
+
+<sc-if value="{{ isGen }}" hint-placeholder-val="{{ false }}">
+  <header style="display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap">
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <span style="font-size:14px;color:#4A4F5A">{{ gen.sub }}</span>
+      <h1 style="font-family:'Source Serif 4','Noto Naskh Arabic',serif;margin:0;font-size:32px;font-weight:600;letter-spacing:-.01em">{{ gen.title }}</h1>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <sc-if value="{{ gen.hasDate }}" hint-placeholder-val="{{ false }}"><label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:#4A4F5A">{{ t2.dateLabel }}<input type="date" value="{{ gen.date }}" onChange="{{ gen.onDate }}" style="height:44px;border:1px solid #DEDAD0;border-radius:6px;padding:0 10px;background:#FFFFFF;font-size:15px;color:#1A1D24"></label></sc-if>
+      <sc-for list="{{ gen.actions }}" as="a" hint-placeholder-count="1">
+        <button onClick="{{ a.go }}" style="min-height:44px;padding:0 16px;border-radius:6px;border:{{ a.border }};background:{{ a.bg }};color:{{ a.fg }};font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap">{{ a.label }}</button>
+      </sc-for>
+    </div>
+  </header>
+  <sc-if value="{{ gen.hasSearch }}" hint-placeholder-val="{{ false }}">
+    <input type="search" placeholder="{{ t.searchName }}" value="{{ gen.search }}" onInput="{{ gen.onSearch }}" style="max-width:420px;height:44px;border:1px solid #DEDAD0;border-radius:6px;padding:0 14px;background:#FFFFFF;font-size:15px">
+  </sc-if>
+  <sc-if value="{{ gen.tabs }}" hint-placeholder-val="{{ false }}">
+    <div role="tablist" style="display:flex;align-self:flex-start;background:#E6E2D8;border-radius:6px;padding:3px;gap:3px;flex-wrap:wrap">
+      <sc-for list="{{ gen.tabs }}" as="tb" hint-placeholder-count="3">
+        <button role="tab" aria-selected="{{ tb.on }}" onClick="{{ tb.pick }}" style="height:38px;padding:0 14px;border:0;border-radius:4px;background:{{ tb.bg }};font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap">{{ tb.label }}</button>
+      </sc-for>
+    </div>
+  </sc-if>
+  <sc-for list="{{ gen.blocks }}" as="bk" hint-placeholder-count="2">
+    <section style="display:flex;flex-direction:column;gap:10px;min-width:0">
+      <sc-if value="{{ bk.title }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap"><h2 style="font-family:'Source Serif 4','Noto Naskh Arabic',serif;margin:0;font-size:18px;font-weight:600">{{ bk.title }}</h2><span style="font-size:13px;color:#4A4F5A">{{ bk.sub }}</span></div>
+      </sc-if>
+
+      <sc-if value="{{ bk.isNote }}" hint-placeholder-val="{{ false }}">
+        <div style="background:{{ bk.bg }};color:{{ bk.fg }};border-radius:10px;padding:14px 16px;display:flex;gap:12px;font-size:14px;line-height:1.5"><b style="font-weight:700">{{ bk.glyph }}</b><span style="display:flex;flex-direction:column;gap:2px"><b style="font-weight:600">{{ bk.noteTitle }}</b><span>{{ bk.text }}</span></span></div>
+      </sc-if>
+
+      <sc-if value="{{ bk.isTable }}" hint-placeholder-val="{{ false }}">
+        <div style="background:#FFFFFF;border:1px solid #DEDAD0;border-radius:10px;overflow:auto">
+          <div style="display:grid;grid-template-columns:{{ bk.cols }};gap:16px;padding:10px 20px;font-size:12px;font-weight:600;color:#4A4F5A;background:#F6F4EF;border-bottom:1px solid #DEDAD0;min-width:{{ bk.minW }}">
+            <sc-for list="{{ bk.heads }}" as="h" hint-placeholder-count="4"><span>{{ h }}</span></sc-for>
+          </div>
+          <sc-for list="{{ bk.rows }}" as="row" hint-placeholder-count="4">
+            <div onClick="{{ row.go }}" style="display:grid;grid-template-columns:{{ bk.cols }};gap:16px;padding:12px 20px;font-size:14px;border-bottom:1px solid #EAE6DD;align-items:center;min-width:{{ bk.minW }};cursor:{{ row.cursor }};background:{{ row.bg }}">
+              <sc-for list="{{ row.cells }}" as="c" hint-placeholder-count="4">
+                <div style="display:flex;flex-direction:column;gap:3px;min-width:0;align-items:flex-start">
+                  <sc-if value="{{ c.text }}" hint-placeholder-val="{{ true }}"><span style="font-family:{{ c.ff }};font-weight:{{ c.fw }};font-size:{{ c.fs }};color:{{ c.color }};font-variant-numeric:tabular-nums;overflow-wrap:anywhere">{{ c.text }}</span></sc-if>
+                  <sc-if value="{{ c.sub }}" hint-placeholder-val="{{ false }}"><span style="font-size:13px;color:{{ c.subColor }}">{{ c.sub }}</span></sc-if>
+                  <sc-if value="{{ c.pill }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;gap:6px;align-items:center;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:600;background:{{ c.pillBg }};color:{{ c.pillFg }};white-space:nowrap">{{ c.pill }}</span></sc-if>
+                  <sc-if value="{{ c.sw }}" hint-placeholder-val="{{ false }}">
+                    <button role="switch" aria-checked="{{ c.sw.on }}" aria-label="{{ c.sw.aria }}" onClick="{{ c.sw.toggle }}" style="display:flex;align-items:center;gap:8px;border:0;background:none;padding:4px 0;cursor:pointer;font-size:13px;color:#4A4F5A"><span style="width:40px;height:24px;border-radius:999px;background:{{ c.sw.track }};padding:3px;box-sizing:border-box;display:flex;justify-content:{{ c.sw.justify }}"><span style="width:18px;height:18px;border-radius:50%;background:#FFFFFF"></span></span>{{ c.sw.label }}</button>
+                  </sc-if>
+                  <sc-if value="{{ c.btns }}" hint-placeholder-val="{{ false }}"><div style="display:flex;gap:8px;flex-wrap:wrap"><sc-for list="{{ c.btns }}" as="b" hint-placeholder-count="1"><button onClick="{{ b.go }}" style="height:36px;padding:0 12px;border:1px solid {{ b.bd }};border-radius:6px;background:#FFFFFF;color:{{ b.fg }};font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap">{{ b.label }}</button></sc-for></div></sc-if>
+                </div>
+              </sc-for>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ bk.isForm }}" hint-placeholder-val="{{ false }}">
+        <form onSubmit="{{ bk.submit }}" style="background:#FFFFFF;border:1px solid #DEDAD0;border-radius:10px;padding:20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;align-items:start">
+          <sc-for list="{{ bk.fields }}" as="f" hint-placeholder-count="4">
+            <label style="display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600">{{ f.label }}
+              <sc-if value="{{ f.isSelect }}" hint-placeholder-val="{{ false }}"><select value="{{ f.value }}" onChange="{{ f.onChange }}" style="height:44px;border:1px solid #DEDAD0;border-radius:6px;padding:0 10px;background:#FFFFFF;font-size:15px;font-weight:400"><sc-for list="{{ f.options }}" as="o" hint-placeholder-count="2"><option value="{{ o.v }}">{{ o.l }}</option></sc-for></select></sc-if>
+              <sc-if value="{{ f.isInput }}" hint-placeholder-val="{{ true }}"><input dir="{{ f.dir }}" type="{{ f.type }}" value="{{ f.value }}" onInput="{{ f.onChange }}" placeholder="{{ f.ph }}" style="height:44px;border:1px solid {{ f.bd }};border-radius:6px;padding:0 12px;background:#FFFFFF;font-size:15px;font-weight:400;font-family:{{ f.ff }};text-align:start;min-width:0"></sc-if>
+              <sc-if value="{{ f.help }}" hint-placeholder-val="{{ false }}"><span style="font-weight:400;color:{{ f.helpColor }}">{{ f.help }}</span></sc-if>
+            </label>
+          </sc-for>
+          <div style="grid-column:1/-1;display:flex;gap:10px;flex-wrap:wrap">
+            <button type="submit" style="height:44px;padding:0 18px;border:0;border-radius:6px;background:#1B2A4E;color:#fff;font-size:15px;font-weight:600;cursor:pointer">{{ bk.submitLabel }}</button>
+            <sc-if value="{{ bk.cancel }}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{ bk.cancel }}" style="height:44px;padding:0 16px;border:1px solid #DEDAD0;border-radius:6px;background:#FFFFFF;font-size:15px;font-weight:500;cursor:pointer">{{ t.cancel }}</button></sc-if>
+          </div>
+        </form>
+      </sc-if>
+
+      <sc-if value="{{ bk.isLessons }}" hint-placeholder-val="{{ false }}">
+        <div style="background:#FFFFFF;border:1px solid #DEDAD0;border-radius:10px;overflow:hidden">
+          <sc-for list="{{ bk.items }}" as="ls" hint-placeholder-count="6">
+            <div style="display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;padding:14px 20px;border-bottom:1px solid #EAE6DD;background:{{ ls.bg }}">
+              <span style="flex:0 0 72px;display:flex;flex-direction:column;font-variant-numeric:tabular-nums"><b style="font-size:15px">{{ ls.p }}</b><span style="font-size:12px;color:#666B76">{{ ls.time }}</span></span>
+              <span style="flex:1 1 240px;display:flex;flex-direction:column;min-width:0"><span style="font-weight:600;font-size:16px">{{ ls.title }}</span><span style="font-size:13px;color:#4A4F5A">{{ ls.sub }}</span></span>
+              <span style="flex:0 1 220px;display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;font-weight:600;color:{{ ls.stateColor }}">{{ ls.state }}</span><span style="height:4px;border-radius:2px;background:#EAE6DD;overflow:hidden;display:block"><span style="display:block;height:100%;width:{{ ls.pct }};background:{{ ls.barColor }}"></span></span></span>
+              <button onClick="{{ ls.open }}" style="flex:0 0 auto;min-height:44px;padding:0 18px;border-radius:6px;border:{{ ls.btnBorder }};background:{{ ls.btnBg }};color:{{ ls.btnFg }};font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap">{{ ls.btn }}</button>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ bk.isEditors }}" hint-placeholder-val="{{ false }}">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;align-items:start">
+          <sc-for list="{{ bk.editors }}" as="ed" hint-placeholder-count="4">
+            <div style="background:#FFFFFF;border:1px solid #DEDAD0;border-radius:10px;overflow:hidden;display:flex;flex-direction:column">
+              <div style="display:flex;justify-content:space-between;align-items:baseline;padding:14px 16px 10px"><b style="font-size:15px;font-weight:600">{{ ed.title }}</b><span style="font-size:12px;color:#666B76">{{ ed.count }}</span></div>
+              <sc-for list="{{ ed.rows }}" as="er" hint-placeholder-count="3">
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 16px;border-top:1px solid #EAE6DD;min-height:40px">
+                  <span style="display:flex;flex-direction:column"><span style="font-size:14px;font-weight:500">{{ er.a }}</span><sc-if value="{{ er.b }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;color:#666B76;font-variant-numeric:tabular-nums">{{ er.b }}</span></sc-if></span>
+                  <button aria-label="{{ t.remove }}" style="width:32px;height:32px;border:0;background:none;border-radius:6px;color:#666B76;cursor:pointer;font-size:15px">✕</button>
+                </div>
+              </sc-for>
+              <div style="display:flex;gap:6px;padding:10px 12px;border-top:1px solid #EAE6DD;background:#FAF8F4">
+                <input placeholder="{{ ed.ph }}" style="flex:1;min-width:0;height:38px;border:1px solid #DEDAD0;border-radius:6px;padding:0 10px;background:#FFFFFF;font-size:14px">
+                <button style="height:38px;padding:0 12px;border:1px solid #DEDAD0;border-radius:6px;background:#FFFFFF;font-size:13px;font-weight:600;cursor:pointer">{{ t2.add }}</button>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ bk.isGrid }}" hint-placeholder-val="{{ false }}">
+        <div style="background:#FFFFFF;border:1px solid #DEDAD0;border-radius:10px;overflow:auto">
+          <div style="display:grid;grid-template-columns:92px repeat(5,minmax(150px,1fr));min-width:860px">
+            <span style="padding:10px 12px;background:#F6F4EF;border-bottom:1px solid #DEDAD0"></span>
+            <sc-for list="{{ bk.days }}" as="d" hint-placeholder-count="5"><span style="padding:10px 12px;font-size:13px;font-weight:600;background:{{ d.bg }};color:{{ d.fg }};border-bottom:1px solid #DEDAD0;border-inline-start:1px solid #EAE6DD">{{ d.label }}</span></sc-for>
+            <sc-for list="{{ bk.grid }}" as="gr" hint-placeholder-count="6">
+              <span style="padding:10px 12px;display:flex;flex-direction:column;border-bottom:1px solid #EAE6DD;font-variant-numeric:tabular-nums"><b style="font-size:13px">{{ gr.p }}</b><span style="font-size:11px;color:#666B76">{{ gr.time }}</span></span>
+              <sc-for list="{{ gr.cells }}" as="ce" hint-placeholder-count="5">
+                <div style="padding:8px;border-bottom:1px solid #EAE6DD;border-inline-start:1px solid #EAE6DD;background:{{ ce.colBg }}">
+                  <sc-if value="{{ ce.filled }}" hint-placeholder-val="{{ true }}">
+                    <div style="position:relative;display:flex;flex-direction:column;gap:1px;padding:7px 9px;padding-inline-end:30px;border-radius:6px;background:{{ ce.bg }};border:{{ ce.border }};min-height:58px;box-sizing:border-box">
+                      <b style="font-size:14px;font-weight:600">{{ ce.subject }}</b>
+                      <span style="font-size:12px;color:#4A4F5A">{{ ce.line2 }}</span>
+                      <sc-if value="{{ ce.line3 }}" hint-placeholder-val="{{ true }}"><span style="font-size:12px;color:#4A4F5A">{{ ce.line3 }}</span></sc-if>
+                      <sc-if value="{{ ce.clash }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;color:#A3291F;font-weight:600;margin-top:4px;line-height:1.35">✕ {{ ce.clash }}</span></sc-if>
+                      <sc-if value="{{ ce.canRemove }}" hint-placeholder-val="{{ false }}"><button onClick="{{ ce.remove }}" aria-label="{{ t2.removeLesson }}" title="{{ t2.removeLesson }}" style="position:absolute;top:3px;inset-inline-end:3px;width:28px;height:28px;border:0;border-radius:6px;background:transparent;color:#666B76;cursor:pointer;font-size:13px">✕</button></sc-if>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{ ce.canAdd }}" hint-placeholder-val="{{ false }}"><button onClick="{{ ce.add }}" style="width:100%;min-height:58px;border:1px dashed #CFCABF;border-radius:6px;background:transparent;color:#4A4F5A;font-size:13px;font-weight:600;cursor:pointer">+ {{ t2.addLesson }}</button></sc-if>
+                  <sc-if value="{{ ce.picking }}" hint-placeholder-val="{{ false }}"><select autoFocus="{{ true }}" value="" onChange="{{ ce.pick }}" aria-label="{{ t2.chooseSubject }}" style="width:100%;height:58px;border:2px solid #1B2A4E;border-radius:6px;background:#FFFFFF;font-size:13px;padding:0 6px"><option value="">{{ t2.chooseSubject }}</option><sc-for list="{{ ce.opts }}" as="o" hint-placeholder-count="5"><option value="{{ o.v }}">{{ o.l }}</option></sc-for></select></sc-if>
+                </div>
+              </sc-for>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ bk.isSteps }}" hint-placeholder-val="{{ false }}">
+        <ol style="list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px">
+          <sc-for list="{{ bk.steps }}" as="st" hint-placeholder-count="4">
+            <li><button onClick="{{ st.go }}" aria-current="{{ st.current }}" style="width:100%;display:flex;flex-direction:column;gap:8px;border:0;background:none;padding:0;cursor:pointer;text-align:start"><span style="height:4px;width:100%;border-radius:2px;background:{{ st.bar }}"></span><span style="font-size:13px;color:{{ st.fg }};font-weight:{{ st.fw }}">{{ st.label }}</span></button></li>
+          </sc-for>
+        </ol>
+        <div style="background:#FFFFFF;border:1px solid #DEDAD0;border-radius:10px;padding:28px;display:flex;flex-direction:column;gap:16px;align-items:flex-start">
+          <h3 style="font-family:'Source Serif 4','Noto Naskh Arabic',serif;margin:0;font-size:22px;font-weight:600">{{ bk.stepTitle }}</h3>
+          <p style="margin:0;font-size:15px;line-height:1.55;color:#4A4F5A;max-width:640px">{{ bk.stepText }}</p>
+          <sc-if value="{{ bk.drop }}" hint-placeholder-val="{{ false }}">
+            <div style="align-self:stretch;border:1.5px dashed #B5B1A6;border-radius:10px;padding:28px;display:flex;flex-direction:column;gap:6px;align-items:center;background:#FAF8F4"><b style="font-size:15px;font-weight:600">{{ bk.drop }}</b><span style="font-size:13px;color:#4A4F5A;font-family:'IBM Plex Mono'">{{ bk.dropFile }}</span></div>
+          </sc-if>
+          <sc-if value="{{ bk.checkKpis }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;gap:32px;flex-wrap:wrap"><sc-for list="{{ bk.checkKpis }}" as="ck" hint-placeholder-count="3"><span style="display:flex;flex-direction:column;gap:2px"><span style="font-size:13px;color:#4A4F5A">{{ ck.l }}</span><b style="font-size:28px;font-weight:600;color:{{ ck.c }};font-variant-numeric:tabular-nums">{{ ck.v }}</b></span></sc-for></div>
+            <div style="align-self:stretch;border:1px solid #DEDAD0;border-radius:8px;overflow:hidden">
+              <sc-for list="{{ bk.problems }}" as="pr" hint-placeholder-count="3">
+                <div style="display:grid;grid-template-columns:72px minmax(0,1fr) minmax(0,2fr);gap:14px;padding:11px 14px;border-bottom:1px solid #EAE6DD;font-size:14px;align-items:baseline"><span style="font-family:'IBM Plex Mono';font-size:13px;color:#4A4F5A">{{ pr.row }}</span><b style="font-weight:600">{{ pr.who }}</b><span style="color:#A3291F">{{ pr.what }}</span></div>
+              </sc-for>
+            </div>
+          </sc-if>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button onClick="{{ bk.next }}" style="height:44px;padding:0 18px;border:0;border-radius:6px;background:#1B2A4E;color:#fff;font-size:15px;font-weight:600;cursor:pointer">{{ bk.nextLabel }}</button>
+            <sc-if value="{{ bk.back }}" hint-placeholder-val="{{ false }}"><button onClick="{{ bk.back }}" style="height:44px;padding:0 16px;border:1px solid #DEDAD0;border-radius:6px;background:#FFFFFF;font-size:15px;font-weight:500;cursor:pointer">{{ bk.backLabel }}</button></sc-if>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ bk.isSettings }}" hint-placeholder-val="{{ false }}">
+        <div style="background:#FFFFFF;border:1px solid #DEDAD0;border-radius:10px;overflow:hidden">
+          <sc-for list="{{ bk.rows }}" as="sr" hint-placeholder-count="4">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:16px 32px;padding:16px 20px;border-bottom:1px solid #EAE6DD;flex-wrap:wrap">
+              <span style="flex:1 1 300px;display:flex;flex-direction:column;gap:3px"><b style="font-size:15px;font-weight:600">{{ sr.label }}</b><span style="font-size:13px;color:#4A4F5A;line-height:1.45">{{ sr.help }}</span></span>
+              <sc-if value="{{ sr.pill }}" hint-placeholder-val="{{ false }}"><span style="padding:4px 12px;border-radius:999px;font-size:13px;font-weight:600;background:{{ sr.pillBg }};color:{{ sr.pillFg }};white-space:nowrap">{{ sr.pill }}</span></sc-if>
+              <sc-if value="{{ sr.seg }}" hint-placeholder-val="{{ false }}"><div role="radiogroup" style="display:flex;background:#E6E2D8;border-radius:6px;padding:3px;gap:3px"><sc-for list="{{ sr.seg }}" as="sg" hint-placeholder-count="2"><button role="radio" aria-checked="{{ sg.on }}" onClick="{{ sg.pick }}" style="height:38px;padding:0 16px;border:0;border-radius:4px;background:{{ sg.bg }};font-size:14px;font-weight:600;cursor:pointer">{{ sg.label }}</button></sc-for></div></sc-if>
+              <sc-if value="{{ sr.chips }}" hint-placeholder-val="{{ false }}"><div style="display:flex;gap:6px;flex-wrap:wrap"><sc-for list="{{ sr.chips }}" as="ch" hint-placeholder-count="7"><button aria-pressed="{{ ch.on }}" onClick="{{ ch.toggle }}" style="height:38px;min-width:52px;padding:0 10px;border-radius:6px;border:{{ ch.border }};background:{{ ch.bg }};color:{{ ch.fg }};font-size:13px;font-weight:600;cursor:pointer">{{ ch.label }}</button></sc-for></div></sc-if>
+              <sc-if value="{{ sr.time }}" hint-placeholder-val="{{ false }}"><input type="time" value="{{ sr.time }}" onInput="{{ sr.onTime }}" style="height:44px;border:1px solid #DEDAD0;border-radius:6px;padding:0 12px;background:#FFFFFF;font-size:15px;font-variant-numeric:tabular-nums"></sc-if>
+              <sc-if value="{{ sr.num }}" hint-placeholder-val="{{ false }}"><span style="display:flex;align-items:center;gap:8px;font-size:14px;color:#4A4F5A"><input type="number" value="{{ sr.num }}" onInput="{{ sr.onNum }}" style="width:76px;height:44px;border:1px solid #DEDAD0;border-radius:6px;padding:0 10px;background:#FFFFFF;font-size:15px;font-variant-numeric:tabular-nums">{{ sr.unit }}</span></sc-if>
+              <sc-if value="{{ sr.sw }}" hint-placeholder-val="{{ false }}"><button role="switch" aria-checked="{{ sr.sw.on }}" onClick="{{ sr.sw.toggle }}" style="display:flex;align-items:center;gap:10px;border:0;background:none;padding:4px 0;cursor:pointer;font-size:14px;color:#4A4F5A;min-width:92px"><span style="width:44px;height:26px;border-radius:999px;background:{{ sr.sw.track }};padding:3px;box-sizing:border-box;display:flex;justify-content:{{ sr.sw.justify }}"><span style="width:20px;height:20px;border-radius:50%;background:#FFFFFF"></span></span>{{ sr.sw.label }}</button></sc-if>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ bk.isSecret }}" hint-placeholder-val="{{ false }}">
+        <div style="background:#FFFFFF;border:1px solid #DEDAD0;border-radius:10px;padding:20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px">
+          <span style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;color:#4A4F5A">{{ t2.serial }}</span><b style="font-family:'IBM Plex Mono';font-size:16px;font-weight:500">{{ bk.serial }}</b></span>
+          <span style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;color:#4A4F5A">{{ t2.claimCode }}</span><b style="font-family:'IBM Plex Mono';font-size:22px;font-weight:500;letter-spacing:.06em">{{ bk.claim }}</b><span style="font-size:12px;color:#666B76">{{ t2.claimHelp }}</span></span>
+          <span style="display:flex;flex-direction:column;gap:6px;grid-column:1/-1;background:#F8ECD2;color:#5C3D00;border-radius:8px;padding:14px 16px"><span style="font-size:13px;font-weight:600">{{ t2.secretOnce }}</span><code style="font-family:'IBM Plex Mono';font-size:15px;color:#1A1D24;overflow-wrap:anywhere">{{ bk.secret }}</code></span>
+          <div style="grid-column:1/-1;display:flex;gap:10px"><button onClick="{{ bk.newSecret }}" style="height:40px;padding:0 14px;border:1px solid #DEDAD0;border-radius:6px;background:#FFFFFF;font-size:14px;font-weight:600;cursor:pointer">{{ t2.newSecret }}</button></div>
+        </div>
+      </sc-if>
+    </section>
+  </sc-for>
+</sc-if>
+</main>
+
+<sc-if value="{{ toast }}" hint-placeholder-val="{{ false }}">
+  <div role="status" style="position:fixed;bottom:96px;inset-inline-start:{{ toastStart }};background:#1A1D24;color:#F6F4EF;border-radius:8px;padding:12px 16px;display:flex;align-items:center;gap:16px;font-size:14px;box-shadow:0 8px 24px rgba(29,33,31,.14);animation:dcfade .2s ease-out">
+    <span>{{ toast }}</span><button onClick="{{ undo }}" style="border:0;background:none;color:#D9B76A;font-weight:600;cursor:pointer;font-size:14px">{{ t.undo }}</button>
+  </div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;lang&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;en&quot;,&quot;ar&quot;],&quot;default&quot;:&quot;en&quot;,&quot;tsType&quot;:&quot;'en'|'ar'&quot;},&quot;role&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;teacher&quot;,&quot;admin&quot;,&quot;owner&quot;],&quot;default&quot;:&quot;teacher&quot;,&quot;tsType&quot;:&quot;'teacher'|'admin'|'owner'&quot;},&quot;straps&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;lessonNow&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;demoTap&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;}}">
+const S = {
+  P:{fg:'#23683F',bg:'#E2EFE5',glyph:'✓'}, L:{fg:'#8A5A00',bg:'#F8ECD2',glyph:'◔'},
+  A:{fg:'#A3291F',bg:'#F8E3DF',glyph:'✕'}, E:{fg:'#4A5566',bg:'#E6E9EE',glyph:'–'},
+  T:{fg:'#3B5876',bg:'#E2EAF1',glyph:'↗'}
+};
+const NAMES = {
+  layla:['Layla Hussein','ليلى حسين'],omar:['Omar Ramadan','عمر رمضان'],yara:['Yara Adel','يارا عادل'],
+  ali:['Ali Kamal','علي كمال'],karim:['Karim Fathy','كريم فتحي'],salma:['Salma Gamal','سلمى جمال'],
+  mariam:['Mariam Mostafa','مريم مصطفى'],youssef:['Youssef Nabil','يوسف نبيل'],hana:['Hana Hussein','هنا حسين'],
+  ziad:['Ziad Ramadan','زياد رمضان'],nour:['Nour Adel','نور عادل'],adam:['Adam Kamal','آدم كمال'],
+  farida:['Farida Sami','فريدة سامي'],mostafa:['Mostafa Hany','مصطفى هاني'],habiba:['Habiba Tarek','حبيبة طارق'],
+  seif:['Seif Wael','سيف وائل'],malak:['Malak Ehab','ملك إيهاب'],hamza:['Hamza Ashraf','حمزة أشرف'],
+  jana:['Jana Sherif','جنى شريف'],yassin:['Yassin Hassan','ياسين حسن'],lina:['Lina Samir','لينا سمير'],
+  tamer:['Tamer Fouad','تامر فؤاد'],rana:['Rana Magdy','رنا مجدي'],khaled:['Khaled Osama','خالد أسامة']
+};
+const ROSTER = [
+  {id:'layla',code:'NV-4A-01',live:'in'},{id:'omar',code:'NV-4A-02',live:'in'},{id:'yara',code:'NV-4A-03',live:'in'},
+  {id:'ali',code:'NV-4A-04',live:'notheard'},{id:'karim',code:'NV-4A-05',live:'in'},{id:'salma',code:'NV-4A-06',live:'in'},
+  {id:'mariam',code:'NV-4A-07',live:'in'},{id:'youssef',code:'NV-4A-08',live:'in'},{id:'hana',code:'NV-4A-09',live:'in'},
+  {id:'ziad',code:'NV-4A-10',live:'in'},{id:'nour',code:'NV-4A-11',live:'in'},{id:'adam',code:'NV-4A-12',live:'in'}
+];
+// where: place, minutes since heard
+const WHERE = {
+  layla:['r204',1],omar:['r204',0],yara:['r204',1],mariam:['r204',0],youssef:['r204',2],hana:['r204',1],ziad:['r204',0],nour:['r204',4],adam:['r204',1],
+  salma:['r204',1],karim:['r204',0],ali:['notheard'],
+  farida:['r205',0],malak:['r205',1],hamza:['r205',0],jana:['r205',2],yassin:['r205',1],lina:['r205',0],tamer:['notheard'],rana:['r205',0],khaled:['r205',2],
+  mostafa:['gate',21,'09:51'],seif:['out',0,'10:05'],habiba:['gone',0,'09:15']
+};
+const CLS = id => ['farida','mostafa','habiba','seif','malak','hamza','jana','yassin','lina','tamer','rana','khaled'].includes(id) ? '4-B' : '4-A';
+const EXC = [
+  {id:1,kind:'missing',straps:true,time:'10:00',en:'Mostafa Hany arrived at 07:51 but hasn’t reached Grade 4-B English in Room 205 (period 3).',ar:'دخل مصطفى هاني 07:51 لكنه لم يحضر حصة الإنجليزي لـ 4-B في قاعة 205 (الحصة 3).'},
+  {id:2,kind:'short',straps:true,stu:'yara',time:'08:46',en:'Yara Adel was in 4-A English for only 40% of the lesson (period 1).',ar:'حضرت يارا عادل 40% فقط من حصة الإنجليزي لـ 4-A (الحصة 1).'},
+  {id:3,kind:'device',straps:true,time:'08:40',en:'The reader in Room 205 was offline 08:05–08:40. Please mark Grade 4-B Math (period 1) by hand.',ar:'قارئ الأساور في قاعة 205 توقف من 08:05 إلى 08:40. سجّل رياضيات 4-B (الحصة 1) يدويًا.'},
+  {id:4,kind:'nocover',straps:true,time:'07:30',en:'The science lab has no reader yet. Please mark Grade 4-A Science (period 5) by hand.',ar:'معمل العلوم بدون قارئ أساور. سجّل علوم 4-A (الحصة 5) يدويًا.'},
+  {id:5,kind:'battery',straps:true,stu:'nour',time:'07:55',en:'Nour Adel’s smart band is at 12%. Please ask the family to charge it tonight.',ar:'بطارية سوار نور عادل 12%. يُرجى تذكير الأسرة بشحنه الليلة.'},
+  {id:6,kind:'left',straps:true,stu:'habiba',time:'09:15',en:'Habiba Tarek was dismissed early through the main gate at 09:15.',ar:'خرجت حبيبة طارق مبكرًا من البوابة الرئيسية الساعة 09:15.'},
+  {id:7,kind:'unmarked',straps:false,time:'08:45',en:'4-B Math (period 1) hasn\'t been saved yet.',ar:'لم تُحفظ رياضيات 4-B (الحصة 1) بعد.'},
+  {id:8,kind:'unmarked',straps:false,time:'09:30',en:'4-B Science (period 2) hasn\'t been saved yet.',ar:'لم تُحفظ علوم 4-B (الحصة 2) بعد.'},
+  {id:9,kind:'left',straps:false,stu:'habiba',time:'09:15',en:'Habiba Tarek was collected early at 09:15 by the family driver, authorised by her mother.',ar:'استلم سائق الأسرة حبيبة طارق مبكرًا الساعة 09:15 بإذن من والدتها.'}
+];
+const KIND = {missing:'A',short:'L',device:'E',nocover:'E',battery:'L',left:'T',unmarked:'L'};
+
+const T = {
+en:{cntP:n=>`${n} present`,cntL:n=>`${n} late`,cntA:n=>`${n} absent`,cntE:n=>`${n} excused`,
+ subStraps:'Live from the smart bands, refreshed every 15 seconds. If a student forgot their band, tap Present.',subNoStraps:'Every student starts as Present. Tap anyone absent, then save the register.',
+ strapNotHeard:'Band not detected today',lastHeardL:'last seen at',toldL:'parent notified',savedByL:'Saved by',saveP:n=>`Save register (${n})`,savedL:'Saved',tag_unmarked:'Not saved',
+ school:'Nile Valley Language School',auto:'Automatic',manual:'Manual',autoMode:'Demo · Automatic attendance',manualMode:'Demo · Manual attendance',
+ teaching:'Teaching',schoolGrp:'School',setup:'Setup',
+ myclass:'My class now',today:'Today',take:'Attendance register',exceptions:'Follow-ups',where:'On campus now',students:'Students',timetable:'Timetable',
+ studentsParents:'Students & families',importX:'Import from Excel',staff:'Faculty & staff',crp:'Classes, rooms & periods',devices:'Smart band readers',modules:'School settings',audit:'Activity log',
+ teacher:'Class teacher',admin:'Student Affairs',
+ periodLine:'Period 3 · 09:50–10:35',lessonTitle:'Grade 4-A · Math · Room 204',
+ inRoom:'In class',notInRoom:'Not in class',noStrap:'No band',notHeard:'Not detected today',
+ summary:(a,b)=>`${a} of ${b} are in class now`,
+ summarySubAuto:'The band decides each child when the lesson ends at 10:35. Fix only the ones it got wrong.',
+ summarySubManual:'Mark each child, then save.',
+ checkThese:n=>`Check these ${n}`,checkHint:'Preset to Absent',inRoomGrp:n=>`In class · ${n}`,inRoomHint:'Preset to Present',
+ lastHeard:'Last seen',parentsTold:'Parent notified at',told:t=>`Parent notified at ${t}`,
+ decided:'Decided when the lesson ends',notMarked:'Not marked yet',unsaved:'Changed · not saved yet',by:'by',
+ reason:'Reason',markRest:'Mark the rest present',
+ save:'Save',saveN:n=>`Save ${n}`,allSaved:'Everything is saved',nChanges:n=>n===1?'1 change not saved':`${n} changes not saved`,
+ saved:n=>n===1?'Saved 1 change':`Saved ${n} changes`,undo:'Undo',
+ justNow:'Updated just now',ago:s=>`Updated ${s} s ago`,
+ noLesson:'Between periods',nextLesson:'Free period. Next: Grade 4-A Math in Room 204 at 09:50.',nextLessonWhen:'Period 3 · 09:50–10:35',seeTodaysLessons:'My lessons today',
+ whereSub:'Refreshes every 10 seconds',searchName:'Search a name',allClasses:'All classes',
+ k_fresh:'Detected in the last 10 min',k_stale:'Not detected for 10+ min',k_out:'Out of school',k_none:'Not detected today',
+ needsALook:'Please check on',name:'Name',cls:'Class',lastHeardCol:'Last detected',whereCol:'Where',open:'Open',nothingToLook:'Every student is accounted for.',
+ gate:'Main gate',r204:'Room 204',r205:'Room 205',lab:'Science lab',
+ r204meta:'4-A Math',r205meta:'4-B English',labNote:'No smart band reader in this room yet.',gateMeta:'No one waiting at the gate',
+ wentOut:'Left through the gate',gone:'Dismissed for the day',notHeardP:'Not detected today',
+ minAgo:m=>`${m} min ago`,noStrapTag:'no band',sinceAgo:(t,m)=>`${t} · ${m} min ago`,
+ dateLine:'Thursday 1 October',
+ tk_students:'Students',tk_gate:n=>`${n} arrived through the gate`,tk_present:'Present · period 3',tk_presentSub:'of 24',tk_absent:'Absent',tk_absentSub:'Parents notified',tk_att:'Open follow-ups',tk_attSub:'Oldest at 07:30',
+ todaysLessons:"Today's lessons",needsAttention:'Open follow-ups',seeAll:n=>`See all ${n}`,byPeriod:'Attendance by period',period:'Period',
+ done:'Done',now:'Now',nowDecides:'Now · decided at 10:35',byHand:'Marked by hand',notStarted:'Not started',laterLessons:'4 more lessons after 11:40',
+ P:'Present',L:'Late',A:'Absent',E:'Excused',T:'On a trip',
+ inProgress:'in progress',later:'Later',
+ excSub:'Items for Student Affairs to follow up',openN:n=>`Open · ${n}`,resolvedN:n=>`Resolved · ${n}`,
+ tag_missing:'Missed a lesson',tag_short:'Left lesson early',tag_device:'Reader offline',tag_nocover:'No reader',tag_battery:'Band battery low',tag_left:'Early dismissal',
+ openStudent:'Student file',resolve:'Follow up',note:'Note',notePh:'e.g. Spoke with the mother; he is at the clinic',markResolved:'Mark as handled',cancel:'Cancel',
+ resolvedBy:(n,note)=>`Handled by Ms. Hana Nabil at 10:12${note?' · '+note:''}`,
+ allClear:'All clear',allClearSub:'New follow-ups appear here as they happen.',
+ code:'Code',strap:'Band',strapVal:'Battery 64%',stuNow:'In class',
+ whereToday:'Where today',lastTwoWeeks:'Attendance, last two weeks',date:'Date',status:'Status',how:'How',
+ strapHow:'Band',manualHow:r=>`Manual · ${r}`,pending:'Decided at 10:35',
+ parents:'Parents & guardians',mother:'Mother',father:'Father',active:'Receives all updates',restricted:'Restricted · no location updates',
+ restrict:'Restrict',unrestrict:'Allow all',remove:'Remove',addParent:'Add a parent or guardian',fullName:'Full name',relation:'Relation',mobile:'Mobile number',mobileHelp:'Updates go to this number on WhatsApp.',addParentBtn:'Add parent',
+ parentsFull:'Both parents are on file. Remove one to add another.',
+ laterBody:'This screen is in the next design pass. It will use the same parts as the screens before it.',
+ tlGate:'Main gate',tlNotHeard:'Not detected since',
+ r_forgot:'Band forgotten',r_broken:'Band not working',r_sick:'Sick',r_appt:'Doctor’s appointment',r_family:'Family circumstances',r_trip:'School trip',r_other:'Other',
+ teacherName:'Ms. Hana Nabil',initials:'HN'
+},
+ar:{cntP:n=>`${n} حاضر`,cntL:n=>`${n} متأخر`,cntA:n=>`${n} غائب`,cntE:n=>`${n} بعذر`,
+ subStraps:'مباشرة من الأساور الذكية، يتحدث كل 15 ثانية. لو الطالب نسي السوار اضغط «حاضر».',subNoStraps:'كل الطلاب حاضرون مبدئيًا. اضغط على الغائبين ثم احفظ الكشف.',
+ strapNotHeard:'لم يُسمع السوار اليوم',lastHeardL:'آخر رصد',toldL:'تم إخطار ولي الأمر',savedByL:'حفظه',saveP:n=>`حفظ الكشف (${n})`,savedL:'محفوظ',tag_unmarked:'لم تُحفظ',
+ school:'مدرسة وادي النيل للغات',auto:'تلقائي',manual:'يدوي',autoMode:'تجريبي · الحضور تلقائي',manualMode:'تجريبي · الحضور يدوي',
+ teaching:'التدريس',schoolGrp:'المدرسة',setup:'الإعداد',
+ myclass:'فصلي الآن',today:'اليوم',take:'كشف الحضور',exceptions:'المتابعات',where:'داخل المدرسة الآن',students:'الطلاب',timetable:'الجدول',
+ studentsParents:'الطلاب وأولياء الأمور',importX:'استيراد من Excel',staff:'هيئة التدريس والعاملين',crp:'الفصول والقاعات والحصص',devices:'أجهزة الأساور',modules:'إعدادات المدرسة',audit:'سجل النشاط',
+ teacher:'مُدرّسة الفصل',admin:'شؤون الطلبة',
+ periodLine:'الحصة 3 · 09:50–10:35',lessonTitle:'4-A · رياضيات · قاعة 204',
+ inRoom:'في الفصل',notInRoom:'ليس في الفصل',noStrap:'بدون سوار',notHeard:'لم يُرصد اليوم',
+ summary:(a,b)=>`${a} من ${b} في الفصل الآن`,
+ summarySubAuto:'السوار يحدد حالة كل طالب عند نهاية الحصة 10:35. صحّح فقط ما أخطأ فيه.',
+ summarySubManual:'سجّل حالة كل طالب ثم احفظ.',
+ checkThese:n=>`راجع هؤلاء ${n}`,checkHint:'مبدئيًا: غائب',inRoomGrp:n=>`في الفصل · ${n}`,inRoomHint:'مبدئيًا: حاضر',
+ lastHeard:'آخر رصد',parentsTold:'تم إخطار ولي الأمر',told:t=>`تم إخطار ولي الأمر ${t}`,
+ decided:'يُحدد عند نهاية الحصة',notMarked:'لم يُسجل بعد',unsaved:'تم التغيير · لم يُحفظ',by:'بواسطة',
+ reason:'السبب',markRest:'تسجيل الباقين حاضرين',
+ save:'حفظ',saveN:n=>`حفظ ${n}`,allSaved:'كل شيء محفوظ',nChanges:n=>n===1?'تغيير واحد لم يُحفظ':`${n} تغييرات لم تُحفظ`,
+ saved:n=>n===1?'تم حفظ تغيير واحد':`تم حفظ ${n} تغييرات`,undo:'تراجع',
+ justNow:'تم التحديث الآن',ago:s=>`آخر تحديث منذ ${s} ث`,
+ noLesson:'بين الحصص',nextLesson:'حصة فراغ. التالية: رياضيات 4-A في قاعة 204 الساعة 09:50.',nextLessonWhen:'الحصة 3 · 09:50–10:35',seeTodaysLessons:'حصصي اليوم',
+ whereSub:'يتحدث كل 10 ثوانٍ',searchName:'ابحث عن اسم',allClasses:'كل الفصول',
+ k_fresh:'رُصدوا آخر 10 دقائق',k_stale:'لم يُرصدوا منذ 10+ دقائق',k_out:'خارج المدرسة',k_none:'لم يُرصدوا اليوم',
+ needsALook:'يُرجى المتابعة',name:'الاسم',cls:'الفصل',lastHeardCol:'آخر رصد',whereCol:'المكان',open:'فتح',nothingToLook:'كل الطلاب في أماكنهم.',
+ gate:'البوابة الرئيسية',r204:'قاعة 204',r205:'قاعة 205',lab:'معمل العلوم',
+ r204meta:'4-A رياضيات',r205meta:'4-B إنجليزي',labNote:'لا يوجد قارئ أساور في هذه القاعة بعد.',gateMeta:'لا أحد عند البوابة',
+ wentOut:'خرجوا من البوابة',gone:'انصرفوا لليوم',notHeardP:'لم يُرصدوا اليوم',
+ minAgo:m=>`منذ ${m} د`,noStrapTag:'بدون سوار',sinceAgo:(t,m)=>`${t} · منذ ${m} د`,
+ dateLine:'الخميس 1 أكتوبر',
+ tk_students:'الطلاب',tk_gate:n=>`${n} دخلوا من البوابة`,tk_present:'حاضرون · الحصة 3',tk_presentSub:'من 24',tk_absent:'غائبون',tk_absentSub:'تم إخطار ولي الأمر',tk_att:'متابعات مفتوحة',tk_attSub:'الأقدم 07:30',
+ todaysLessons:'حصص اليوم',needsAttention:'متابعات مفتوحة',seeAll:n=>`عرض الكل ${n}`,byPeriod:'الحضور حسب الحصة',period:'الحصة',
+ done:'تم',now:'الآن',nowDecides:'الآن · يُحدد 10:35',byHand:'سُجل يدويًا',notStarted:'لم تبدأ',laterLessons:'4 حصص أخرى بعد 11:40',
+ P:'حاضر',L:'متأخر',A:'غائب',E:'بعذر',T:'في رحلة',
+ inProgress:'جارية',later:'لاحقًا',
+ excSub:'أمور تتابعها شؤون الطلبة',openN:n=>`مفتوحة · ${n}`,resolvedN:n=>`تمت · ${n}`,
+ tag_missing:'غاب عن حصة',tag_short:'غادر الحصة مبكرًا',tag_device:'القارئ متوقف',tag_nocover:'بدون قارئ',tag_battery:'بطارية السوار منخفضة',tag_left:'انصراف مبكر',
+ openStudent:'ملف الطالب',resolve:'متابعة',note:'ملاحظة',notePh:'مثال: تم التواصل مع الأم، الطالب في العيادة',markResolved:'تمت المتابعة',cancel:'إلغاء',
+ resolvedBy:(n,note)=>`تابعتها مس هناء نبيل 10:12${note?' · '+note:''}`,
+ allClear:'لا توجد متابعات',allClearSub:'ستظهر هنا الأمور الجديدة فور حدوثها.',
+ code:'الكود',strap:'السوار',strapVal:'البطارية 64%',stuNow:'في الفصل',
+ whereToday:'أين كانت اليوم',lastTwoWeeks:'الحضور، آخر أسبوعين',date:'التاريخ',status:'الحالة',how:'الطريقة',
+ strapHow:'السوار',manualHow:r=>`يدوي · ${r}`,pending:'يُحدد 10:35',
+ parents:'أولياء الأمور',mother:'الأم',father:'الأب',active:'تصله كل الرسائل',restricted:'مقيد · بدون رسائل المكان',
+ restrict:'تقييد',unrestrict:'السماح بالكل',remove:'إزالة',addParent:'إضافة ولي أمر',fullName:'الاسم بالكامل',relation:'الصلة',mobile:'رقم الموبايل',mobileHelp:'تصل الرسائل لهذا الرقم عبر واتساب.',addParentBtn:'إضافة',
+ parentsFull:'تمت إضافة الوالدين. أزل أحدهما لإضافة آخر.',
+ laterBody:'هذه الشاشة في مرحلة التصميم التالية، وستستخدم نفس العناصر.',
+ tlGate:'البوابة الرئيسية',tlNotHeard:'لم تُرصد منذ',
+ r_forgot:'نسي السوار',r_broken:'السوار لا يعمل',r_sick:'مريض',r_appt:'موعد طبيب',r_family:'ظرف عائلي',r_trip:'رحلة مدرسية',r_other:'سبب آخر',
+ teacherName:'مس هناء نبيل',initials:'هن'
+}};
+const LETTERS = {en:{P:'P',L:'L',A:'A',E:'E'},ar:{P:'ح',L:'م',A:'غ',E:'ع'}};
+
+const T2 = {
+en:{rosterCrumb:'4-A · Math · Period 3',signOut:'Sign out',withStraps:'Demo · Smart bands',noStraps:'Demo · Manual register',msgsTitle:'Messages from parents',markRead:'Mark read',markAllRead:'Mark all read',
+ msg1:'Mr. Amr Gamal updated his mobile to +201222222222, verified on WhatsApp. It replaces +201111111111.',msg1m:'Father · Grade 4-A · 09:12',msg2:'Mrs. Dina Farouk joined the parent app.',msg2m:'Mother of Salma Gamal · 08:05',
+ autoAtt:'Automatic attendance (smart bands)',inSub:'In your subscription',notInSub:'Not in your subscription',autoAttH1:'The register fills itself from the smart bands. Teachers only correct a forgotten band.',autoAttH0:'Teachers take the register on the classroom PC.',
+ mobileOpt:'Mobile (optional)',nowStraps:'Now · from the smart bands',nowNoStraps:'Now · not saved yet',strapsCol:'Smart bands (auto attendance)',myLessons:'My lessons today',myTimetable:'My timetable',overview:'Overview',attendanceGrp:'Attendance',people:'People',schoolSetup:'School setup',
+ dateLabel:'Date',roRoster:'Past registers are locked. Only Student Affairs can correct them.',ttSubMine:'Only your lessons · week of 27 September',addLesson:'Add lesson',chooseSubject:'Choose a subject',removeLesson:'Remove lesson',
+ signedUp:'Joined the parent app',notSignedUp:'Not joined yet',mobileChecked:'Mobile checked by WhatsApp',mobileNotChecked:'Mobile not checked yet',restrictedTag:'Restricted',markChecked:'Mobile checked',
+ emailReq:'Email (required)',emailNeeded:'Please add an email. The parent needs it to join the app.',countryCode:'Country code',tickChecked:'Mobile and WhatsApp number checked in person',
+ signupHelp:'The parent joins the app with this email; their mobile is verified on WhatsApp and saved here. Until then they show as “Not joined yet”.',
+ createSchool:'Create a school',schoolName:'School name',city:'City',firstAdmin:'First admin’s name',firstAdminEmail:'First admin’s email',firstAdminHelp:'They get an email to set a password and sign in.',createSchoolBtn:'Create school and invite admin',on:'On',off:'Off',add:'Add',owner:'Platform owner',platform:'Platform',schools:'Schools',gateways:'Readers',
+ yesterday:'Yesterday',todayTab:'Today',openBtn:'Open',viewBtn:'View',readOnly:'Past registers are locked. Only Student Affairs can correct them.',
+ takeSubT:'Your lessons today',takeSubA:'All lessons today',
+ addStudent:'Add a student',importX:'Import from Excel',stuSub:'24 students · Grade 4 · 2 classes',nameAr:'Name in Arabic',code:'Student code',strapAddr:'Band address (optional)',parentsCol:'Parents',noParent:'No parent yet',
+ importSub:'Add many students at once',step1:'Download the template',step2:'Upload the file',step3:'Check',step4:'Import',
+ s1t:'Start from our template',s1x:'One row per student. Columns: name, name in Arabic, code, class, then for each parent: name, email (required) and mobile (optional). Keep the first row as it is.',s1b:'Download template (.xlsx)',
+ s2t:'Upload your file',s2x:'We read the file and check every row before anything is saved.',s2d:'Drop the Excel file here, or choose a file',s2f:'nile-valley-students.xlsx · 24 rows',s2b:'Check the file',
+ s3t:'3 rows need fixing',s3x:'You can import the 21 good rows now and fix the rest later, or upload a fixed file.',k_rows:'Rows',k_ready:'Ready',k_prob:'With problems',
+ p1:'Class “4-C” doesn’t exist.',p2:'Mother’s email is missing. She can’t join the app without it.',p3:'Code NV-4A-06 is already used by Salma Gamal.',s3b:'Import 21 students',s3back:'Upload a fixed file',
+ s4t:'21 students imported',s4x:'3 rows were skipped. Their parents will get the invitation when you add them.',s4b:'See students',back:'Back',next:'Next',
+ staffSub:'Everyone who can sign in to the school portal',addStaff:'Add a faculty member',email:'Email',role:'Role',active:'Active',sendInvite:'Send invitation',
+ crpSub:'The building blocks of the timetable',classes:'Classes',rooms:'Rooms',periods:'Periods',breaks:'Breaks',newClass:'New class',newRoom:'New room',newPeriod:'Start–end',newBreak:'Start–end',
+ hears:'Detects smart bands',noHear:'Can’t detect smart bands',nStudents:n=>`${n} students`,crpNote:'Changes to periods apply to the timetable from tomorrow.',
+ ttSub:'Week of 27 September',clashes:n=>n===1?'1 clash this week':`${n} clashes this week`,clashText:'Fix it here or in the timetable cell.',clashWith:(who,c)=>`${who} is also booked for ${c}`,
+ sun:'Sunday',mon:'Monday',tue:'Tuesday',wed:'Wednesday',thu:'Thursday',
+ devSub:'Readers at the gate and in classrooms detect the smart bands',straps:'Smart bands',rules:'Detection rules',claimGw:'Claim a reader',claimCode:'Claim code',gwName:'Name',kind:'Kind',gateK:'Gate',roomK:'Room',room:'Room',lastSeen:'Last seen',firmware:'Firmware',justNow:'Just now',updateReady:'Update ready',claim:'Claim reader',
+ labNoGw:'Science lab has no reader',labNoGwText:'Lessons there are marked by hand until one is added.',
+ address:'Address',student:'Student',battery:'Battery',notWorn:'Not worn today',low:'Low',
+ r1:'Count as in class after',r1h:'How long a band must be detected before it counts.',r2:'Not detected after',r2h:'When “Not in class” starts showing.',r3:'Present if in class for at least',r3h:'Share of the lesson. Less than this makes an exception.',r4:'Late if first detected after the start by',r4h:'Applies in Automatic mode.',min:'min',pct:'% of the lesson',saveRules:'Save rules',
+ modSub:'How this school uses the platform',mode:'Attendance mode',modeH:'Manual: teachers mark each lesson. Automatic: smart bands decide when the lesson ends; teachers fix the exceptions.',
+ days:'School days',daysH:'No messages are sent on other days.',absTime:'Daily absence message',absTimeH:'Parents of students not detected by this time are notified.',
+ f1:'Arrival messages',f1h:'“Salma arrived safely at school, 07:42”',f2:'Lesson absence messages',f2h:'“Salma was not in Math, Room 204”',f3:'Back in the lesson messages',f3h:'Sent when the student is back in class.',f4:'Where students are',f4h:'Live campus view for staff.',f5:'Parent app',f5h:'Parents follow their child’s school day.',
+ sd:['Sat','Sun','Mon','Tue','Wed','Thu','Fri'],
+ auditSub:'Who did what and when',all:'All',attendance:'Attendance',setup:'Setup',messages:'Messages',when:'When',who:'Who',what:'What',system:'System',
+ a1:'Marked Ali Kamal present in 4-A Math (period 3) · Band forgotten',a2:'Notified Salma Gamal’s parents of her absence from Math',a3:'Marked Habiba Tarek excused · Collected by family driver, authorised by mother',a4:'Marked 4-B Science (period 2) by hand',a5:'Sent the daily absence message for Karim Fathy',a6:'Changed a rule: not detected after 10 min',a7:'Imported 21 students from Excel',
+ schoolsSub:'3 schools on the platform',addSchool:'Add a school',plan:'Plan',school:'School',m1:'Lessons',m2:'Where',m3:'Parent app',m4:'WhatsApp',
+ gwOwnerSub:'Register readers before they ship',register:'Register reader',serial:'Serial number',status:'Status',claimed:'Claimed',waiting:'Waiting for claim',
+ newGw:'New reader',claimHelp:'Give this to the school. They enter it under Devices.',secretOnce:'Device secret · shown once. Copy it to the reader now.',newSecret:'New secret',
+ cairo:'Cairo',giza:'Giza'},
+ar:{rosterCrumb:'4-A · رياضيات · الحصة 3',signOut:'تسجيل الخروج',withStraps:'تجريبي · الأساور الذكية',noStraps:'تجريبي · كشف يدوي',msgsTitle:'رسائل أولياء الأمور',markRead:'تمت القراءة',markAllRead:'تحديد الكل كمقروء',
+ msg1:'حدّث أستاذ عمرو جمال رقم موبايله إلى +201222222222 بعد التحقق عبر واتساب. يحل محل +201111111111.',msg1m:'الأب · 4-A · 09:12',msg2:'انضمت مدام دينا فاروق إلى تطبيق أولياء الأمور.',msg2m:'والدة سلمى جمال · 08:05',
+ autoAtt:'الحضور التلقائي (الأساور)',inSub:'ضمن اشتراكك',notInSub:'ليس ضمن اشتراكك',autoAttH1:'الكشف يُملأ تلقائيًا من الأساور الذكية. المُدرّس يصحح فقط السوار المنسي.',autoAttH0:'المعلم يسجل الحضور على كمبيوتر الفصل.',
+ mobileOpt:'الموبايل (اختياري)',nowStraps:'الآن · من الأساور',nowNoStraps:'الآن · لم تُحفظ بعد',strapsCol:'الأساور (حضور تلقائي)',myLessons:'حصصي اليوم',myTimetable:'جدولي',overview:'نظرة عامة',attendanceGrp:'الحضور',people:'الأشخاص',schoolSetup:'إعداد المدرسة',
+ dateLabel:'التاريخ',roRoster:'كشوف الأيام السابقة مقفلة. شؤون الطلبة فقط يمكنها التعديل.',ttSubMine:'حصصك فقط · أسبوع 27 سبتمبر',addLesson:'إضافة حصة',chooseSubject:'اختر المادة',removeLesson:'حذف الحصة',
+ signedUp:'انضم للتطبيق',notSignedUp:'لم ينضم بعد',mobileChecked:'تم التحقق من الموبايل عبر واتساب',mobileNotChecked:'لم يُتحقق من الموبايل بعد',restrictedTag:'مقيد',markChecked:'تم التحقق من الموبايل',
+ emailReq:'البريد الإلكتروني (مطلوب)',emailNeeded:'أضف بريدًا إلكترونيًا. يحتاجه ولي الأمر للتسجيل.',countryCode:'كود الدولة',tickChecked:'تم التحقق من رقم الموبايل وواتساب شخصيًا',
+ signupHelp:'ينضم ولي الأمر للتطبيق بهذا البريد، ويُتحقق من موبايله عبر واتساب ويُحفظ هنا. حتى ذلك يظهر «لم ينضم بعد».',
+ createSchool:'إنشاء مدرسة',schoolName:'اسم المدرسة',city:'المدينة',firstAdmin:'اسم أول مسؤول',firstAdminEmail:'بريد أول مسؤول',firstAdminHelp:'يصله بريد لاختيار كلمة مرور والدخول.',createSchoolBtn:'إنشاء المدرسة ودعوة المسؤول',on:'مفعّل',off:'متوقف',add:'إضافة',owner:'مالك المنصة',platform:'المنصة',schools:'المدارس',gateways:'أجهزة الاستقبال',
+ yesterday:'أمس',todayTab:'اليوم',openBtn:'فتح',viewBtn:'عرض',readOnly:'كشوف الأيام السابقة مقفلة. شؤون الطلبة فقط يمكنها التعديل.',
+ takeSubT:'حصصك اليوم',takeSubA:'كل حصص اليوم',
+ addStudent:'إضافة طالب',importX:'استيراد من Excel',stuSub:'24 طالبًا · فصلان',nameAr:'الاسم بالعربية',code:'كود الطالب',strapAddr:'عنوان السوار (اختياري)',parentsCol:'أولياء الأمور',noParent:'لا يوجد ولي أمر',
+ importSub:'إضافة طلاب كثيرين مرة واحدة',step1:'تنزيل النموذج',step2:'رفع الملف',step3:'المراجعة',step4:'الاستيراد',
+ s1t:'ابدأ من النموذج',s1x:'صف لكل طالب. الأعمدة: الاسم، الاسم بالعربية، الكود، الفصل، ثم لكل ولي أمر: الاسم والبريد (مطلوب) والموبايل (اختياري). اترك الصف الأول كما هو.',s1b:'تنزيل النموذج (.xlsx)',
+ s2t:'ارفع الملف',s2x:'نقرأ الملف ونراجع كل صف قبل حفظ أي شيء.',s2d:'اسحب ملف Excel هنا أو اختر ملفًا',s2f:'nile-valley-students.xlsx · 24 rows',s2b:'مراجعة الملف',
+ s3t:'3 صفوف تحتاج تصحيح',s3x:'يمكنك استيراد الصفوف السليمة الـ 21 الآن وتصحيح الباقي لاحقًا، أو رفع ملف مصحح.',k_rows:'الصفوف',k_ready:'جاهزة',k_prob:'بها مشاكل',
+ p1:'الفصل «4-C» غير موجود.',p2:'بريد الأم غير موجود. لا يمكنها التسجيل بدونه.',p3:'الكود NV-4A-06 مستخدم لسلمى جمال.',s3b:'استيراد 21 طالبًا',s3back:'رفع ملف مصحح',
+ s4t:'تم استيراد 21 طالبًا',s4x:'تم تخطي 3 صفوف. ستصل الدعوة لأولياء أمورهم عند إضافتهم.',s4b:'عرض الطلاب',back:'رجوع',next:'التالي',
+ staffSub:'كل من يمكنه الدخول إلى بوابة المدرسة',addStaff:'إضافة عضو هيئة تدريس',email:'البريد الإلكتروني',role:'الدور',active:'نشط',sendInvite:'إرسال دعوة',
+ crpSub:'أساس الجدول الدراسي',classes:'الفصول',rooms:'القاعات',periods:'الحصص',breaks:'الفسح',newClass:'فصل جديد',newRoom:'قاعة جديدة',newPeriod:'البداية–النهاية',newBreak:'البداية–النهاية',
+ hears:'تسمع الأساور',noHear:'لا تسمع الأساور',nStudents:n=>`${n} طالبًا`,crpNote:'تغييرات الحصص تُطبق على الجدول من الغد.',
+ ttSub:'أسبوع 27 سبتمبر',clashes:n=>n===1?'تعارض واحد هذا الأسبوع':`${n} تعارضات هذا الأسبوع`,clashText:'صححه هنا أو من خانة الجدول.',clashWith:(who,c)=>`${who} محجوز أيضًا لـ ${c}`,
+ sun:'الأحد',mon:'الاثنين',tue:'الثلاثاء',wed:'الأربعاء',thu:'الخميس',
+ devSub:'أجهزة الاستقبال تلتقط الأساور عند البوابة وفي القاعات',straps:'الأساور',rules:'قواعد الرصد',claimGw:'ربط جهاز استقبال',claimCode:'كود الربط',gwName:'الاسم',kind:'النوع',gateK:'بوابة',roomK:'قاعة',room:'القاعة',lastSeen:'آخر ظهور',firmware:'الإصدار',justNow:'الآن',updateReady:'تحديث متاح',claim:'ربط الجهاز',
+ labNoGw:'معمل العلوم بدون جهاز استقبال',labNoGwText:'تُسجل الحصص هناك يدويًا حتى يُضاف جهاز.',
+ address:'العنوان',student:'الطالب',battery:'البطارية',notWorn:'لم يُرتدَ اليوم',low:'منخفضة',
+ r1:'يُحسب في الفصل بعد',r1h:'المدة اللازمة لسماع السوار قبل احتسابه.',r2:'لم يُرصد بعد',r2h:'متى تظهر «ليس في الفصل».',r3:'حاضر إذا بقي في الفصل على الأقل',r3h:'نسبة من الحصة. أقل من ذلك يُنشئ تنبيهًا.',r4:'متأخر إذا رُصد لأول مرة بعد البداية بـ',r4h:'في الوضع التلقائي.',min:'د',pct:'% من الحصة',saveRules:'حفظ القواعد',
+ modSub:'كيف تستخدم المدرسة المنصة',mode:'طريقة الحضور',modeH:'يدوي: المعلم يسجل كل حصة. تلقائي: الأساور تحدد عند نهاية الحصة؛ والمعلم يصحح الاستثناءات.',
+ days:'أيام الدراسة',daysH:'لا تُرسل رسائل في الأيام الأخرى.',absTime:'رسالة الغياب اليومية',absTimeH:'يُخطَر ولي أمر كل طالب لم يُرصد حتى هذا الوقت.',
+ f1:'رسائل الوصول',f1h:'«وصلت سلمى المدرسة بالسلامة 07:42»',f2:'رسائل الغياب عن الحصة',f2h:'«غابت سلمى عن الرياضيات في قاعة 204»',f3:'رسائل العودة للحصة',f3h:'تُرسل عند عودة الطفل.',f4:'أين الطلاب',f4h:'الأماكن المباشرة للموظفين.',f5:'تطبيق أولياء الأمور',f5h:'يرى الأهل يوم الطفل.',
+ sd:['السبت','الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة'],
+ auditSub:'من فعل ماذا ومتى',all:'الكل',attendance:'الحضور',setup:'الإعداد',messages:'الرسائل',when:'الوقت',who:'من',what:'ماذا',system:'النظام',
+ a1:'سجّل علي كمال حاضرًا في رياضيات 4-A (الحصة 3) · نسي السوار',a2:'أخطر ولي أمر سلمى جمال بغيابها عن الرياضيات',a3:'سجّل حبيبة طارق بعذر · استلمها سائق الأسرة بإذن والدتها',a4:'سجّل علوم 4-B (الحصة 2) يدويًا',a5:'أرسل رسالة الغياب اليومية لكريم فتحي',a6:'غيّر قاعدة: لم يُرصد بعد 10 د',a7:'استورد 21 طالبًا من Excel',
+ schoolsSub:'3 مدارس على المنصة',addSchool:'إضافة مدرسة',plan:'الباقة',school:'المدرسة',m1:'الحصص',m2:'الأماكن',m3:'تطبيق الأهل',m4:'واتساب',
+ gwOwnerSub:'سجّل الأجهزة قبل شحنها',register:'تسجيل جهاز',serial:'الرقم التسلسلي',status:'الحالة',claimed:'مربوط',waiting:'في انتظار الربط',
+ newGw:'جهاز جديد',claimHelp:'أعطه للمدرسة. تُدخله في صفحة الأجهزة.',secretOnce:'سر الجهاز · يظهر مرة واحدة. انسخه للجهاز الآن.',newSecret:'سر جديد',
+ cairo:'القاهرة',giza:'الجيزة'}
+};
+const TT = {
+ '4-A':[['math','arabic','eng','sci','art','arabic'],['eng','math','arabic','math','sci','art'],['arabic','eng','math','arabic','eng','sci'],['math','sci','eng','arabic','math','art'],['eng','arabic','math','eng','sci','arabic']],
+ '4-B':[['eng','sci','math','sci','math','art'],['math','eng','sci','eng','arabic','math'],['sci','arabic','eng','art','math','arabic'],['eng','arabic','math','sci','art','arabic'],['math','sci','eng','math','arabic','eng']]
+};
+const TEACH = {math:'h',arabic:'h',eng:'s',sci:'s',art:'r'};
+const PERIODS = ['08:00–08:45','08:45–09:30','09:50–10:35','10:35–11:20','11:40–12:25','12:25–13:10'];
+
+function buildGen(self, x){
+  const {lang, t, t2, nm, S, go, sc, role, straps} = x;
+  const st = self.state, set = o => self.setState(o);
+  const ar = lang==='ar';
+  const cell = (text, o) => Object.assign({text:text||'', sub:'', ff:'inherit', fw:400, fs:'14px', color:'#1A1D24', subColor:'#666B76', pill:'', pillBg:'', pillFg:'', sw:null, btns:null}, o||{});
+  const pill = (text, k) => cell('', {pill:text, pillBg:S[k].bg, pillFg:S[k].fg});
+  const sw = (key, def) => { const on = st.sw[key] ?? def; return {on:on?'true':'false', aria:key, track:on?'#1B2A4E':'#B5B1A6', justify:on?'flex-end':'flex-start', label:on?t2.on:t2.off, toggle:()=>self.setState(s=>({sw:{...s.sw,[key]:!on}}))}; };
+  const table = (title, heads, cols, rows, minW, sub) => ({isTable:true, title:title||'', sub:sub||'', heads, cols, minW:minW||'640px', rows:rows.map(r=>Array.isArray(r)?{cells:r,cursor:'default',bg:'transparent'}:r)});
+  const tabs = (key, list) => list.map(([v,l])=>({label:l, on:st[key]===v?'true':'false', bg:st[key]===v?'#FFFFFF':'transparent', pick:()=>set({[key]:v})}));
+  const act = (label, fn, primary) => ({label, go:fn, bg:primary?'#1B2A4E':'#FFFFFF', fg:primary?'#fff':'#1A1D24', border:primary?'0':'1px solid #DEDAD0'});
+  const field = (label, o) => Object.assign({label, value:'', isInput:true, isSelect:false, type:'text', dir:'auto', ph:'', help:'', helpColor:'#666B76', bd:'#DEDAD0', ff:'inherit', onChange:()=>{}}, o||{});
+  const sel = (label, options, value) => field(label, {isInput:false, isSelect:true, options:options.map(([v,l])=>({v,l})), value});
+  const toastMsg = m => { set({toast:m}); clearTimeout(self.tt); self.tt=setTimeout(()=>set({toast:null}),4000); };
+  const subj = k => ({en:{math:'Math',eng:'English',arabic:'Arabic',sci:'Science',art:'Art'},ar:{math:'رياضيات',eng:'إنجليزي',arabic:'لغة عربية',sci:'علوم',art:'رسم'}})[lang][k];
+  const tName = k => ({h:t.teacherName, s:ar?'مستر شريف كمال':'Mr. Sherif Kamal', r:ar?'مس رشا عدلي':'Ms. Rasha Adly'})[k];
+  const roomOf = (cls,k) => k==='sci' ? t.lab : (cls==='4-A'?t.r204:t.r205);
+  const roomKey = (cls,k) => k==='sci' ? 'lab' : (cls==='4-A'?'r204':'r205');
+  const days = [t2.sun,t2.mon,t2.tue,t2.wed,t2.thu];
+
+  if (sc==='take'||sc==='mylessons'){
+    const past = st.takeDate!=='2026-10-01';
+    const teacherView = role==='teacher';
+    const items = [];
+    PERIODS.forEach((pt,p)=>['4-A','4-B'].forEach(cls=>{
+      const k = TT[cls][past?3:4][p];
+      if (teacherView && TEACH[k]!=='h') return;
+      const state = past ? 'done' : p<2 ? (k==='sci'?'hand':'done') : p===2 ? 'now' : 'next';
+      const canOpen = !(past && teacherView) || true;
+      items.push({p:`P${p+1}`, time:pt.split('–')[0], title:`${cls} · ${subj(k)}`, sub:`${roomOf(cls,k)} · ${tName(TEACH[k])}`,
+        state:{done:`12 / 12 · ${t.done}`,hand:`12 / 12 · ${t.byHand}`,now:`9 / 12 · ${t.nowDecides}`,next:`0 / 12 · ${t.notStarted}`}[state],
+        stateColor:{done:'#23683F',hand:'#23683F',now:'#1B2A4E',next:'#666B76'}[state], pct:{done:'100%',hand:'100%',now:'49%',next:'0%'}[state],
+        barColor:state==='now'?'#1B2A4E':'#2E8550', bg:state==='now'?'#F3F4F8':'#FFFFFF',
+        btn: (past&&teacherView)||state==='done'||state==='hand' ? t2.viewBtn : t2.openBtn,
+        btnBg: state==='now'?'#1B2A4E':'#FFFFFF', btnFg: state==='now'?'#fff':'#1A1D24', btnBorder: state==='now'?'0':'1px solid #DEDAD0',
+        open: ()=>set({screen:'roster', rosterRO: past && teacherView})});
+    }));
+    const blocks = [];
+    if (past && teacherView) blocks.push({isNote:true, bg:'#E6E9EE', fg:'#2F3946', glyph:'i', noteTitle:'', text:t2.readOnly});
+    blocks.push({isLessons:true, items});
+    return {title: teacherView?t2.myLessons:t.take, sub: teacherView?t2.takeSubT:t2.takeSubA, actions:[],
+      hasDate: !teacherView, date: st.takeDate, onDate: e=>set({takeDate:e.target.value||'2026-10-01'}),
+      tabs: teacherView ? tabs('takeDate',[['2026-10-01',`${t2.todayTab} · ${ar?'الخميس 1 أكتوبر':'Thu 1 Oct'}`],['2026-09-30',`${t2.yesterday} · ${ar?'الأربعاء 30 سبتمبر':'Wed 30 Sep'}`]]) : null, blocks};
+  }
+
+  if (sc==='students'){
+    const ids = Object.keys(NAMES);
+    const q = st.stuSearch.trim().toLowerCase();
+    const G = [['Mahmoud','محمود'],['Ibrahim','إبراهيم'],['Saleh','صالح'],['Hassan','حسن'],['Youssef','يوسف'],['Ali','علي']];
+    const rows = ids.filter(id=>(st.stuCls==='all'||CLS(id)===st.stuCls)&&(!q||NAMES[id][0].toLowerCase().includes(q)||NAMES[id][1].includes(q))).map((id,i)=>{
+      const [en,a] = NAMES[id];
+      const last = ar ? a.split(' ')[1] : en.split(' ')[1];
+      let parents, pc = '#1A1D24';
+      if (id==='salma') parents = ar?'دينا فاروق (الأم)':'Dina Farouk (mother)';
+      else if (id==='karim') { parents = t2.noParent; pc = '#8A5A00'; }
+      else parents = `${last} ${G[i%6][ar?1:0]} (${ar?'الأب':'father'})`;
+      const idx = ids.indexOf(id);
+      return {cells:[cell(nm(id),{fw:600,fs:'15px',sub:ar?en:a}), cell(`NV-${CLS(id).replace('-','')}-${String((idx%12)+1).padStart(2,'0')}`,{ff:"'IBM Plex Mono'",fs:'13px',color:'#4A4F5A'}), cell(CLS(id)), cell(parents,{color:pc,fw:id==='karim'?600:400})],
+        go: id==='salma' ? ()=>set({screen:'student'}) : undefined, cursor:id==='salma'?'pointer':'default', bg:'transparent'};
+    });
+    const blocks = [];
+    if (st.stuForm && role==='admin') blocks.push({isForm:true, title:t2.addStudent, fields:[field(t.fullName),field(t2.nameAr,{dir:'rtl'}),field(t2.code,{ff:"'IBM Plex Mono'",ph:'NV-4A-13'}),sel(t.cls,[['4-A','4-A'],['4-B','4-B']],'4-A'),field(t2.strapAddr,{ff:"'IBM Plex Mono'",ph:'AC:23:3F:…',dir:'ltr'})],
+      submitLabel:t2.addStudent, submit:e=>{e.preventDefault(); set({stuForm:false}); toastMsg(ar?'تمت إضافة الطالب':'Student added');}, cancel:()=>set({stuForm:false})});
+    blocks.push(table('', [t.name,t2.code,t.cls,t2.parentsCol], 'minmax(0,1.6fr) 120px 70px minmax(0,1.6fr)', rows, '640px'));
+    const actions = role==='admin' ? [act(t2.addStudent,()=>set({stuForm:true}),true), act(t2.importX,()=>set({screen:'import'}))] : [];
+    return {title:role==='admin'?t.studentsParents:t.students, sub:t2.stuSub, actions, hasSearch:true, search:st.stuSearch, onSearch:e=>set({stuSearch:e.target.value}),
+      tabs:tabs('stuCls',[['all',t.allClasses],['4-A','4-A'],['4-B','4-B']]), blocks};
+  }
+
+  if (sc==='import'){
+    const s = st.importStep;
+    const steps = [t2.step1,t2.step2,t2.step3,t2.step4].map((l,i)=>({label:`${i+1} · ${l}`, current:s===i+1?'step':undefined, go:()=>set({importStep:i+1}),
+      bar: i+1<s ? '#2E8550' : i+1===s ? '#1B2A4E' : '#DEDAD0', fg: i+1<=s ? '#1A1D24' : '#666B76', fw: i+1===s ? 600 : 500}));
+    const b = {isSteps:true, steps, drop:'', dropFile:'', checkKpis:null, problems:[], back:null, backLabel:''};
+    if (s===1) Object.assign(b,{stepTitle:t2.s1t, stepText:t2.s1x, nextLabel:t2.s1b, next:()=>set({importStep:2})});
+    if (s===2) Object.assign(b,{stepTitle:t2.s2t, stepText:t2.s2x, drop:t2.s2d, dropFile:t2.s2f, nextLabel:t2.s2b, next:()=>set({importStep:3}), back:()=>set({importStep:1}), backLabel:t2.back});
+    if (s===3) Object.assign(b,{stepTitle:t2.s3t, stepText:t2.s3x, checkKpis:[{l:t2.k_rows,v:'24',c:'#1A1D24'},{l:t2.k_ready,v:'21',c:'#23683F'},{l:t2.k_prob,v:'3',c:'#A3291F'}],
+      problems:[{row:'Row 7',who:ar?'مريم مصطفى':'Mariam Mostafa',what:t2.p1},{row:'Row 12',who:ar?'زياد رمضان':'Ziad Ramadan',what:t2.p2},{row:'Row 19',who:ar?'سلمى جمال':'Salma Gamal',what:t2.p3}],
+      nextLabel:t2.s3b, next:()=>set({importStep:4}), back:()=>set({importStep:2}), backLabel:t2.s3back});
+    if (s===4) Object.assign(b,{stepTitle:t2.s4t, stepText:t2.s4x, nextLabel:t2.s4b, next:()=>set({screen:'students'})});
+    return {title:t2.importX, sub:t2.importSub, actions:[], blocks:[b]};
+  }
+
+  if (sc==='staff'){
+    const S2 = [['hana','Hana Nabil','هناء نبيل','teacher',true],['sherif','Sherif Kamal','شريف كمال','teacher',true],['rasha','Rasha Adly','رشا عدلي','teacher',true],['mona','Mona Said','منى سعيد','admin',true],['tarek','Tarek Aziz','طارق عزيز','teacher',false]];
+    const rows = S2.map(([id,en,a,r,on])=>[cell(ar?a:en,{fw:600,fs:'15px'}), cell(r==='admin'?t.admin:t.teacher), cell(`${en.toLowerCase().replace(' ','.')}@nilevalley.edu.eg`,{color:'#4A4F5A',fs:'13px'}), cell('',{sw:sw('staff-'+id,on)})]);
+    const blocks = [];
+    if (st.staffForm) blocks.push({isForm:true, title:t2.addStaff, fields:[field(t.fullName),field(t2.email,{type:'email',dir:'ltr',ph:'name@nilevalley.edu.eg'}),sel(t2.role,[['teacher',t.teacher],['admin',t.admin]],'teacher')],
+      submitLabel:t2.sendInvite, submit:e=>{e.preventDefault(); set({staffForm:false}); toastMsg(ar?'تم إرسال الدعوة':'Invitation sent');}, cancel:()=>set({staffForm:false})});
+    blocks.push(table('', [t.name,t2.role,t2.email,t2.active], 'minmax(0,1.2fr) minmax(0,1fr) minmax(0,1.6fr) 120px', rows, '640px'));
+    return {title:t.staff, sub:t2.staffSub, actions:[act(t2.addStaff,()=>set({staffForm:true}),true)], blocks};
+  }
+
+  if (sc==='crp'){
+    const editors = [
+      {title:t2.classes, count:'2', ph:t2.newClass, rows:[{a:'4-A',b:`${t2.nStudents(12)} · ${t.r204}`},{a:'4-B',b:`${t2.nStudents(12)} · ${t.r205}`}]},
+      {title:t2.rooms, count:'3', ph:t2.newRoom, rows:[{a:t.r204,b:t2.hears},{a:t.r205,b:t2.hears},{a:t.lab,b:t2.noHear}]},
+      {title:t2.periods, count:'6', ph:t2.newPeriod, rows:PERIODS.map((p,i)=>({a:`${t.period} ${i+1}`,b:p}))},
+      {title:t2.breaks, count:'2', ph:t2.newBreak, rows:[{a:ar?'الفسحة 1':'Break 1',b:'09:30–09:50'},{a:ar?'الفسحة 2':'Break 2',b:'11:20–11:40'}]}
+    ];
+    return {title:t.crp, sub:t2.crpSub, actions:[], blocks:[{isEditors:true, editors},{isNote:true,bg:'#E6E9EE',fg:'#2F3946',glyph:'i',noteTitle:'',text:t2.crpNote}]};
+  }
+
+  if (sc==='timetable'||sc==='mytimetable'){
+    const mine = sc==='mytimetable';
+    const v = mine ? 't:h' : (st.ttView==='4-B' ? '4-B' : '4-A');
+    const kOf = (cls,d,p) => { const key=`${cls}-${d}-${p}`; return key in st.ttEdits ? st.ttEdits[key] : TT[cls][d][p]; };
+    const slot = (cls,d,p) => { const k=kOf(cls,d,p); return k ? {cls,k,teacher:TEACH[k],room:roomKey(cls,k)} : null; };
+    const clashOf = (a,d,p) => { const o = slot(a.cls==='4-A'?'4-B':'4-A',d,p); if(!o) return '';
+      if (o.teacher===a.teacher && o.room===a.room) return t2.clashWith(`${tName(a.teacher)} · ${roomOf(o.cls,o.k)}`, o.cls);
+      if (o.teacher===a.teacher) return t2.clashWith(tName(a.teacher),o.cls);
+      if (o.room===a.room) return t2.clashWith(roomOf(o.cls,o.k),o.cls); return ''; };
+    let nClash = 0;
+    const subjOpts = ['math','arabic','eng','sci','art'].map(k=>({v:k,l:`${subj(k)} · ${tName(TEACH[k])}`}));
+    const grid = PERIODS.map((pt,p)=>({p:`P${p+1}`, time:pt, cells:days.map((_,d)=>{
+      const colBg = d===4 ? '#F3F4F8' : 'transparent';
+      const base = {colBg, filled:false, canAdd:false, picking:false, canRemove:false, subject:'', line2:'', line3:'', clash:'', opts:subjOpts, bg:'#F6F4EF', border:'1px solid #EAE6DD'};
+      let s = null;
+      if (mine) ['4-A','4-B'].forEach(c=>{ const x2=slot(c,d,p); if (x2 && x2.teacher==='h') s = s||x2; });
+      else s = slot(v,d,p);
+      const key = `${v}-${d}-${p}`;
+      if (!s) {
+        if (mine) return base;
+        if (st.ttPick===key) return {...base, picking:true, pick:e=>{ const val=e.target.value; if(!val) return; self.setState(s2=>({ttEdits:{...s2.ttEdits,[key]:val}, ttPick:null})); }};
+        return {...base, canAdd:true, add:()=>set({ttPick:key})};
+      }
+      const clash = mine ? '' : clashOf(s,d,p); if (clash) nClash++;
+      return {...base, filled:true, subject: mine ? `${s.cls} · ${subj(s.k)}` : subj(s.k), line2: roomOf(s.cls,s.k), line3: mine ? '' : tName(s.teacher), clash,
+        canRemove: !mine, remove: ()=>self.setState(s2=>({ttEdits:{...s2.ttEdits,[key]:null}})),
+        bg: clash ? '#FBF0EE' : '#F6F4EF', border: clash ? '1.5px solid #C8432F' : '1px solid #EAE6DD'};
+    })}));
+    const blocks = [];
+    if (nClash) blocks.push({isNote:true,bg:'#F8E3DF',fg:'#7A1E16',glyph:'✕',noteTitle:t2.clashes(nClash),text:t2.clashText});
+    blocks.push({isGrid:true, days:days.map((l,d)=>({label:d===4?`${l} · ${t2.todayTab}`:l, bg:d===4?'#E4E7EF':'#F6F4EF', fg:d===4?'#121D38':'#4A4F5A'})), grid});
+    return {title: mine?t2.myTimetable:t.timetable, sub: mine?t2.ttSubMine:t2.ttSub, actions:[], blocks, tabs: mine ? null : tabs('ttView',[['4-A','4-A'],['4-B','4-B']])};
+  }
+
+  if (sc==='devices'){
+    const tb = tabs('devTab',[['gateways',t2.gateways],['straps',t2.straps],['rules',t2.rules]]);
+    const blocks = []; let actions = [];
+    if (st.devTab==='gateways'){
+      blocks.push({isForm:true, title:t2.claimGw, fields:[field(t2.claimCode,{ff:"'IBM Plex Mono'",ph:'XXX-XXX-XXX',dir:'ltr'}),field(t2.gwName,{ph:ar?'مثال: معمل العلوم':'e.g. Science lab'}),sel(t2.kind,[['room',t2.roomK],['gate',t2.gateK]],'room'),sel(t2.room,[['lab',t.lab],['r204',t.r204],['r205',t.r205]],'lab')],
+        submitLabel:t2.claim, submit:e=>{e.preventDefault(); toastMsg(ar?'تم ربط الجهاز':'Gateway claimed');}});
+      blocks.push(table('', [t2.gwName,t2.kind,t2.room,t2.lastSeen,t2.firmware], 'minmax(0,1.2fr) 90px minmax(0,1fr) 120px 150px', [
+        [cell(t.gate,{fw:600}),cell(t2.gateK),cell('—',{color:'#666B76'}),pill(t2.justNow,'P'),cell('2.4.1',{ff:"'IBM Plex Mono'",fs:'13px'})],
+        [cell(t.r204,{fw:600}),cell(t2.roomK),cell(t.r204),pill(t2.justNow,'P'),cell('2.4.1',{ff:"'IBM Plex Mono'",fs:'13px'})],
+        [cell(t.r205,{fw:600}),cell(t2.roomK),cell(t.r205),pill(t2.justNow,'P'),cell('2.3.0',{ff:"'IBM Plex Mono'",fs:'13px',sub:t2.updateReady,subColor:'#8A5A00'})]
+      ], '680px'));
+      blocks.push({isNote:true,bg:'#F8ECD2',fg:'#5C3D00',glyph:'!',noteTitle:t2.labNoGw,text:t2.labNoGwText});
+    }
+    if (st.devTab==='straps'){
+      const R = [['C4:7A:19:2E:01:B3','layla',86,'10:12'],['C4:7A:19:2E:04:5D','salma',64,'09:47'],['C4:7A:19:2E:07:A0','nour',12,'10:08'],['C4:7A:19:2E:0B:11','ali',71,null],['C4:7A:19:2E:0C:9F','karim',58,'—'],['C4:7A:19:2E:12:3C','mostafa',77,'10:01']];
+      blocks.push(table('', [t2.address,t2.student,t2.battery,t2.lastSeen], '200px minmax(0,1.4fr) 120px minmax(0,1fr)', R.map(([a,id,b,ls])=>[
+        cell(a,{ff:"'IBM Plex Mono'",fs:'13px'}), cell(nm(id),{fw:600,sub:CLS(id)}), b<20 ? cell('',{pill:`${b}% · ${t2.low}`,pillBg:S.L.bg,pillFg:S.L.fg}) : cell(`${b}%`),
+        cell(ls===null?t2.notWorn:ls==='—'?t.notHeard:ls,{color:ls&&ls!=='—'?'#1A1D24':'#4A4F5A'})]), '640px'));
+    }
+    if (st.devTab==='rules'){
+      const R = st.rules, num = k => e => { const val = e.target.value; self.setState(s=>({rules:{...s.rules,[k]:val}})); };
+      blocks.push({isSettings:true, rows:[
+        {label:t2.r1,help:t2.r1h,num:R.r1,onNum:num('r1'),unit:t2.min},{label:t2.r2,help:t2.r2h,num:R.r2,onNum:num('r2'),unit:t2.min},
+        {label:t2.r3,help:t2.r3h,num:R.r3,onNum:num('r3'),unit:t2.pct},{label:t2.r4,help:t2.r4h,num:R.r4,onNum:num('r4'),unit:t2.min}]});
+      actions = [act(t2.saveRules,()=>toastMsg(ar?'تم حفظ القواعد':'Rules saved'),true)];
+    }
+    return {title:t.devices, sub:t2.devSub, actions, tabs:tb, blocks};
+  }
+
+  if (sc==='modules'){
+    const mode = st.modeOverride || self.props.mode || 'automatic';
+    const dayKeys = ['sat','sun','mon','tue','wed','thu','fri'];
+    return {title:t.modules, sub:t2.modSub, actions:[], blocks:[{isSettings:true, rows:[
+      {label:t2.autoAtt, help:straps?t2.autoAttH1:t2.autoAttH0, pill:straps?`✓ ${t2.inSub}`:`– ${t2.notInSub}`, pillBg:straps?S.P.bg:S.E.bg, pillFg:straps?S.P.fg:S.E.fg},
+      {label:t2.days, help:t2.daysH, chips:dayKeys.map((k,i)=>{ const on = st.days[k]; return {label:t2.sd[i],on:on?'true':'false',bg:on?'#E4E7EF':'#FFFFFF',fg:on?'#121D38':'#4A4F5A',border:on?'1.5px solid #1B2A4E':'1px solid #DEDAD0',toggle:()=>self.setState(s=>({days:{...s.days,[k]:!on}}))}; })},
+      {label:t2.absTime, help:t2.absTimeH, time:st.absTime, onTime:e=>set({absTime:e.target.value})}
+    ]},{isSettings:true, title:ar?'الخصائص':'Features', rows:[
+      ...(straps?[{label:t2.f1,help:t2.f1h,sw:sw('f1',true)}]:[]),{label:t2.f2,help:t2.f2h,sw:sw('f2',true)},...(straps?[{label:t2.f3,help:t2.f3h,sw:sw('f3',true)}]:[]),...(straps?[{label:t2.f4,help:t2.f4h,sw:sw('f4',true)}]:[]),{label:t2.f5,help:t2.f5h,sw:sw('f5',true)}
+    ]}]};
+  }
+
+  if (sc==='audit'){
+    const A = [['10:12',t.teacherName,'a1','att'],['10:00',t2.system,'a2','msg'],['09:16',ar?'مس منى سعيد':'Ms. Mona Said','a3','att'],['08:41',ar?'مستر شريف كمال':'Mr. Sherif Kamal','a4','att'],['08:30',t2.system,'a5','msg'],['07:31',ar?'مس منى سعيد':'Ms. Mona Said','a6','set'],[`${t2.yesterday} 15:02`,ar?'مس منى سعيد':'Ms. Mona Said','a7','set']];
+    const f = st.auditTab;
+    return {title:t.audit, sub:t2.auditSub, actions:[], tabs:tabs('auditTab',[['all',t2.all],['att',t2.attendance],['set',t2.setup],['msg',t2.messages]]),
+      blocks:[table('', [t2.when,t2.who,t2.what], '140px minmax(0,1fr) minmax(0,3fr)', A.filter(a=>f==='all'||a[3]===f).map(([w,who,k])=>[cell(w,{color:'#4A4F5A'}),cell(who,{fw:600}),cell(t2[k])]), '640px')]};
+  }
+
+  if (sc==='schools'){
+    const SC = [['nv','Nile Valley Language School (demo)','مدرسة وادي النيل للغات (تجريبي)',t2.cairo,24,'Smart',[1,1,1,1]],['hi','Heliopolis International School','مدرسة هليوبوليس الدولية',t2.cairo,640,'Complete',[1,1,1,1]],['mb','Maadi British Academy','أكاديمية المعادي البريطانية',t2.giza,410,'Essentials',[0,0,1,1]]];
+    const planK = {Essentials:'E',Smart:'P',Complete:'T'};
+    const sf = st.schoolForm ? [{isForm:true, title:t2.createSchool, fields:[field(t2.schoolName),field(t2.city,{ph:t2.cairo}),sel(t2.plan,[['Essentials','Essentials'],['Smart','Smart'],['Complete','Complete']],'Smart'),field(t2.firstAdmin),field(t2.firstAdminEmail,{type:'email',dir:'ltr',ph:'admin@school.edu.eg',help:t2.firstAdminHelp})],
+      submitLabel:t2.createSchoolBtn, submit:e=>{e.preventDefault(); set({schoolForm:false}); toastMsg(ar?'تم إنشاء المدرسة وإرسال الدعوة':'School created · invitation sent');}, cancel:()=>set({schoolForm:false})}] : [];
+    return {title:t2.schools, sub:t2.schoolsSub, actions:[act(t2.createSchool,()=>set({schoolForm:true}),true)], blocks:[...sf, table('', [t2.school,t2.plan,t2.strapsCol,t2.m2,t2.m3,t2.m4], 'minmax(0,2fr) 120px 150px repeat(3,110px)',
+      SC.map(([id,en,a,city,n,plan,m])=>[cell(ar?a:en,{fw:600,fs:'15px',sub:`${city} · ${t2.nStudents(n)}`}), cell('',{pill:plan,pillBg:S[planK[plan]].bg,pillFg:S[planK[plan]].fg,btns:null}),
+        ...m.map((on,i)=>cell('',{sw:sw(`${id}-m${i}`,!!on)}))]), '860px')]};
+  }
+
+  if (sc==='ogateways'){
+    const secrets = ['gws_7Kq2-9fMx-Lr4T-0bVn-Ee81','gws_Q3vB-p8Zt-1nHd-W6cY-a2Rm','gws_m9Xe-T4kL-7sQp-Jw0F-u5Dz'];
+    return {title:t2.gateways, sub:t2.gwOwnerSub, actions:[], blocks:[
+      {isForm:true, title:t2.register, fields:[field(t2.serial,{ff:"'IBM Plex Mono'",ph:'NVG-2026-00000',dir:'ltr'}),sel(t2.school,[['nv',ar?'مدرسة وادي النيل للغات':'Nile Valley Language School'],['hi','Heliopolis International'],['mb','Maadi British Academy']],'nv')],
+        submitLabel:t2.register, submit:e=>{e.preventDefault(); toastMsg(ar?'تم تسجيل الجهاز':'Gateway registered');}},
+      {isSecret:true, title:t2.newGw, serial:'NVG-2026-00418', claim:'K7Q-4MF-2XD', secret:secrets[st.secretN%3], newSecret:()=>self.setState(s=>({secretN:s.secretN+1}))},
+      table('', [t2.serial,t2.school,t2.status,t2.claimCode,''], '170px minmax(0,1.4fr) 150px 130px 130px', [
+        ['NVG-2026-00412',ar?'مدرسة وادي النيل للغات':'Nile Valley Language School','claimed','R2P-8LS-6WA'],['NVG-2026-00413',ar?'مدرسة وادي النيل للغات':'Nile Valley Language School','claimed','J4C-1TN-9QE'],
+        ['NVG-2026-00414',ar?'مدرسة وادي النيل للغات':'Nile Valley Language School','claimed','B8V-5YH-3KU'],['NVG-2026-00418',ar?'مدرسة وادي النيل للغات':'Nile Valley Language School','waiting','K7Q-4MF-2XD']
+      ].map(([s,sch,stt,code])=>[cell(s,{ff:"'IBM Plex Mono'",fs:'13px'}),cell(sch),stt==='claimed'?pill(t2.claimed,'P'):pill(t2.waiting,'L'),cell(code,{ff:"'IBM Plex Mono'",fs:'13px'}),cell('',{btns:[{label:t2.newSecret,go:()=>self.setState(s2=>({secretN:s2.secretN+1})),bd:'#DEDAD0',fg:'#1A1D24'}]})]), '760px')
+    ]};
+  }
+  return null;
+}
+
+const AR_RE = /[\u0600-\u06FF]/, LAT_RE = /\+?[A-Za-z0-9][A-Za-z0-9:\-–%.\/ ]*[A-Za-z0-9%]|[A-Za-z0-9]/g;
+const SKIP = new Set(['search','pName','pPhone','note','reason','v','dir','lang','value','num','cols','minW','date','pEmail','pCode']);
+const LAT_ONLY = /^[A-Za-z0-9:. ]*\d[A-Za-z0-9:. ]*[-–][A-Za-z0-9:. ]+$/;
+const iso = s => AR_RE.test(s) ? s.replace(LAT_RE, m => '\u2066'+m+'\u2069') : (LAT_ONLY.test(s) ? '\u2066'+s+'\u2069' : s);
+const bidi = (o,k) => {
+  if (typeof o === 'string') return SKIP.has(k) ? o : iso(o);
+  if (Array.isArray(o)) return o.map(x=>bidi(x));
+  if (o && typeof o === 'object' && !o.$$typeof) { const r={}; for (const key in o) r[key]=bidi(o[key],key); return r; }
+  return o;
+};
+class Component extends DCLogic {
+  state = {
+    screen:'myclass', lang:null, tick:0,
+    marks:{}, reasons:{}, saved:null, savedBy:{}, touched:false, msgRead:{},
+    toast:null, prevSaved:null,
+    search:'', cls:'all', excTab:'open', resolving:null, notes:{}, resolved:{},
+    parents:[{id:'m',name:['Dina Farouk','دينا فاروق'],rel:'mother',email:'dina.farouk@gmail.com',phone:'+20 100 555 0192',signedUp:true,checked:true,restricted:false}],
+    pEmail:'', pCode:'+20', pChecked:false, pErr:false, rosterRO:false, ttEdits:{}, ttPick:null, takeDate:'2026-10-01', schoolForm:false,
+    pName:'', pRel:'father', pPhone:'',
+    takeDay:'today', stuSearch:'', stuCls:'all', stuForm:false, staffForm:false, importStep:3, ttView:'4-A', devTab:'gateways',
+    rules:{r1:'2',r2:'10',r3:'60',r4:'10'}, sw:{}, days:{sat:false,sun:true,mon:true,tue:true,wed:true,thu:true,fri:false}, absTime:'08:30',
+    modeOverride:null, auditTab:'all', secretN:0
+  };
+  componentDidMount(){ this.iv = setInterval(()=>this.setState(s=>({tick:s.tick+1})),1000); }
+  componentWillUnmount(){ clearInterval(this.iv); clearTimeout(this.tt); }
+  initialMarks(){ const m={}; ROSTER.forEach(r=>{ m[r.id] = (r.live==='out'||r.live==='notheard')?'A':'P'; }); return m; }
+
+  renderVals(){
+    const lang = this.state.lang || this.props.lang || 'en';
+    const t = T[lang], L = LETTERS[lang];
+    const nm = id => NAMES[id][lang==='ar'?1:0];
+    const role = this.props.role || 'teacher';
+    const straps = this.props.straps ?? true;
+    const manual = !straps;
+    const t2 = T2[lang];
+    const hasLesson = this.props.lessonNow ?? true;
+    const allowed = {
+      teacher:['myclass'],
+      admin:['today','take','roster','exceptions', ...(straps?['where']:[]),'students','student','import','staff','timetable','crp', ...(straps?['devices']:[]),'modules','audit'],
+      owner:['schools','ogateways']}[role];
+    let sc = this.state.screen;
+    if (!allowed.includes(sc)) sc = allowed[0];
+    const go = s => () => this.setState({screen:s, resolving:null, rosterRO:false});
+
+    const preset = {}; ROSTER.forEach(r=>{ preset[r.id] = straps && r.live!=='in' ? 'A' : 'P'; });
+    const saved = this.state.saved || preset;
+    const demo = (this.props.demoTap && !straps && !this.state.touched) ? {karim:'A'} : {};
+    const marks = {...saved, ...demo, ...this.state.marks};
+    const savedBy = this.state.savedBy;
+    const changed = ROSTER.filter(r => marks[r.id]!==saved[r.id]).map(r=>r.id);
+    const EXCR = EXC.filter(e=>e.straps===straps);
+    const openExc = EXCR.filter(e=>!this.state.resolved[e.id]);
+
+    const navItem = (k,label,count) => {
+      const on = sc===k || (k==='students'&&sc==='student') || (k==='take'&&sc==='roster');
+      return {label, go:go(k), current:on?'page':undefined, bg:on?'rgba(255,255,255,.10)':'transparent', ring:on?'inset 0 0 0 1px rgba(201,167,90,.6)':'none', weight:on?600:400, dot:on?'#C9A75A':'transparent', count:count||0};
+    };
+    const navGroups = {
+      teacher: [],
+      admin: [
+        {label:t2.overview, items:[navItem('today',t.today)]},
+        {label:t2.attendanceGrp, items:[navItem('take',t.take), navItem('exceptions',t.exceptions,openExc.length), ...(straps?[navItem('where',t.where)]:[])]},
+        {label:t2.people, items:[navItem('students',t.studentsParents), navItem('import',t.importX), navItem('staff',t.staff)]},
+        {label:t2.schoolSetup, items:[navItem('timetable',t.timetable), navItem('crp',t.crp), ...(straps?[navItem('devices',t.devices)]:[]), navItem('modules',t.modules), navItem('audit',t.audit)]}],
+      owner: [{label:t2.platform, items:[navItem('schools',t2.schools), navItem('ogateways',t2.gateways)]}]
+    }[role];
+
+    const age15 = this.state.tick % 15, age10 = this.state.tick % 10;
+    const upd = a => a<3 ? t.justNow : t.ago(a);
+    const reasonOpts = [];
+    const rLabel = k => k ? t['r_'+k] : '';
+
+    const LIVE = {
+      in:{color:'#23683F',fill:'#2E8550',line:'solid',dc:'#2E8550'},
+      out:{color:'#A3291F',fill:'transparent',line:'solid',dc:'#C8432F'},
+      nostrap:{color:'#4A4F5A',fill:'transparent',line:'dashed',dc:'#666B76'},
+      notheard:{color:'#4A4F5A',fill:'#EAE6DD',line:'solid',dc:'#B5B1A6'}
+    };
+    const mkRow = r => {
+      const m = marks[r.id], isChanged = changed.includes(r.id), lv = LIVE[r.live];
+      const line = !straps ? '' : {in:t.inRoom, out:`${t.notInRoom} · ${t.lastHeardL} ${t.gate}, 07:42 · ${t.toldL} 10:00`, nostrap:t.noStrap, notheard:t.strapNotHeard}[r.live];
+      const note = isChanged ? t.unsaved : (savedBy[r.id] ? `${t.savedByL} ${savedBy[r.id].by}` : '');
+      return { name:nm(r.id), line, lineColor:lv.color, dotFill:lv.fill, dotLine:lv.line, dotColor:lv.dc,
+        note, noteColor: isChanged ? '#8A5A00' : '#23683F',
+        rowBg: m==='A' ? '#FBEDEA' : (isChanged ? '#FDF8EC' : '#FFFFFF'),
+        buttons:['P','L','A','E'].map(k=>{ const on=m===k; return {label:t[k], glyph:S[k].glyph, glyphOp:on?1:.55, on:on?'true':'false',
+          border:on?`2px solid ${S[k].fg}`:'1px solid #CFCABF', bg:on?S[k].bg:'#FFFFFF', fg:on?S[k].fg:'#3A3F4A', weight:on?700:500,
+          pick:()=>this.setState(s=>({touched:true, marks:{...s.marks,...demo,[r.id]:k}}))}; }) };
+    };
+    const ordered = [...ROSTER].sort((a,b)=>(preset[a.id]==='A'?0:1)-(preset[b.id]==='A'?0:1));
+    const rosterRows = ordered.map(mkRow);
+    const inR = ROSTER.filter(r=>r.live==='in');
+    const cntM = k => ROSTER.filter(r=>marks[r.id]===k).length;
+    const summary = [[t.cntP,cntM('P')],[t.cntL,cntM('L')],[t.cntA,cntM('A')],[t.cntE,cntM('E')]].filter(([f,v],i)=>i===0||v>0).map(([f,v])=>f(v)).join(' · ');
+    const n = changed.length;
+    const save = () => {
+      if(!n) return;
+      const sb = {...savedBy}; changed.forEach(id=>{ sb[id]={s:marks[id],by:me.name}; });
+      const prev = {saved, savedBy};
+      this.setState({saved:{...marks}, marks:{}, touched:true, savedBy:sb, toast:t.saved(n), prevSaved:prev});
+      clearTimeout(this.tt); this.tt = setTimeout(()=>this.setState({toast:null}),5000);
+    };
+    const undo = () => { const p=this.state.prevSaved; if(p) this.setState({saved:p.saved,savedBy:p.savedBy,marks:{},toast:null,prevSaved:null}); };
+    const markRestPresent = () => {};
+
+    const segs = [['P1','08:00',45,'done'],['P2','08:45',45,'done'],['br','09:30',20,'break'],['P3','09:50',45,'now'],['P4','10:35',45,'next'],['br','11:20',20,'break'],['P5','11:40',45,'next'],['P6','12:25',45,'next']];
+    const ruler = segs.map(([p,tm,f,st])=>({flex:f, h:st==='now'?14:6, bg:st==='now'?'#1B2A4E':st==='done'?'#CFCABF':st==='break'?'transparent':'#E6E2D8', isNow:st==='now',
+      label: st==='break' ? '' : `${tm}`, labelColor: st==='now'?'#1A1D24':'#666B76', labelWeight: st==='now'?600:400}));
+
+    // WHERE
+    const q = this.state.search.trim().toLowerCase();
+    const pass = id => (this.state.cls==='all' || CLS(id)===this.state.cls) && (!q || NAMES[id][0].toLowerCase().includes(q) || NAMES[id][1].includes(q));
+    const ids = Object.keys(WHERE).filter(pass);
+    const chip = (id,extra,extraColor,stale) => ({name:nm(id),extra:extra||'',extraColor:extraColor||'#4A4F5A',bg:stale?'#FFFFFF':'#F6F4EF',line:stale?'dashed':'solid',border:stale?'#B5B1A6':'#EAE6DD'});
+    const inPlace = p => ids.filter(id=>WHERE[id][0]===p);
+    const roomChips = p => inPlace(p).map(id=>{ const m=WHERE[id][1]; return m>=3 ? chip(id,t.minAgo(m),m>=10?'#A3291F':'#8A5A00',true) : chip(id); });
+    const places = [
+      {name:t.r204, meta:`${t.r204meta} · ${inPlace('r204').length}`, chips:roomChips('r204'), note:'', borderStyle:'solid'},
+      {name:t.r205, meta:`${t.r205meta} · ${inPlace('r205').length}`, chips:roomChips('r205'), note:'', borderStyle:'solid'},
+      {name:t.gate, meta:inPlace('gate').length?String(inPlace('gate').length):'', chips:inPlace('gate').map(id=>chip(id,t.sinceAgo(WHERE[id][2],WHERE[id][1]),'#A3291F',true)), note:inPlace('gate').length?'':t.gateMeta, borderStyle:'solid'},
+      {name:t.lab, meta:'', chips:[], note:t.labNote, borderStyle:'dashed'},
+      {name:t.wentOut, meta:String(inPlace('out').length), chips:inPlace('out').map(id=>chip(id,WHERE[id][2],'#4A4F5A')), note:'', borderStyle:'solid'},
+      {name:t.gone, meta:String(inPlace('gone').length), chips:inPlace('gone').map(id=>chip(id,WHERE[id][2],'#4A4F5A')), note:'', borderStyle:'solid'},
+      {name:t.notHeardP, meta:String(ids.filter(id=>['notheard','nostrap'].includes(WHERE[id][0])).length), chips:ids.filter(id=>['notheard','nostrap'].includes(WHERE[id][0])).map(id=>chip(id,WHERE[id][0]==='nostrap'?t.noStrapTag:'','#4A4F5A')), note:'', borderStyle:'solid'}
+    ];
+    const cnt = f => ids.filter(f).length;
+    const whereKpis = [
+      {label:t.k_fresh, value:cnt(id=>['r204','r205'].includes(WHERE[id][0])&&WHERE[id][1]<10), color:'#1A1D24'},
+      {label:t.k_stale, value:cnt(id=>['r204','r205','gate'].includes(WHERE[id][0])&&WHERE[id][1]>=10), color:'#A3291F'},
+      {label:t.k_out, value:cnt(id=>['out','gone'].includes(WHERE[id][0])), color:'#1A1D24'},
+      {label:t.k_none, value:cnt(id=>['notheard','nostrap'].includes(WHERE[id][0])), color:'#4A4F5A'}
+    ];
+    const needsLook = ids.filter(id=>['r204','r205','gate'].includes(WHERE[id][0])&&WHERE[id][1]>=10).map(id=>({
+      name:nm(id), cls:CLS(id), last:t.sinceAgo(WHERE[id][2],WHERE[id][1]), where:t[WHERE[id][0]==='gate'?'gate':WHERE[id][0]],
+      open:()=>this.setState({screen:'student'})
+    }));
+    const classTabs = [['all',t.allClasses],['4-A','4-A'],['4-B','4-B']].map(([v,l])=>({label:l,on:this.state.cls===v?'true':'false',bg:this.state.cls===v?'#FFFFFF':'transparent',pick:()=>this.setState({cls:v})}));
+
+    // EXCEPTIONS
+    const excItem = e => {
+      const tone = S[KIND[e.kind]];
+      const res = this.state.resolved[e.id];
+      return { tag:t['tag_'+e.kind], tagBg:tone.bg, tagFg:tone.fg, time:e.time, text:e[lang],
+        canOpen:e.stu==='salma', open:()=>this.setState({screen:'student'}),
+        canResolve:!res && this.state.resolving!==e.id, resolving:this.state.resolving===e.id,
+        startResolve:()=>this.setState({resolving:e.id}),
+        note:this.state.notes[e.id]||'', onNote:ev=>{ const v=ev.target.value; this.setState(s=>({notes:{...s.notes,[e.id]:v}})); },
+        confirm:()=>this.setState(s=>({resolved:{...s.resolved,[e.id]:true},resolving:null,toast:lang==='ar'?'تمت المعالجة':'Marked resolved'})),
+        resolvedNote: res ? t.resolvedBy(0,this.state.notes[e.id]||'') : '' };
+    };
+    const resolvedList = EXCR.filter(e=>this.state.resolved[e.id]);
+    const excList = (this.state.excTab==='open'?openExc:resolvedList).map(excItem);
+    const excTabs = [['open',t.openN(openExc.length)],['resolved',t.resolvedN(resolvedList.length)]].map(([v,l])=>({label:l,on:this.state.excTab===v?'true':'false',bg:this.state.excTab===v?'#FFFFFF':'transparent',pick:()=>this.setState({excTab:v,resolving:null})}));
+
+    // TODAY
+    const msgDefs = [{id:1,text:t2.msg1,meta:t2.msg1m},{id:2,text:t2.msg2,meta:t2.msg2m}];
+    const msgs = msgDefs.map(m=>{ const r=this.state.msgRead[m.id]; return {...m, unread:!r, weight:r?400:600, bg:r?'#FFFFFF':'#F3F4F8', dot:r?'transparent':'#1B2A4E', read:()=>this.setState(s=>({msgRead:{...s.msgRead,[m.id]:true}}))}; });
+    const msgUnread = msgs.some(m=>m.unread);
+    const todayKpis = [
+      {label:t.tk_students, value:'24', sub:straps?t.tk_gate(22):(lang==='ar'?'فصلان':'2 classes'), color:'#1A1D24'},
+      {label:t.tk_present, value:'20', sub:t.tk_presentSub, color:'#23683F'},
+      {label:t.tk_absent, value:'3', sub:t.tk_absentSub, color:'#A3291F'},
+      {label:t.tk_att, value:String(openExc.length), sub:t.tk_attSub, color:'#8A5A00'}
+    ];
+    const subj = {en:{math:'Math',eng:'English',ar:'Arabic',sci:'Science'},ar:{math:'رياضيات',eng:'إنجليزي',ar:'لغة عربية',sci:'علوم'}}[lang];
+    const tch = {s:lang==='ar'?'مستر شريف كمال':'Mr. Sherif Kamal', h:t.teacherName};
+    const L1 = [
+      ['1','08:00','4-A',subj.eng,t.r204,tch.s,'done'],['1','08:00','4-B',subj.math,t.r205,tch.h,'done'],
+      ['2','08:45','4-A',subj.ar,t.r204,tch.h,'done'],['2','08:45','4-B',subj.sci,t.lab,tch.s,'hand'],
+      ['3','09:50','4-A',subj.math,t.r204,tch.h,'now'],['3','09:50','4-B',subj.eng,t.r205,tch.s,'now'],
+      ['4','10:35','4-A',subj.eng,t.r204,tch.s,'next'],['4','10:35','4-B',subj.math,t.r205,tch.h,'next']
+    ];
+    const lessons = L1.map(([p,tm,c,s,room,te,st])=>({p:`P${p}`,time:tm,title:`${c} · ${s}`,sub:`${room} · ${te}`,
+      state:{done:`${t.done} · 12/12`,hand:`${t.byHand} · 12/12`,now:straps?t2.nowStraps:t2.nowNoStraps,next:t.notStarted}[st],
+      stateColor:{done:'#23683F',hand:'#23683F',now:'#1B2A4E',next:'#666B76'}[st],
+      pct:{done:'100%',hand:'100%',now:'49%',next:'0%'}[st], barColor:st==='now'?'#1B2A4E':'#2E8550', bg:st==='now'?'#F3F4F8':'#FFFFFF'}));
+    const statusHeads = ['P','L','A','E','T'].map(k=>({label:t[k],glyph:S[k].glyph,fg:S[k].fg}));
+    const BP = [['1','08:00–08:45',[22,1,1,0,0]],['2','08:45–09:30',[22,0,1,1,0]],['3','09:50–10:35',[20,0,3,1,0],true],['4','10:35–11:20'],['5','11:40–12:25'],['6','12:25–13:10']];
+    const byPeriod = BP.map(([p,tm,v,live])=>({p:`${t.period} ${p}${live?' · '+t.inProgress:''}`,time:tm,ink:v?'#1A1D24':'#666B76',
+      cells: v ? v.map(String) : ['—','—','—','—','—'],
+      bar: v ? ['P','L','A','E','T'].map((k,i)=>({n:v[i],c:S[k].fg})).filter(b=>b.n>0) : []}));
+
+    // STUDENT
+    const stu = {name:nm('salma'), alt:lang==='ar'?'Salma Gamal':'سلمى جمال'};
+    const stuTimeline = [
+      {time:'07:42–07:42',place:t.gate,dot:'#1B2A4E',fill:'#1B2A4E',ink:'#1A1D24',lineColor:'#DEDAD0'},
+      {time:'07:44–09:31',place:t.r204,note:lang==='ar'?'الحصتان 1 و 2':'Periods 1 and 2',dot:'#2E8550',fill:'#2E8550',ink:'#1A1D24',lineColor:'#DEDAD0'},
+      {time:'09:33–09:47',place:t.gate,note:lang==='ar'?'الفسحة':'Break',dot:'#1B2A4E',fill:'#1B2A4E',ink:'#1A1D24',lineColor:'#DEDAD0'},
+      {time:'09:50–',place:t.r204,note:lang==='ar'?'رياضيات · الحصة 3 · الآن':'Math · period 3 · now',dot:'#2E8550',fill:'#2E8550',ink:'#1A1D24',lineColor:'transparent'}
+    ];
+    const H = [
+      [lang==='ar'?'اليوم':'Today','3',subj.math,'P',straps?'strap':'manual:'],[lang==='ar'?'اليوم':'Today','2',subj.ar,'P','strap'],[lang==='ar'?'اليوم':'Today','1',subj.eng,'P','strap'],
+      ['30/09','1–6','','P','strap'],['29/09','1',subj.eng,'L','strap'],['29/09','2–6','','P','strap'],
+      ['28/09','1–6','','P','manual:forgot'],['27/09','4',subj.sci,'E','manual:appt'],['24/09','1–6','','P','strap'],['23/09','1–6','','T','manual:trip']
+    ];
+    const stuHistory = H.map(([d,p,s,k,how])=>({date:d,period:`${t.period} ${p}${s?' · '+s:''}`,status:t[k],bg:S[k].bg,fg:S[k].fg,glyph:S[k].glyph,
+      how: how==='strap'?t.strapHow : how==='pending'?t.pending : (how.split(':')[1] ? t.manualHow(rLabel(how.split(':')[1])) : (lang==='ar'?'يدوي':'Manual'))}));
+    const parents = this.state.parents.map(p=>{
+      const tg = [p.signedUp?['signedUp','P','✓']:['notSignedUp','E','–'], p.checked?['mobileChecked','P','✓']:['mobileNotChecked','L','!']];
+      if (p.restricted) tg.push(['restrictedTag','L','!']);
+      const upd = o => this.setState(s=>({parents:s.parents.map(x=>x.id===p.id?{...x,...o}:x)}));
+      return {name:p.name[lang==='ar'?1:0], rel:t[p.rel], email:p.email, phone:p.phone,
+        tags: tg.map(([k,c,g])=>({label:`${g} ${t2[k]}`, bg:S[c].bg, fg:S[c].fg})),
+        canCheck: false, markChecked: ()=>upd({checked:true}),
+        restrictLabel: p.restricted?t.unrestrict:t.restrict, toggleRestrict: ()=>upd({restricted:!p.restricted}),
+        remove: ()=>this.setState(s=>({parents:s.parents.filter(x=>x.id!==p.id)}))};
+    });
+    const addParent = e => { e.preventDefault(); const s=this.state;
+      if (!s.pEmail.trim() || !s.pEmail.includes('@')) { this.setState({pErr:true}); return; }
+      this.setState({parents:[...s.parents,{id:String(Date.now()),name:[s.pName||s.pEmail,s.pName||s.pEmail],rel:s.pRel,email:s.pEmail.trim(),phone:s.pPhone?`${s.pCode} ${s.pPhone}`:'—',signedUp:false,checked:false,restricted:false}],pName:'',pPhone:'',pEmail:'',pChecked:false,pErr:false}); };
+    const gen = buildGen(this, {lang, t, t2, nm, S, go, sc, role, straps});
+    const me = role==='owner' ? {name:lang==='ar'?'محمود صابر':'Mahmoud Saber', initials:lang==='ar'?'مص':'MS', role:t2.owner}
+      : role==='admin' ? {name:lang==='ar'?'مس منى سعيد':'Ms. Mona Said', initials:lang==='ar'?'مس':'MS', role:t.admin}
+      : {name:t.teacherName, initials:t.initials, role:t.teacher};
+
+    const out = {
+      t, lang, dir: lang==='ar'?'rtl':'ltr',
+      navGroups, me, t2, gen: gen || {title:'',sub:'',actions:[],blocks:[]}, isGen: !!gen, isRoster: sc==='roster',
+      setEn:()=>this.setState({lang:'en'}), setAr:()=>this.setState({lang:'ar'}),
+      enBg: lang==='en'?'#FFFFFF':'transparent', arBg: lang==='ar'?'#FFFFFF':'transparent', sbEnBg: lang==='en'?'#F6F4EF':'transparent', sbArBg: lang==='ar'?'#F6F4EF':'transparent', sbEnFg: lang==='en'?'#1B2A4E':'#F3EFE6', sbArFg: lang==='ar'?'#1B2A4E':'#F3EFE6',
+      strapsLabel: straps?t2.withStraps:t2.noStraps, hasStraps: straps, isTeacher: role==='teacher', hasSidebar: role!=='teacher', gridCols: role==='teacher'?'minmax(0,1fr)':'248px minmax(0,1fr)', toastStart: role==='teacher'?'40px':'calc(248px + 40px)',
+      rosterRows, summary, msgs, msgUnread, markAllRead:()=>this.setState({msgRead:{1:true,2:true}}),
+      isMyClass: sc==='myclass'||sc==='roster', hasLesson: hasLesson||sc==='roster', noLesson: !hasLesson&&sc!=='roster', goTake:go(role==='teacher'?'mylessons':'take'),
+      isWhere: sc==='where', isToday: sc==='today', isExceptions: sc==='exceptions', isStudent: sc==='student',
+
+      updated15: upd(age15), updated10: upd(age10),
+      ruler, summarySub: straps?t.subStraps:t.subNoStraps,
+      reasonOpts, markRestPresent,
+      save, undo, saveDisabled: n===0, saveLabel: n?t.saveP(n):`✓ ${t.savedL}`, saveHint: '',
+      saveBg: n?'#1B2A4E':'#EEEBE3', saveFg: n?'#FFFFFF':'#4A4F5A', saveBorder: n?'0':'1px solid #DEDAD0', saveCursor: n?'pointer':'default',
+      toast: this.state.toast,
+      search:this.state.search, onSearch:e=>this.setState({search:e.target.value}), classTabs, whereKpis, needsLook, needsLookEmpty: needsLook.length===0, places,
+      todayKpis, lessons, topExc: openExc.slice(0,3).map(excItem), seeAllExc: t.seeAll(openExc.length), goExceptions: go('exceptions'), statusHeads, byPeriod,
+      excTabs, excList, excEmpty: excList.length===0, cancelResolve:()=>this.setState({resolving:null}),
+      stu, stuTimeline, stuHistory, parents, canAddParent: role==='admin' && this.state.parents.length<2, parentsFull: role==='admin' && this.state.parents.length>=2, canEditParents: role==='admin',
+      pName:this.state.pName, pPhone:this.state.pPhone, pRel:this.state.pRel, pEmail:this.state.pEmail, pCode:this.state.pCode, pChecked:this.state.pChecked, pErr:this.state.pErr, pEmailBd:this.state.pErr?'#A3291F':'#DEDAD0',
+      onPEmail:e=>this.setState({pEmail:e.target.value,pErr:false}), onPCode:e=>this.setState({pCode:e.target.value}), onPChecked:e=>this.setState({pChecked:e.target.checked}),
+      rosterRO: sc==='roster' && this.state.rosterRO, rosterPE: sc==='roster'&&this.state.rosterRO?'none':'auto', rosterOp: sc==='roster'&&this.state.rosterRO?'.72':'1', showSave: !(sc==='roster'&&this.state.rosterRO),
+      crumbBack: role==='teacher'?t2.myLessons:t.take,
+      onPName:e=>this.setState({pName:e.target.value}), onPPhone:e=>this.setState({pPhone:e.target.value}), onPRel:e=>this.setState({pRel:e.target.value}),
+      relOpts:[{v:'father',l:t.father},{v:'mother',l:t.mother}], addParent
+    };
+    return lang==='ar' ? bidi(out) : out;
+  }
+}
+</script>
+</body>
+</html>

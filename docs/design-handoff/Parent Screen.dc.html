@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=Noto+Naskh+Arabic:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>body{margin:0}button,input{font:inherit;color:inherit}*:focus-visible{outline:2px solid #1B2A4E;outline-offset:2px}*::-webkit-scrollbar{display:none}</style>
+</helmet>
+<div dir="{{ dir }}" style="width:360px;height:760px;box-sizing:border-box;background:{{ c.bg }};color:{{ c.ink }};font-family:'IBM Plex Sans','IBM Plex Sans Arabic',sans-serif;display:flex;flex-direction:column;overflow:hidden;border-radius:28px;border:1px solid {{ c.line }};position:relative">
+  <div style="height:28px;display:flex;justify-content:space-between;align-items:center;padding:0 22px;font-size:12px;font-weight:600;color:{{ c.ink2 }};direction:ltr;flex:none"><span>10:12</span><span style="display:flex;gap:4px;align-items:center"><span style="width:14px;height:8px;border:1.5px solid {{ c.ink2 }};border-radius:2px"></span></span></div>
+
+  <sc-if value="{{ isDay }}" hint-placeholder-val="{{ true }}">
+    <div style="flex:1;overflow:auto;scrollbar-width:none;display:flex;flex-direction:column;gap:14px;padding:10px 20px 16px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="display:flex;gap:10px;align-items:center"><span aria-hidden="true" style="width:26px;height:31px;flex:none;box-sizing:border-box;background:#7A1F2E;border:1.5px solid #C9A75A;border-radius:5px 5px 13px 13px;display:grid;place-items:center;color:#F3E7C9;font-family:'Source Serif 4',serif;font-weight:600;font-size:10px;letter-spacing:.02em;line-height:1">NV</span><span style="display:flex;flex-direction:column;gap:1px"><span style="font-family:'Source Serif 4','Noto Naskh Arabic',serif;font-size:17px;font-weight:600;line-height:1.2">{{ t.greet }}</span><span style="font-size:12px;color:{{ c.ink2 }}">{{ t.date }}</span></span></span>
+        <span style="font-size:12px;color:{{ c.ink3 }};display:flex;gap:6px;align-items:center"><span style="width:6px;height:6px;border-radius:50%;background:{{ c.pFg }}"></span>{{ t.justNow }}</span>
+      </div>
+      <div role="tablist" style="display:grid;grid-template-columns:1fr 1fr;gap:4px;background:{{ c.sunk }};border-radius:10px;padding:4px">
+        <button role="tab" aria-selected="true" style="min-height:48px;border:0;border-radius:7px;background:{{ c.surface }};box-shadow:0 0 0 1px {{ c.line }};display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:600;font-size:15px">{{ t.salma }}<span style="font-size:11px;font-weight:400;color:{{ c.ink2 }};unicode-bidi:plaintext">4-A</span></button>
+        <button role="tab" aria-selected="false" style="min-height:48px;border:0;border-radius:7px;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:500;font-size:15px;color:{{ c.ink2 }}">{{ t.youssef }}<span style="font-size:11px;font-weight:400;unicode-bidi:plaintext">2-B</span></button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <span style="font-size:13px;color:{{ c.ink2 }}">{{ t.arrived }}</span>
+        <span style="font-size:34px;font-weight:600;line-height:1.05;font-variant-numeric:tabular-nums;letter-spacing:-.01em">07:42</span>
+        <span style="font-size:14px;color:{{ c.ink2 }}">{{ t.atGate }}</span>
+      </div>
+      <div style="background:{{ c.pBg }};color:{{ c.pFg }};border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:3px">
+        <b style="font-size:15px;font-weight:600">{{ t.nowLine }}</b>
+        <span style="font-size:13px;line-height:1.45">{{ t.nowSub }}</span>
+      </div>
+      <div style="display:flex;flex-direction:column">
+        <span style="font-size:12px;font-weight:600;color:{{ c.ink2 }};padding-bottom:8px">{{ t.lessons }}</span>
+        <sc-for list="{{ lessons }}" as="l" hint-placeholder-count="6">
+          <div style="display:grid;grid-template-columns:40px 1fr auto;gap:12px;align-items:center;padding:8px 0;border-top:1px solid {{ c.line }}">
+            <span style="display:flex;flex-direction:column;font-variant-numeric:tabular-nums"><b style="font-size:14px">{{ l.p }}</b><span style="font-size:11px;color:{{ c.ink3 }}">{{ l.time }}</span></span>
+            <span style="display:flex;flex-direction:column;min-width:0"><span style="font-size:15px;font-weight:600;color:{{ l.ink }}">{{ l.subject }}</span><span style="font-size:12px;color:{{ c.ink2 }}">{{ l.room }}</span></span>
+            <span style="display:inline-flex;gap:5px;align-items:center;padding:3px 9px 3px 7px;border-radius:999px;font-size:12px;font-weight:600;background:{{ l.bg }};color:{{ l.fg }};border:1px {{ l.bd }} {{ l.bdc }}"><span style="font-size:10px">{{ l.glyph }}</span>{{ l.status }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isNotifs }}" hint-placeholder-val="{{ false }}">
+    <div style="flex:1;overflow:auto;scrollbar-width:none;display:flex;flex-direction:column">
+      <div style="padding:12px 20px 12px;display:flex;justify-content:space-between;align-items:baseline">
+        <h1 style="font-family:'Source Serif 4','Noto Naskh Arabic',serif;margin:0;font-size:24px;font-weight:600">{{ t.notifs }}</h1>
+        <span style="font-size:13px;color:{{ c.primary }};font-weight:600">{{ t.markRead }}</span>
+      </div>
+      <sc-for list="{{ notifs }}" as="g" hint-placeholder-count="2">
+        <div style="font-size:12px;font-weight:600;color:{{ c.ink2 }};padding:10px 20px 6px">{{ g.day }}</div>
+        <sc-for list="{{ g.items }}" as="n" hint-placeholder-count="3">
+          <div style="display:grid;grid-template-columns:28px 1fr auto;gap:12px;padding:12px 20px;align-items:start;background:{{ n.rowBg }};border-top:1px solid {{ c.line }}">
+            <span style="width:28px;height:28px;border-radius:7px;display:grid;place-items:center;font-size:13px;font-weight:700;background:{{ n.bg }};color:{{ n.fg }}">{{ n.glyph }}</span>
+            <span style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font-size:15px;line-height:1.4;font-weight:{{ n.weight }};text-wrap:pretty">{{ n.text }}</span><span style="font-size:12px;color:{{ c.ink3 }}">{{ n.who }}</span></span>
+            <span style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;font-size:12px;color:{{ c.ink2 }};font-variant-numeric:tabular-nums">{{ n.time }}<sc-if value="{{ n.unread }}" hint-placeholder-val="{{ false }}"><span aria-label="{{ t.unread }}" style="width:8px;height:8px;border-radius:50%;background:{{ c.primary }}"></span></sc-if></span>
+          </div>
+        </sc-for>
+      </sc-for>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isSignIn }}" hint-placeholder-val="{{ false }}">
+    <div style="flex:1;display:flex;flex-direction:column;gap:18px;padding:48px 24px 24px">
+      <div style="display:flex;flex-direction:column;gap:8px"><span style="display:flex;gap:10px;align-items:center"><span aria-hidden="true" style="width:30px;height:36px;flex:none;box-sizing:border-box;background:#7A1F2E;border:1.5px solid #C9A75A;border-radius:5px 5px 15px 15px;display:grid;place-items:center;color:#F3E7C9;font-family:'Source Serif 4',serif;font-weight:600;font-size:12px;letter-spacing:.02em;line-height:1">NV</span><span style="font-family:'Source Serif 4','Noto Naskh Arabic',serif;font-size:15px;font-weight:600;color:{{ c.ink }};line-height:1.25">{{ t.school }}</span></span><h1 style="font-family:'Source Serif 4','Noto Naskh Arabic',serif;margin:0;font-size:28px;font-weight:600;line-height:1.2">{{ t.signIn }}</h1></div>
+      <label style="display:flex;flex-direction:column;gap:8px;font-size:13px;font-weight:600">{{ t.email }}<span dir="ltr" style="height:52px;border:2px solid {{ c.primary }};border-radius:8px;padding:0 14px;background:{{ c.surface }};color:{{ c.ink }};font-size:16px;font-weight:400;box-sizing:border-box;width:100%;display:flex;align-items:center;padding:0 13px">dina.farouk@gmail.com</span></label>
+      <label style="display:flex;flex-direction:column;gap:8px;font-size:13px;font-weight:600">{{ t.password }}<span style="height:52px;border:1px solid {{ c.line }};border-radius:8px;padding:0 14px;background:{{ c.surface }};color:{{ c.ink }};font-size:16px;font-weight:400;box-sizing:border-box;width:100%;display:flex;align-items:center;letter-spacing:.2em">••••••••</span></label>
+      <button style="min-height:52px;border:0;border-radius:8px;background:{{ c.primary }};color:{{ c.onPrimary }};font-size:16px;font-weight:600">{{ t.signIn }}</button>
+      <button style="min-height:44px;border:0;background:none;color:{{ c.primary }};font-size:15px;font-weight:600;align-self:flex-start;padding:0">{{ t.forgot }}</button>
+      <div style="margin-top:auto;border-top:1px solid {{ c.line }};padding-top:16px;display:flex;flex-direction:column;gap:6px">
+        <span style="font-size:14px;color:{{ c.ink2 }}">{{ t.newHere }}</span>
+        <button style="min-height:48px;border:1px solid {{ c.line }};border-radius:8px;background:transparent;font-size:15px;font-weight:600">{{ t.createAccount }}</button>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isForm }}" hint-placeholder-val="{{ false }}">
+    <div style="flex:1;display:flex;flex-direction:column;gap:16px;padding:20px 24px 24px;overflow:auto;scrollbar-width:none">
+      <span style="font-size:15px;color:{{ c.primary }};font-weight:600;min-height:32px;display:flex;align-items:center">{{ t.back }}</span>
+      <sc-if value="{{ f.steps }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div aria-hidden="true" style="display:flex;gap:6px"><sc-for list="{{ f.steps }}" as="s" hint-placeholder-count="3"><span style="flex:1;height:4px;border-radius:2px;background:{{ s.bg }}"></span></sc-for></div>
+          <span style="font-size:13px;color:{{ c.ink2 }};font-weight:600">{{ f.stepLabel }}</span>
+        </div>
+      </sc-if>
+      <div style="display:flex;flex-direction:column;gap:8px"><h1 style="font-family:'Source Serif 4','Noto Naskh Arabic',serif;margin:0;font-size:25px;font-weight:600;line-height:1.25">{{ f.title }}</h1><sc-if value="{{ f.sub }}" hint-placeholder-val="{{ true }}"><p style="margin:0;font-size:15px;line-height:1.5;color:{{ c.ink2 }}">{{ f.sub }} <b style="color:{{ c.ink }};font-weight:500;unicode-bidi:plaintext">{{ f.em }}</b></p></sc-if></div>
+      <sc-for list="{{ f.blocks }}" as="b" hint-placeholder-count="2">
+        <sc-if value="{{ b.isEmail }}" hint-placeholder-val="{{ false }}"><label style="display:flex;flex-direction:column;gap:8px;font-size:13px;font-weight:600">{{ b.label }}<span dir="ltr" style="height:52px;border:1px solid {{ c.line }};border-radius:8px;padding:0 14px;background:{{ c.surface }};color:{{ c.ink }};font-size:16px;box-sizing:border-box;display:flex;align-items:center;border:{{ b.border }};font-weight:400">{{ b.value }}</span><sc-if value="{{ b.help }}" hint-placeholder-val="{{ false }}"><span style="font-weight:400;color:{{ c.ink3 }};line-height:1.45">{{ b.help }}</span></sc-if></label></sc-if>
+        <sc-if value="{{ b.isPhone }}" hint-placeholder-val="{{ false }}"><label style="display:flex;flex-direction:column;gap:8px;font-size:13px;font-weight:600">{{ b.label }}<span dir="ltr" style="display:flex;height:52px;border:{{ b.border }};border-radius:8px;overflow:hidden;background:{{ c.surface }};box-sizing:border-box"><span style="padding:0 12px;display:flex;align-items:center;border-inline-end:1px solid {{ c.line }};font-size:16px;font-weight:500;color:{{ c.ink2 }}">+20</span><span style="flex:1;display:flex;align-items:center;padding:0 12px;font-size:17px;font-weight:400;font-variant-numeric:tabular-nums;color:{{ b.valColor }}">{{ b.value }}</span></span></label></sc-if>
+        <sc-if value="{{ b.isDigits }}" hint-placeholder-val="{{ false }}"><div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;font-weight:600">{{ b.label }}</span><div dir="ltr" style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px"><sc-for list="{{ b.digits }}" as="d" hint-placeholder-count="6"><span style="height:50px;border-radius:8px;border:{{ d.border }};background:{{ c.surface }};display:grid;place-items:center;font-size:22px;font-weight:600;font-variant-numeric:tabular-nums;box-sizing:border-box">{{ d.v }}</span></sc-for></div></div></sc-if>
+        <sc-if value="{{ b.isPassword }}" hint-placeholder-val="{{ false }}"><label style="display:flex;flex-direction:column;gap:8px;font-size:13px;font-weight:600">{{ b.label }}<span style="height:52px;border:1px solid {{ c.line }};border-radius:8px;padding:0 14px;background:{{ c.surface }};color:{{ c.ink }};font-size:16px;box-sizing:border-box;display:flex;align-items:center"></span><span style="font-weight:400;color:{{ c.ink3 }}">{{ t.pwHelp }}</span></label></sc-if>
+        <sc-if value="{{ b.isHelp }}" hint-placeholder-val="{{ false }}"><div style="background:{{ c.sunk }};border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:4px;font-size:13px;line-height:1.5"><b style="font-weight:600">{{ b.title }}</b><span style="color:{{ c.ink2 }}">{{ b.text }}</span><sc-if value="{{ b.link }}" hint-placeholder-val="{{ false }}"><span style="color:{{ c.primary }};font-weight:600;font-variant-numeric:tabular-nums">{{ b.link }}</span></sc-if></div></sc-if>
+        <sc-if value="{{ b.isButton }}" hint-placeholder-val="{{ false }}"><button style="min-height:52px;border:0;border-radius:8px;background:{{ c.primary }};color:{{ c.onPrimary }};font-size:16px;font-weight:600">{{ b.label }}</button></sc-if>
+        <sc-if value="{{ b.isLink }}" hint-placeholder-val="{{ false }}"><button style="min-height:44px;border:0;background:none;color:{{ c.primary }};font-size:14px;font-weight:600;text-align:start;padding:0;line-height:1.4">{{ b.label }}</button></sc-if>
+        <sc-if value="{{ b.isDone }}" hint-placeholder-val="{{ false }}"><div style="display:flex;flex-direction:column;gap:12px;padding:12px 0"><span style="width:52px;height:52px;border-radius:50%;background:{{ c.pBg }};color:{{ c.pFg }};display:grid;place-items:center;font-size:24px;font-weight:700">✓</span><p style="margin:0;font-size:18px;line-height:1.5;font-weight:500">{{ b.text }} <b style="unicode-bidi:plaintext;font-weight:700;font-variant-numeric:tabular-nums">{{ b.num }}</b>{{ b.text2 }}</p><p style="margin:0;font-size:15px;color:{{ c.ink2 }}">{{ b.text3 }}</p></div></sc-if>
+      </sc-for>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isAccount }}" hint-placeholder-val="{{ false }}">
+    <div style="flex:1;display:flex;flex-direction:column;gap:18px;padding:12px 20px 20px;overflow:auto;scrollbar-width:none">
+      <h1 style="font-family:'Source Serif 4','Noto Naskh Arabic',serif;margin:0;font-size:24px;font-weight:600">{{ t.account }}</h1>
+      <div style="display:flex;flex-direction:column;border-top:1px solid {{ c.line }}">
+        <div style="display:flex;flex-direction:column;gap:2px;padding:14px 0;border-bottom:1px solid {{ c.line }}"><span style="font-size:12px;color:{{ c.ink2 }};font-weight:600">{{ t.name }}</span><span style="font-size:16px;font-weight:500">{{ t.dina }}</span></div>
+        <div style="display:flex;flex-direction:column;gap:2px;padding:14px 0;border-bottom:1px solid {{ c.line }}"><span style="font-size:12px;color:{{ c.ink2 }};font-weight:600">{{ t.email }}</span><span style="font-size:16px;font-weight:500;unicode-bidi:plaintext">dina.farouk@gmail.com</span></div>
+        <div style="display:flex;flex-direction:column;gap:6px;padding:14px 0;border-bottom:1px solid {{ c.line }}">
+          <span style="font-size:12px;color:{{ c.ink2 }};font-weight:600">{{ t.mobile }}</span>
+          <span style="font-size:16px;font-weight:500;unicode-bidi:plaintext;font-variant-numeric:tabular-nums">+20 100 555 0192</span>
+          <span style="align-self:flex-start;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:600;background:{{ c.pBg }};color:{{ c.pFg }}">✓ {{ t.checkedWa }}</span>
+          <button style="align-self:flex-start;min-height:44px;margin-top:4px;padding:0 16px;border:1px solid {{ c.line }};border-radius:8px;background:transparent;font-size:15px;font-weight:600">{{ t.changeMobile }}</button>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid {{ c.line }}"><span style="font-size:15px;font-weight:500">{{ t.language }}</span><span style="font-size:15px;color:{{ c.ink2 }}">{{ t.langVal }}</span></div>
+      </div>
+      <button style="margin-top:auto;min-height:48px;border:1px solid {{ c.line }};border-radius:8px;background:transparent;color:{{ c.aFg }};font-size:15px;font-weight:600">{{ t.signOut }}</button>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isConsent }}" hint-placeholder-val="{{ false }}">
+    <div style="flex:1;display:flex;flex-direction:column;gap:18px;padding:40px 24px 24px;overflow:auto;scrollbar-width:none">
+      <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;color:{{ c.ink2 }};font-weight:600">{{ t.oneTime }}</span><h1 style="font-family:'Source Serif 4','Noto Naskh Arabic',serif;margin:0;font-size:26px;font-weight:600;line-height:1.25">{{ t.consentTitle }}</h1></div>
+      <p style="margin:0;font-size:15px;line-height:1.55;color:{{ c.ink2 }}">{{ t.consentBody }}</p>
+      <div style="display:flex;flex-direction:column;border-top:1px solid {{ c.line }}">
+        <sc-for list="{{ consentRows }}" as="r" hint-placeholder-count="4">
+          <div style="display:grid;grid-template-columns:22px 1fr;gap:10px;padding:11px 0;border-bottom:1px solid {{ c.line }};font-size:14px;line-height:1.45"><span style="font-weight:700;color:{{ r.fg }}">{{ r.g }}</span><span>{{ r.text }}</span></div>
+        </sc-for>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:auto">
+        <button style="min-height:52px;border:0;border-radius:8px;background:{{ c.primary }};color:{{ c.onPrimary }};font-size:16px;font-weight:600">{{ t.agree }}</button>
+        <button style="min-height:48px;border:1px solid {{ c.line }};border-radius:8px;background:transparent;font-size:15px;font-weight:500">{{ t.notNow }}</button>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ hasTabs }}" hint-placeholder-val="{{ true }}">
+    <nav style="flex:none;display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid {{ c.line }};background:{{ c.surface }};height:64px">
+      <sc-for list="{{ tabs }}" as="tb" hint-placeholder-count="3">
+        <span style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:12px;font-weight:{{ tb.w }};color:{{ tb.c }}"><span style="width:20px;height:3px;border-radius:2px;background:{{ tb.bar }}"></span><span style="display:flex;gap:5px;align-items:center">{{ tb.label }}<sc-if value="{{ tb.badge }}" hint-placeholder-val="{{ false }}"><span style="background:{{ c.primary }};color:{{ c.onPrimary }};font-size:11px;border-radius:999px;padding:0 6px;font-weight:600">{{ tb.badge }}</span></sc-if></span></span>
+      </sc-for>
+    </nav>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:360,&quot;height&quot;:760},&quot;screen&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;signin&quot;,&quot;create1&quot;,&quot;create2&quot;,&quot;create3&quot;,&quot;forgot1&quot;,&quot;forgot2&quot;,&quot;consent&quot;,&quot;day&quot;,&quot;notifs&quot;,&quot;account&quot;,&quot;mobile1&quot;,&quot;mobile2&quot;,&quot;mobile3&quot;],&quot;default&quot;:&quot;day&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;lang&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;en&quot;,&quot;ar&quot;],&quot;default&quot;:&quot;en&quot;,&quot;tsType&quot;:&quot;'en'|'ar'&quot;},&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;light&quot;,&quot;dark&quot;],&quot;default&quot;:&quot;light&quot;,&quot;tsType&quot;:&quot;'light'|'dark'&quot;}}">
+const TH = {
+  light:{bg:'#F6F4EF',surface:'#FFFFFF',sunk:'#EEEBE3',line:'#DEDAD0',ink:'#1A1D24',ink2:'#4A4F5A',ink3:'#666B76',primary:'#1B2A4E',onPrimary:'#FFFFFF',unread:'#EEF0F5',
+    pFg:'#23683F',pBg:'#E2EFE5',lFg:'#8A5A00',lBg:'#F8ECD2',aFg:'#A3291F',aBg:'#F8E3DF',eFg:'#4A5566',eBg:'#E6E9EE',nFg:'#4A4F5A'},
+  dark:{bg:'#12141A',surface:'#1A1D25',sunk:'#0E1015',line:'#2A2E38',ink:'#EEEAE0',ink2:'#B6B4AE',ink3:'#8E8D8A',primary:'#D6BA75',onPrimary:'#12141A',unread:'#1A2130',
+    pFg:'#7FCB98',pBg:'#1E3326',lFg:'#E6B75A',lBg:'#3A2E14',aFg:'#F08A7B',aBg:'#3D1F1B',eFg:'#AEB7C4',eBg:'#262B32',nFg:'#B6B4AE'}
+};
+const T = {
+ en:{date:'Thursday 1 October',justNow:'Updated just now',salma:'Salma',youssef:'Youssef',arrived:'Arrived safely at school',atGate:'Main gate',
+  nowLine:'In Math · Room 204',nowSub:'Detected in class at 10:11.',inLesson:'In the lesson',lessons:"Today's lessons",
+  P:'Present',A:'Absent',later:'Later',now:'Not in lesson',
+  math:'Math',eng:'English',arabic:'Arabic',sci:'Science',art:'Art',room:'Room',lab:'Science lab',
+  notifs:'Notifications',markRead:'Mark all read',unread:'Unread',today:'Today',yesterday:'Yesterday',
+  n1:'Salma is back in Math, Room 204',n1b:'Salma was absent from Math in Room 204',n2:'Salma arrived safely at school',n3:'Youssef arrived safely at school',
+  n4:'Salma missed Math in Room 204. Student Affairs is following up.',n5:'Salma was collected early from school',n6:'Youssef is absent today',
+  school:'Nile Valley Language School',signIn:'Sign in',account:'Account',name:'Name',mobile:'Mobile',dina:'Dina Farouk',checkedWa:'Checked on WhatsApp',changeMobile:'Change mobile',language:'Language',langVal:'English',signOut:'Sign out',
+  stepOf:(a,b)=>`Step ${a} of ${b}`,sendMe:'Send me a code',regEmail:'Use the email you registered with the school.',codeFromEmail:'Code from the email',mobileWa:'Mobile number (WhatsApp)',sendWa:'Send a WhatsApp code',
+  noEmailT:'No email?',noEmail:'Check your spam folder. Still nothing? Contact Student Affairs to confirm your email.',waTitle:'Enter the WhatsApp code',waSub:'We sent a 6-digit code on WhatsApp to',waCode:'WhatsApp code',
+  fixNumber:'No code, or wrong number? Fix the number and send again',newMobileT:'Change mobile',newMobileSub:'We’ll send a WhatsApp code to the new number.',newMobile:'New mobile number',confirm:'Confirm',
+  doneA:'Your mobile is now',doneB:'.',doneC:'Student Affairs has been notified.',done:'Done',resend2:'Send a new code in 0:24',email:'Email',password:'Password',forgot:'Forgot password?',newHere:'New to the parent app?',createAccount:'Activate your account',back:'← Back',
+  step1:'Step 1 of 2',step2:'Step 2 of 2',c1Title:'Activate your account',c1Sub:'Use the email you gave the school. We’ll send you a 6-digit code.',f1Title:'Reset your password',f1Sub:'Enter the email you sign in with. We’ll send you a 6-digit code.',
+  checkEmail:'Check your email',choosePw:'Choose a password',newPw:'New password',pwHelp:'At least 8 characters.',createBtn:'Activate account',resetBtn:'Save and sign in',
+  noCodeTitle:'No code?',noCode:'Check your spam folder. Still nothing? Contact Student Affairs to confirm your email.',sendCode:'Send code',codeSub:'We sent a 6-digit code to',resend:'Send a new code in 0:24',
+  oneTime:'Before you begin',consentTitle:'How the smart band works',consentBody:'Salma wears a smart ID band at school. Readers at the gate and in each classroom detect it, so you know she arrived safely and which lesson she is in.',
+  c1:'When she enters and leaves through the school gate',c2:'Which classroom she is in during school hours',c3:'Nothing outside school. No microphone, no camera, no GPS.',c4:'You can switch this off any time from your account.',
+  agree:'I agree',notNow:'Not now',tabDay:'At school',greet:'Good morning, Dina'},
+ ar:{date:'الخميس 1 أكتوبر',justNow:'تم التحديث الآن',salma:'سلمى',youssef:'يوسف',arrived:'وصلت المدرسة بالسلامة',atGate:'البوابة الرئيسية',
+  nowLine:'في حصة الرياضيات · قاعة 204',nowSub:'رُصدت في الفصل 10:11.',inLesson:'في الحصة',lessons:'حصص اليوم',
+  P:'حاضرة',A:'غائبة',later:'لاحقًا',now:'ليست في الحصة',
+  math:'رياضيات',eng:'إنجليزي',arabic:'لغة عربية',sci:'علوم',art:'رسم',room:'قاعة',lab:'معمل العلوم',
+  notifs:'الإشعارات',markRead:'تحديد الكل كمقروء',unread:'غير مقروء',today:'اليوم',yesterday:'أمس',
+  n1:'عادت سلمى إلى حصة الرياضيات بقاعة 204',n2:'وصلت سلمى المدرسة بالسلامة',n3:'وصل يوسف المدرسة بالسلامة',
+  n4:'غابت سلمى عن حصة الرياضيات بقاعة 204. شؤون الطلبة تتابع.',n5:'تم استلام سلمى من المدرسة مبكرًا',n6:'يوسف غائب اليوم',
+  school:'مدرسة وادي النيل للغات',signIn:'تسجيل الدخول',account:'الحساب',name:'الاسم',mobile:'الموبايل',dina:'دينا فاروق',checkedWa:'تم التحقق عبر واتساب',changeMobile:'تغيير الموبايل',language:'اللغة',langVal:'العربية',signOut:'تسجيل الخروج',
+  stepOf:(a,b)=>`الخطوة ${a} من ${b}`,sendMe:'أرسل لي رمزًا',regEmail:'استخدم البريد المسجّل لدى المدرسة.',codeFromEmail:'الرمز من البريد',mobileWa:'رقم الموبايل (واتساب)',sendWa:'إرسال رمز واتساب',
+  noEmailT:'لم يصل البريد؟',noEmail:'افحص الرسائل غير المرغوبة. لو لم يصل شيء تواصل مع شؤون الطلبة لتأكيد بريدك.',waTitle:'أدخل رمز واتساب',waSub:'أرسلنا رمزًا من 6 أرقام على واتساب إلى',waCode:'رمز واتساب',
+  fixNumber:'لم يصل الرمز أو الرقم خطأ؟ صحّح الرقم وأرسل مرة أخرى',newMobileT:'تغيير الموبايل',newMobileSub:'سنرسل رمز واتساب إلى الرقم الجديد.',newMobile:'رقم الموبايل الجديد',confirm:'تأكيد',
+  doneA:'رقم موبايلك الآن',doneB:'.',doneC:'تم إبلاغ شؤون الطلبة.',done:'تم',resend2:'إرسال رمز جديد بعد 0:24',email:'البريد الإلكتروني',password:'كلمة المرور',forgot:'نسيت كلمة المرور؟',newHere:'أول مرة في تطبيق أولياء الأمور؟',createAccount:'فعّل حسابك',back:'→ رجوع',
+  step1:'الخطوة 1 من 2',step2:'الخطوة 2 من 2',c1Title:'فعّل حسابك',c1Sub:'استخدم البريد الذي أعطيته للمدرسة. سنرسل لك رمزًا من 6 أرقام.',f1Title:'إعادة تعيين كلمة المرور',f1Sub:'أدخل البريد الذي تدخل به. سنرسل لك رمزًا من 6 أرقام.',
+  checkEmail:'افحص بريدك',choosePw:'اختر كلمة مرور',newPw:'كلمة المرور الجديدة',pwHelp:'8 أحرف على الأقل.',createBtn:'تفعيل الحساب',resetBtn:'حفظ والدخول',
+  noCodeTitle:'لم يصل الرمز؟',noCode:'افحص الرسائل غير المرغوبة. لو لم يصل شيء تواصل مع شؤون الطلبة لتأكيد بريدك.',sendCode:'إرسال الرمز',codeSub:'أرسلنا رمزًا من 6 أرقام إلى',resend:'إرسال رمز جديد بعد 0:24',
+  oneTime:'قبل أن تبدأ',consentTitle:'كيف يعمل السوار الذكي',consentBody:'ترتدي سلمى سوارًا ذكيًا في المدرسة. أجهزة عند البوابة وفي كل فصل تلتقطه، لتطمئن على وصولها وتعرف في أي حصة هي.',
+  c1:'وقت دخولها وخروجها من بوابة المدرسة',c2:'الفصل الذي توجد فيه خلال اليوم الدراسي',c3:'لا شيء خارج المدرسة. لا ميكروفون ولا كاميرا ولا GPS.',c4:'يمكنك إيقاف ذلك في أي وقت من حسابك.',
+  agree:'أوافق',notNow:'ليس الآن',tabDay:'في المدرسة',greet:'صباح الخير، مدام دينا'}
+};
+const AR_RE = /[\u0600-\u06FF]/, LAT_RE = /\+?[A-Za-z0-9][A-Za-z0-9:\-–%.\/ ]*[A-Za-z0-9%]|[A-Za-z0-9]/g;
+const bidi = (o,k) => {
+  if (typeof o === 'string') { if (k==='dir') return o; if (!AR_RE.test(o)) return /^[A-Za-z0-9:. ]*\d[A-Za-z0-9:. ]*[-–][A-Za-z0-9:. ]+$/.test(o) ? '\u2066'+o+'\u2069' : o; return o.replace(LAT_RE, m => '\u2066'+m+'\u2069'); }
+  if (Array.isArray(o)) return o.map(x=>bidi(x));
+  if (o && typeof o === 'object') { const r={}; for (const key in o) r[key]=bidi(o[key],key); return r; }
+  return o;
+};
+class Component extends DCLogic {
+  renderVals(){
+    const lang = this.props.lang || 'en', t = T[lang], c = TH[this.props.theme || 'light'];
+    const screen = this.props.screen || 'day';
+    const st = k => ({P:{bg:c.pBg,fg:c.pFg,glyph:'✓',bd:'solid',bdc:'transparent'},A:{bg:c.aBg,fg:c.aFg,glyph:'✕',bd:'solid',bdc:'transparent'},
+      later:{bg:'transparent',fg:c.ink3,glyph:'·',bd:'dashed',bdc:c.line}}[k]);
+    const L = [['1','08:00',t.eng,`${t.room} 204`,'P',t.P],['2','08:45',t.arabic,`${t.room} 204`,'P',t.P],['3','09:50',t.math,`${t.room} 204`,'P',t.inLesson],
+      ['4','10:35',t.eng,`${t.room} 204`,'later',t.later],['5','11:40',t.sci,t.lab,'later',t.later],['6','12:25',t.art,`${t.room} 204`,'later',t.later]];
+    const lessons = L.map(([p,time,subject,room,k,status])=>({p,time,subject,room,status,ink:k==='later'?c.ink2:c.ink,...st(k)}));
+    const ic = {arr:{g:'→',bg:c.pBg,fg:c.pFg},abs:{g:'✕',bg:c.aBg,fg:c.aFg},back:{g:'✓',bg:c.pBg,fg:c.pFg},left:{g:'←',bg:c.eBg,fg:c.eFg},absDay:{g:'✕',bg:c.aBg,fg:c.aFg}};
+    const N = (k,text,who,time,unread) => ({text,who,time,unread,glyph:ic[k].g,bg:ic[k].bg,fg:ic[k].fg,weight:unread?600:400,rowBg:unread?c.unread:'transparent'});
+    const sc = lang==='ar'?'4-A · سلمى جمال':'4-A · Salma Gamal', yc = lang==='ar'?'2-B · يوسف جمال':'2-B · Youssef Gamal';
+    const notifs = [
+      {day:t.today, items:[N('back',t.n1,sc,'09:52',true),N('arr',t.n3,yc,'07:51',false),N('arr',t.n2,sc,'07:42',false)]},
+      {day:t.yesterday, items:[N('left',t.n5,sc,'12:40',false),N('abs',t.n4,sc,'10:00',false),N('absDay',t.n6,yc,'08:30',false)]}
+    ];
+    const digits = ['4','8','1','9','2','7'].map((v,i)=>({v,border:`1px solid ${c.line}`}));
+    const consentRows = [{g:'✓',fg:c.pFg,text:t.c1},{g:'✓',fg:c.pFg,text:t.c2},{g:'✕',fg:c.aFg,text:t.c3},{g:'–',fg:c.ink2,text:t.c4}];
+    const on = c.primary, off = c.ink2;
+    const tabs = [['day',t.tabDay,0],['notifs',t.notifs,1],['account',t.account,0]].map(([k,l,b])=>({label:l,badge:b||0,c:screen===k?on:off,w:screen===k?600:500,bar:screen===k?on:'transparent'}));
+    const steps = (a,n) => ({steps:Array.from({length:n},(_,i)=>({bg:i<a?c.primary:c.line})), stepLabel:t.stepOf(a,n)});
+    const dg = (vals,focus) => vals.map((v,i)=>({v, border: i===focus?`2px solid ${c.primary}`:`1px solid ${c.line}`}));
+    const em = {isEmail:true,label:t.email,value:'dina.farouk@gmail.com',border:`2px solid ${c.primary}`,help:''};
+    const F = {
+      create1:{...steps(1,3), title:t.c1Title, sub:t.regEmail, em:'', blocks:[em,{isButton:true,label:t.sendMe}]},
+      create2:{...steps(2,3), title:t.checkEmail, sub:t.codeSub, em:'dina.farouk@gmail.com', blocks:[{isDigits:true,label:t.codeFromEmail,digits:dg(['4','8','1','9','2','7'],-1)},{isPhone:true,label:t.mobileWa,value:'100 555 0192',border:`2px solid ${c.primary}`,valColor:c.ink},{isButton:true,label:t.sendWa},{isHelp:true,title:t.noEmailT,text:t.noEmail,link:''}]},
+      create3:{...steps(3,3), title:t.waTitle, sub:t.waSub, em:'+20 100 555 0192', blocks:[{isDigits:true,label:t.waCode,digits:dg(['3','0','5','','',''],3)},{isPassword:true,label:t.choosePw},{isButton:true,label:t.createBtn},{isLink:true,label:t.fixNumber}]},
+      forgot1:{...steps(1,2), title:t.f1Title, sub:t.f1Sub, em:'', blocks:[em,{isButton:true,label:t.sendMe}]},
+      forgot2:{...steps(2,2), title:t.checkEmail, sub:t.codeSub, em:'dina.farouk@gmail.com', blocks:[{isDigits:true,label:t.codeFromEmail,digits:dg(['4','8','1','9','2','7'],-1)},{isPassword:true,label:t.newPw},{isButton:true,label:t.resetBtn},{isHelp:true,title:t.noEmailT,text:t.noEmail,link:t.resend2}]},
+      mobile1:{...steps(1,2), title:t.newMobileT, sub:t.newMobileSub, em:'', blocks:[{isPhone:true,label:t.newMobile,value:'122 222 2222',border:`2px solid ${c.primary}`,valColor:c.ink},{isButton:true,label:t.sendWa}]},
+      mobile2:{...steps(2,2), title:t.waTitle, sub:t.waSub, em:'+20 122 222 2222', blocks:[{isDigits:true,label:t.waCode,digits:dg(['7','1','4','6','','',],4)},{isButton:true,label:t.confirm},{isLink:true,label:t.fixNumber}]},
+      mobile3:{steps:null, stepLabel:'', title:t.changeMobile, sub:'', em:'', blocks:[{isDone:true,text:t.doneA,num:' +20 122 222 2222',text2:t.doneB,text3:t.doneC},{isButton:true,label:t.done}]}
+    };
+    const out = ({ t, c, dir: lang==='ar'?'rtl':'ltr', lessons, notifs, digits, consentRows,
+      isDay:screen==='day', isNotifs:screen==='notifs', isSignIn:screen==='signin', isForm:!!F[screen], f:F[screen]||{blocks:[]}, isAccount:screen==='account', tabs,
+      s1Title: screen==='forgot1'?t.f1Title:t.c1Title, s1Sub: screen==='forgot1'?t.f1Sub:t.c1Sub,
+      s2Pw: screen==='forgot2'?t.newPw:t.choosePw, s2Btn: screen==='forgot2'?t.resetBtn:t.createBtn, isConsent:screen==='consent',
+      hasTabs: screen==='day'||screen==='notifs'||screen==='account',
+      tabDayC: screen==='day'?on:off, tabDayW: screen==='day'?600:500, tabDayBar: screen==='day'?on:'transparent',
+      tabNotC: screen==='notifs'?on:off, tabNotW: screen==='notifs'?600:500, tabNotBar: screen==='notifs'?on:'transparent' });
+    return lang==='ar' ? bidi(out) : out;
+  }
+}
+</script>
+</body>
+</html>

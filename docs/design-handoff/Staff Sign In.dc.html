@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=Noto+Naskh+Arabic:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>body{margin:0;background:#F6F4EF;color:#1A1D24;font-family:"IBM Plex Sans","IBM Plex Sans Arabic",sans-serif}a{color:#1B2A4E}a:hover{color:#121D38}button,input{font:inherit;color:inherit}*:focus-visible{outline:2px solid #1B2A4E;outline-offset:2px}</style>
+</helmet>
+<div dir="{{ dir }}" style="min-height:100vh;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));background:#F6F4EF">
+  <section style="background:#1B2A4E;color:#F3EFE6;padding:48px;display:flex;flex-direction:column;justify-content:space-between;gap:40px">
+    <div style="display:flex;gap:14px;align-items:center"><span aria-hidden="true" style="width:46px;height:54px;flex:none;box-sizing:border-box;background:#7A1F2E;border:1.5px solid #C9A75A;border-radius:5px 5px 23px 23px;display:grid;place-items:center;color:#F3E7C9;font-family:'Source Serif 4',serif;font-weight:600;font-size:17px;letter-spacing:.02em;line-height:1">NV</span><div style="display:flex;flex-direction:column;gap:4px"><span style="font-family:'Source Serif 4','Noto Naskh Arabic',serif;font-weight:600;font-size:21px;line-height:1.2">{{ t.school }}</span><span style="font-size:13px;color:#C9A75A;font-weight:600;letter-spacing:.04em">{{ t.portal }}</span></div></div>
+    <div style="display:flex;flex-direction:column;gap:22px;max-width:460px">
+      <div style="display:flex;gap:3px;align-items:flex-end"><span style="flex:45;height:6px;background:rgba(243,239,230,.32);border-radius:2px"></span><span style="flex:45;height:6px;background:rgba(243,239,230,.32);border-radius:2px"></span><span style="flex:20"></span><span style="flex:45;height:14px;background:#C9A75A;border-radius:3px"></span><span style="flex:45;height:6px;background:rgba(243,239,230,.12);border-radius:2px"></span><span style="flex:20"></span><span style="flex:45;height:6px;background:rgba(243,239,230,.12);border-radius:2px"></span><span style="flex:45;height:6px;background:rgba(243,239,230,.12);border-radius:2px"></span></div>
+      <p style="margin:0;font-family:'Source Serif 4','Noto Naskh Arabic',serif;font-size:36px;line-height:1.2;font-weight:600;text-wrap:balance">{{ t.tagline }}</p>
+    </div>
+    <span style="font-size:13px;color:#B7BED0">{{ t.help }}</span>
+  </section>
+  <section style="display:flex;flex-direction:column;justify-content:center;padding:48px;gap:28px">
+    <div style="display:flex;justify-content:flex-end"><button onClick="{{ toggle }}" style="height:36px;padding:0 12px;border:1px solid #DEDAD0;border-radius:6px;background:#FFFFFF;font-size:14px;font-weight:600;cursor:pointer">{{ t.other }}</button></div>
+
+    <sc-if value="{{ isSignIn }}" hint-placeholder-val="{{ true }}">
+    <form onSubmit="{{ submit }}" style="width:100%;max-width:400px;margin:0 auto;display:flex;flex-direction:column;gap:18px">
+      <h1 style="font-family:'Source Serif 4','Noto Naskh Arabic',serif;margin:0;font-size:30px;font-weight:600">{{ t.signIn }}</h1>
+      <label style="display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600">{{ t.email }}<input type="email" dir="ltr" value="hana.nabil@nilevalley.edu.eg" style="height:48px;border:1px solid #DEDAD0;border-radius:6px;padding:0 14px;background:#FFFFFF;font-size:16px;font-weight:400;text-align:start"></label>
+      <label style="display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600">{{ t.password }}<input type="password" value="••••••••••" style="height:48px;border:1px solid {{ pwBd }};border-radius:6px;padding:0 14px;background:#FFFFFF;font-size:16px;font-weight:400"></label>
+      <sc-if value="{{ err }}" hint-placeholder-val="{{ false }}"><span role="alert" style="font-size:14px;color:#A3291F">{{ t.error }}</span></sc-if>
+      <button type="submit" style="height:52px;border:0;border-radius:6px;background:#1B2A4E;color:#fff;font-size:16px;font-weight:600;cursor:pointer">{{ t.signIn }}</button>
+      <button type="button" onClick="{{ goForgot }}" style="align-self:flex-start;border:0;background:none;padding:8px 0;color:#1B2A4E;font-size:14px;font-weight:600;cursor:pointer">{{ t.forgot }}</button>
+    </form>
+    </sc-if>
+
+    <sc-if value="{{ isForgot1 }}" hint-placeholder-val="{{ false }}">
+    <form onSubmit="{{ toStep2 }}" style="width:100%;max-width:400px;margin:0 auto;display:flex;flex-direction:column;gap:18px">
+      <span style="font-size:13px;color:#4A4F5A;font-weight:600">{{ t.step1of2 }}</span>
+      <h1 style="font-family:'Source Serif 4','Noto Naskh Arabic',serif;margin:0;font-size:30px;font-weight:600">{{ t.resetTitle }}</h1>
+      <p style="margin:0;font-size:15px;line-height:1.55;color:#4A4F5A">{{ t.resetSub }}</p>
+      <label style="display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600">{{ t.email }}<input type="email" dir="ltr" value="hana.nabil@nilevalley.edu.eg" style="height:48px;border:2px solid #1B2A4E;border-radius:6px;padding:0 13px;background:#FFFFFF;font-size:16px;font-weight:400;text-align:start"></label>
+      <button type="submit" style="height:52px;border:0;border-radius:6px;background:#1B2A4E;color:#fff;font-size:16px;font-weight:600;cursor:pointer">{{ t.sendCode }}</button>
+      <button type="button" onClick="{{ goSignIn }}" style="align-self:flex-start;border:0;background:none;padding:8px 0;color:#1B2A4E;font-size:14px;font-weight:600;cursor:pointer">{{ t.backToSignIn }}</button>
+    </form>
+    </sc-if>
+
+    <sc-if value="{{ isForgot2 }}" hint-placeholder-val="{{ false }}">
+    <form onSubmit="{{ submit }}" style="width:100%;max-width:400px;margin:0 auto;display:flex;flex-direction:column;gap:18px">
+      <span style="font-size:13px;color:#4A4F5A;font-weight:600">{{ t.step2of2 }}</span>
+      <h1 style="font-family:'Source Serif 4','Noto Naskh Arabic',serif;margin:0;font-size:30px;font-weight:600">{{ t.checkEmail }}</h1>
+      <p style="margin:0;font-size:15px;line-height:1.55;color:#4A4F5A">{{ t.checkEmailSub }} <b style="color:#1A1D24;font-weight:500;unicode-bidi:plaintext">hana.nabil@nilevalley.edu.eg</b></p>
+      <label style="display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600">{{ t.code }}<input inputMode="numeric" dir="ltr" value="481 9" maxLength="7" style="height:52px;border:2px solid #1B2A4E;border-radius:6px;padding:0 13px;background:#FFFFFF;font-size:22px;font-weight:600;letter-spacing:.3em;font-variant-numeric:tabular-nums;text-align:start"></label>
+      <label style="display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600">{{ t.newPassword }}<input type="password" style="height:48px;border:1px solid #DEDAD0;border-radius:6px;padding:0 14px;background:#FFFFFF;font-size:16px;font-weight:400"><span style="font-weight:400;color:#666B76">{{ t.pwHelp }}</span></label>
+      <button type="submit" style="height:52px;border:0;border-radius:6px;background:#1B2A4E;color:#fff;font-size:16px;font-weight:600;cursor:pointer">{{ t.saveSignIn }}</button>
+      <p style="margin:0;font-size:13px;line-height:1.5;color:#4A4F5A">{{ t.noCode }}</p>
+    </form>
+    </sc-if>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;lang&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;en&quot;,&quot;ar&quot;],&quot;default&quot;:&quot;en&quot;,&quot;tsType&quot;:&quot;'en'|'ar'&quot;},&quot;step&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;signin&quot;,&quot;forgot1&quot;,&quot;forgot2&quot;],&quot;default&quot;:&quot;signin&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;showError&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;}}">
+const T = {
+ en:{school:'Nile Valley Language School',tagline:'Every student accounted for. Every parent reassured.',help:'Trouble signing in? Contact the Student Affairs office.',portal:'Faculty & staff portal',other:'عربي',signIn:'Sign in',email:'Email',password:'Password',forgot:'Forgot password?',error:'That email and password don’t match. Try again.',
+  step1of2:'Step 1 of 2',step2of2:'Step 2 of 2',resetTitle:'Reset your password',resetSub:'Enter the email you sign in with. We’ll send you a 6-digit code.',sendCode:'Send code',backToSignIn:'Back to sign in',
+  checkEmail:'Check your email',checkEmailSub:'We sent a 6-digit code to',code:'6-digit code',newPassword:'New password',pwHelp:'At least 8 characters.',saveSignIn:'Save and sign in',
+  noCode:'No code after 5 minutes? Check your spam folder, or ask the Student Affairs office to check your email address.'},
+ ar:{school:'مدرسة وادي النيل للغات',tagline:'كل طالب في مكانه، وكل ولي أمر مطمئن.',help:'مشكلة في الدخول؟ تواصل مع مكتب شؤون الطلبة.',portal:'بوابة هيئة التدريس والعاملين',other:'English',signIn:'تسجيل الدخول',email:'البريد الإلكتروني',password:'كلمة المرور',forgot:'نسيت كلمة المرور؟',error:'البريد وكلمة المرور غير متطابقين. حاول مرة أخرى.',
+  step1of2:'الخطوة 1 من 2',step2of2:'الخطوة 2 من 2',resetTitle:'إعادة تعيين كلمة المرور',resetSub:'أدخل البريد الذي تدخل به. سنرسل لك رمزًا من 6 أرقام.',sendCode:'إرسال الرمز',backToSignIn:'العودة لتسجيل الدخول',
+  checkEmail:'افحص بريدك',checkEmailSub:'أرسلنا رمزًا من 6 أرقام إلى',code:'الرمز (6 أرقام)',newPassword:'كلمة المرور الجديدة',pwHelp:'8 أحرف على الأقل.',saveSignIn:'حفظ والدخول',
+  noCode:'لم يصل الرمز بعد 5 دقائق؟ افحص الرسائل غير المرغوبة، أو اطلب من شؤون الطلبة مراجعة بريدك.'}
+};
+class Component extends DCLogic {
+  state = { lang:null, step:null };
+  renderVals(){
+    const lang = this.state.lang || this.props.lang || 'en';
+    const step = this.state.step || this.props.step || 'signin';
+    const err = !!this.props.showError && step==='signin';
+    return { t:T[lang], dir:lang==='ar'?'rtl':'ltr', err, pwBd: err?'#A3291F':'#DEDAD0',
+      isSignIn:step==='signin', isForgot1:step==='forgot1', isForgot2:step==='forgot2',
+      toggle:()=>this.setState({lang:lang==='ar'?'en':'ar'}),
+      goForgot:()=>this.setState({step:'forgot1'}), goSignIn:()=>this.setState({step:'signin'}),
+      toStep2:e=>{ e.preventDefault(); this.setState({step:'forgot2'}); },
+      submit:e=>{ e.preventDefault(); window.location.href = 'Staff Dashboard.dc.html'; } };
+  }
+}
+</script>
+</body>
+</html>
