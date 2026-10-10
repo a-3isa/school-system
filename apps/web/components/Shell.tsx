@@ -19,8 +19,8 @@ interface NavItem {
   roles?: string[];
   /** Only for schools that subscribe to automatic attendance (straps). */
   straps?: boolean;
-  /** Shows the number of open exceptions. */
-  count?: boolean;
+  /** Shows a number beside the link: open follow-ups, or excuses waiting for a decision. */
+  count?: 'exceptions' | 'excuses';
 }
 
 const ADMIN = ['SCHOOL_ADMIN'];
@@ -33,7 +33,8 @@ const SCHOOL_NAV: { group: NavKey; items: NavItem[] }[] = [
     group: 'attendance',
     items: [
       { href: '/attendance', key: 'take', module: 'attendance', roles: ADMIN },
-      { href: '/attendance/exceptions', key: 'exceptions', module: 'attendance', roles: SCHOOL_WIDE, count: true },
+      { href: '/attendance/exceptions', key: 'exceptions', module: 'attendance', roles: SCHOOL_WIDE, count: 'exceptions' },
+      { href: '/excuses', key: 'excuses', module: 'attendance', roles: ADMIN, count: 'excuses' },
       { href: '/where', key: 'where', module: 'attendance', roles: SCHOOL_WIDE, straps: true },
     ],
   },
@@ -75,6 +76,12 @@ export function Shell({ children }: { children: ReactNode }) {
   const showCount = me.modules.includes('attendance') && SCHOOL_WIDE.includes(me.role);
   const open = useApi<any[]>(showCount ? `/attendance/exceptions?date=${todayCairo()}&status=OPEN` : null);
   useEvery(60_000, open.reload, showCount);
+  const showExcuses = me.modules.includes('attendance') && me.role === 'SCHOOL_ADMIN';
+  const waiting = useApi<any[]>(showExcuses ? '/excuses?status=PENDING' : null);
+  useEvery(60_000, waiting.reload, showExcuses);
+  const counts = { exceptions: open.data?.length ?? 0, excuses: waiting.data?.length ?? 0 };
+  // A child who isn't at school and whose parents don't know where they are: the one thing that can't wait.
+  const urgent = (open.data ?? []).filter((e) => e.type === 'ABSENT_UNKNOWN');
 
   const groups = (me.role === 'OWNER' ? OWNER_NAV : SCHOOL_NAV)
     .map((g) => ({
@@ -133,7 +140,7 @@ export function Shell({ children }: { children: ReactNode }) {
             {g.items.map((i) => (
               <Link key={i.href} href={i.href} aria-current={current === i.href ? 'page' : undefined}>
                 <span>{t.nav[i.key]}</span>
-                {i.count && !!open.data?.length && <span className="count">{open.data.length}</span>}
+                {i.count && counts[i.count] > 0 && <span className="count">{counts[i.count]}</span>}
               </Link>
             ))}
           </nav>
@@ -147,7 +154,15 @@ export function Shell({ children }: { children: ReactNode }) {
           <button type="button" className="signout" onClick={logout}>{t.shell.signOut}</button>
         </div>
       </aside>
-      <main className="main">{children}</main>
+      <main className="main">
+        {urgent.length > 0 && (
+          <Link href="/attendance/exceptions" className="note error urgent" role="alert">
+            <span className="note-body"><b>{t.urgent.title(urgent.length)}</b><span>{t.urgent.body} {urgent.map((e) => e.student && `${e.student.firstName} ${e.student.lastName}`).filter(Boolean).join(' · ')}</span></span>
+            <span style={{ marginInlineStart: 'auto', fontWeight: 600, whiteSpace: 'nowrap' }}>{t.urgent.open} →</span>
+          </Link>
+        )}
+        {children}
+      </main>
       <Toaster />
     </div>
   );

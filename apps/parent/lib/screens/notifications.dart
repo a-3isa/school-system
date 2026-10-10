@@ -71,9 +71,10 @@ class _Row extends StatelessWidget {
     final name = child?['firstName'] as String? ?? '';
     final (glyph, fg, bg) = switch (type) {
       'attendance.arrived' => ('→', c.pFg, c.pBg),
-      'attendance.lessonPresent' => ('✓', c.pFg, c.pBg),
+      'attendance.lessonPresent' || 'excuse.approved' => ('✓', c.pFg, c.pBg),
+      'attendance.absentCheck' => ('?', c.lFg, c.lBg),
       'attendance.left' => ('←', c.eFg, c.eBg),
-      'attendance.absent' || 'attendance.lessonAbsent' => ('×', c.aFg, c.aBg),
+      'attendance.absent' || 'attendance.lessonAbsent' || 'excuse.rejected' => ('×', c.aFg, c.aBg),
       _ => ('i', c.eFg, c.eBg),
     };
     final text = child == null ? n['title'] as String : s.notification(type, name, info, n['title'] as String, child['gender'] as String?);

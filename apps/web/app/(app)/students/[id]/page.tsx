@@ -6,7 +6,8 @@ import { del, patch, post, timeCairo, todayCairo } from '@/lib/api';
 import { useAction, useApi } from '@/lib/hooks';
 import { useI18n } from '@/lib/i18n';
 import { useSession } from '@/lib/session';
-import { Empty, ErrorNote, Pill, Section, StatusPill, toast } from '@/components/ui';
+import { Empty, ErrorNote, Pill, Section, StatusPill, Tag, toast } from '@/components/ui';
+import { ABSENCE_TONE, EXCUSE_TONE } from '@/components/Lessons';
 import { BLANK_PARENT, ParentFields, parentBody, RELATIONS } from '@/components/ParentFields';
 import { PaperPicker, REQUIRED_FILES, SavedThumb } from '@/components/StudentFiles';
 import { countries } from '@/lib/enrol';
@@ -21,6 +22,7 @@ export default function StudentPage() {
   const student = useApi(`/students/${id}`);
   const today = todayCairo();
   const history = useApi<any[]>(me.modules.includes('attendance') ? `/attendance/students/${id}?from=${shift(today, -13)}&to=${today}` : null);
+  const absences = useApi<any>(me.modules.includes('attendance') ? `/students/${id}/absences` : null);
   const visits = useApi<any[]>(me.straps && me.modules.includes('attendance') ? `/locations/students/${id}?date=${today}` : null);
   const act = useAction();
   const [form, setForm] = useState(BLANK_PARENT);
@@ -130,6 +132,55 @@ export default function StudentPage() {
                   </div>
                 ) : (
                   <span className="muted">{t.student.notHeardToday}</span>
+                )}
+              </div>
+            </Section>
+          )}
+          {absences.data && (
+            <Section title={t.absences.title} aside={t.absences.aside}>
+              <div className="panel scroll">
+                {absences.data.days.length ? (
+                  <>
+                    <p className="small muted" style={{ margin: 0, padding: '12px 16px 0' }}>{t.absences.totals(absences.data.totals)}</p>
+                    <table>
+                      <thead><tr><th>{t.absences.date}</th><th>{t.absences.lessons}</th><th>{t.absences.state}</th><th>{t.absences.excuse}</th></tr></thead>
+                      <tbody>
+                        {absences.data.days.map((d: any) => (
+                          <tr key={d.date}>
+                            <td className="num muted"><bdi dir="ltr">{d.date}</bdi></td>
+                            <td className="small">{t.absences.lessonsN(d.lessons.length)}</td>
+                            <td><Tag tone={ABSENCE_TONE[d.status]}>{t.absences.status[d.status]}</Tag></td>
+                            <td className="small" style={{ maxWidth: 360 }}>
+                              {d.excuse ? (
+                                <>
+                                  <Tag tone={EXCUSE_TONE[d.excuse.status]}>{t.excuses.reason[d.excuse.reason] ?? d.excuse.reason}</Tag>{' '}
+                                  <span className="muted">{x(t.absences.fromParent(d.excuse.submittedBy))}</span>
+                                  {d.excuse.note && <div>“{x(d.excuse.note)}”</div>}
+                                  {d.excuse.decisionNote && <div style={{ color: d.excuse.status === 'REJECTED' ? 'var(--a)' : 'var(--p)' }}>{x(d.excuse.decisionNote)}</div>}
+                                </>
+                              ) : (
+                                <span className="muted">—</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </>
+                ) : (
+                  <Empty>{t.absences.none}</Empty>
+                )}
+                {absences.data.upcoming.length > 0 && (
+                  <div style={{ padding: '12px 16px', borderTop: '1px solid var(--line)' }}>
+                    <b className="small">{t.absences.upcoming}</b>
+                    {absences.data.upcoming.map((e: any) => (
+                      <div key={e.id} className="small row wrap" style={{ gap: 8, marginTop: 6 }}>
+                        <Tag tone={EXCUSE_TONE[e.status]}>{t.excuses.status[e.status]}</Tag>
+                        <span className="num">{t.excuses.days(e.fromDate.slice(0, 10), e.toDate.slice(0, 10))}</span>
+                        <span className="muted">{t.excuses.reason[e.reason] ?? e.reason}</span>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
             </Section>

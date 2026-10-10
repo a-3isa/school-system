@@ -3,6 +3,7 @@ import { AttendanceMode, AttendanceSource, AttendanceStatus, ExceptionStatus, Ex
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit';
 import { NotificationsService } from '../notifications/notifications';
+import { ExcusesService } from '../excuses/excuses';
 import { AuthUser } from '../auth/auth.decorators';
 import { localParts, zonedTime } from '../common/time';
 import { LocationsService } from '../devices/locations';
@@ -28,6 +29,7 @@ export class AttendanceService {
     private readonly notifications: NotificationsService,
     private readonly locations: LocationsService,
     private readonly calendar: SchoolCalendar,
+    private readonly excuses: ExcusesService,
   ) {}
 
   private async school(schoolId: string) {
@@ -190,6 +192,8 @@ export class AttendanceService {
         }),
       ),
     );
+    // A day with an approved excuse stays excused even if someone marks the child absent.
+    await this.excuses.applyApproved(schoolId, { studentIds: marks.map((m) => m.studentId), date });
     await this.clearLessonAlerts(user, schoolId, periodId, date, marks, slot);
     await this.audit.log(user, 'attendance.mark', 'attendance', `${classId}:${periodId}:${date}`, {
       marks: marks.map((m) => ({ studentId: m.studentId, status: m.status, reason: m.reason ?? null })),
@@ -408,11 +412,19 @@ export class AttendanceService {
       }
     }
 
+    // The "do you know your child isn't at school?" question for today, and any excuse covering the day.
+    const [notice, excuse] = await Promise.all([
+      this.prisma.absenceNotice.findUnique({ where: { studentId_date: { studentId, date: day } } }),
+      this.prisma.excuse.findFirst({ where: { studentId, fromDate: { lte: day }, toDate: { gte: day } }, orderBy: { createdAt: 'desc' }, select: { id: true, status: true, reason: true, decisionNote: true } }),
+    ]);
+
     return {
       date,
       arrivedAt: presence?.arrivedAt ?? null,
       leftAt: presence?.leftAt ?? null,
       place,
+      check: notice ? { askedAt: notice.sentAt, answer: notice.answer, alerted: !!notice.alertedAt } : null,
+      excuse,
       lessons: [...rows.values()].sort((a, b) => a.period - b.period),
     };
   }
@@ -435,6 +447,8 @@ export class AttendanceService {
           active: true,
           attendance: { some: { date: day, status: AttendanceStatus.ABSENT }, none: { date: day, status: { in: ACCOUNTED } } },
           absenceNotices: { none: { date: day } },
+          // A parent who already sent an excuse for this day isn't asked again.
+          excuses: { none: { fromDate: { lte: day }, toDate: { gte: day } } },
         },
         include: { guardians: { where: { restricted: false } } },
       });
@@ -446,10 +460,10 @@ export class AttendanceService {
           s.guardians.map((g) => ({
             schoolId: school.id,
             userId: g.userId,
-            type: 'attendance.absent',
-            title: `${s.firstName} is marked absent today`,
-            body: `${s.firstName} hasn’t been marked present at school today. If ${s.firstName} is unwell or away, kindly let the school know.`,
-            data: { studentId: s.id, date },
+            type: 'attendance.absentCheck',
+            title: `${s.firstName} didn’t come to school today`,
+            body: `${s.firstName} hasn’t been marked present at school today. Do you know why ${s.firstName} isn’t at school?`,
+            data: { studentId: s.id, date, check: true },
           })),
         );
       }

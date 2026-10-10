@@ -6,6 +6,7 @@ import '../api.dart';
 import '../strings.dart';
 import '../theme.dart';
 import '../widgets.dart';
+import 'excuse.dart';
 import 'home.dart';
 
 /// The selected child's day at a glance: when they came in, where they are
@@ -121,6 +122,73 @@ class _DayTabState extends State<DayTab> {
     );
   }
 
+  /// Today's absence: the question when the child didn't come, what became of it, and the excuse's state.
+  List<Widget> _absenceBlock(BuildContext context, Map<String, dynamic> day) {
+    final s = S.of(context);
+    final c = context.c;
+    final id = _childId;
+    final child = widget.data.child(id);
+    if (id == null || child == null) return const [];
+    final name = child['firstName'] as String;
+    final gender = child['gender'] as String?;
+    final check = day['check'] as Map<String, dynamic>?;
+    final excuse = day['excuse'] as Map<String, dynamic>?;
+    final answer = check?['answer'] as String?;
+    final today = todayCairo();
+
+    Future<void> writeExcuse() async {
+      await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => ExcuseScreen(api: widget.api, child: child, date: today)));
+      await _load();
+    }
+
+    Future<void> reply(bool knows) async {
+      try {
+        await widget.api.answerAbsence(id, today, knows);
+        if (knows) {
+          await _load();
+          if (context.mounted) await writeExcuse();
+        } else {
+          await _load();
+        }
+      } catch (e) {
+        if (mounted) setState(() => _error = e.toString());
+      }
+    }
+
+    Widget? notice;
+    if (excuse != null) {
+      final status = excuse['status'] as String;
+      final why = (excuse['decisionNote'] as String?)?.trim();
+      notice = switch (status) {
+        'APPROVED' => _Notice(title: s.excuseAccepted, fg: c.pFg, bg: c.pBg),
+        'REJECTED' => _Notice(title: s.excuseRejected(why == null || why.isEmpty ? null : why), fg: c.aFg, bg: c.aBg, actions: [FilledButton(onPressed: writeExcuse, child: Text(s.sendNewExcuse))]),
+        _ => _Notice(title: s.excusePending(name), fg: c.eFg, bg: c.eBg),
+      };
+    } else if (check != null) {
+      notice = switch (answer) {
+        null => _Notice(
+            title: s.didntCome(name, gender),
+            text: '${s.doYouKnow} ${s.asked15}',
+            fg: c.lFg,
+            bg: c.lBg,
+            actions: [FilledButton(onPressed: () => reply(true), child: Text(s.yesIKnow)), OutlinedButton(onPressed: () => reply(false), child: Text(s.noIDont))],
+          ),
+        'KNOWS' => _Notice(title: s.pleaseExcuse, fg: c.lFg, bg: c.lBg, actions: [FilledButton(onPressed: writeExcuse, child: Text(s.sendExcuse))]),
+        _ => _Notice(title: s.schoolWillCall, fg: c.aFg, bg: c.aBg),
+      };
+    }
+    return [
+      if (notice != null) ...[notice, const SizedBox(height: 14)],
+      Align(
+        alignment: AlignmentDirectional.centerStart,
+        child: TextButton(
+          onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => ExcusesScreen(api: widget.api, child: child))),
+          child: Text(s.excusesTitle),
+        ),
+      ),
+    ];
+  }
+
   List<Widget> _dayView(BuildContext context, Map<String, dynamic> day) {
     final s = S.of(context);
     final c = context.c;
@@ -139,6 +207,7 @@ class _DayTabState extends State<DayTab> {
     // Arrival and "where now" come from the gate and room readers: a school without smart bands has neither.
     final gates = widget.data.me['straps'] == true || arrived != null;
     return [
+      ..._absenceBlock(context, day),
       if (gates) Semantics(
         container: true,
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -169,6 +238,33 @@ class _DayTabState extends State<DayTab> {
       if (lessons.isEmpty) Text(s.noLessons, style: TextStyle(color: c.ink2)),
       for (final l in lessons) _LessonRow(lesson: l, now: now, current: identical(l, current), inRoom: inCurrent && identical(l, current)),
     ];
+  }
+}
+
+/// A coloured message in the child's day, with buttons when the parent has something to do.
+class _Notice extends StatelessWidget {
+  const _Notice({required this.title, this.text, required this.fg, required this.bg, this.actions = const []});
+  final String title;
+  final String? text;
+  final Color fg;
+  final Color bg;
+  final List<Widget> actions;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      container: true,
+      liveRegion: true,
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(10)),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: fg, height: 1.4)),
+          if (text != null) ...[const SizedBox(height: 4), Text(text!, style: TextStyle(fontSize: 14, color: fg, height: 1.45))],
+          if (actions.isNotEmpty) ...[const SizedBox(height: 12), Wrap(spacing: 10, runSpacing: 8, children: actions)],
+        ]),
+      ),
+    );
   }
 }
 

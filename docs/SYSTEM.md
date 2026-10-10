@@ -153,13 +153,26 @@ All messages arrive as **app notifications**, and every one is also kept in the 
 | **10 minutes into a lesson**, the child came to school but isn't in the lesson's room | "**Salma was absent from Math in Room 204.** Salma came in through the gate at 07:42 but hasn't been in Math in Room 204 since it started at 09:50. The school has been told." |
 | The teacher then marks that child present | "Salma is in Math in Room 204. The teacher marked Salma present … Ignore the earlier message." |
 | The child goes out through the gate during the school day and isn't heard again | "Salma left school early." The admins are told too. |
-| At the school's fixed time (08:15), the child is absent and not accounted for | "Salma is absent today." It is sent once per day. |
+| At the school's fixed time (08:15), the child is absent and not accounted for, and no excuse covers the day | "Salma didn't come to school today. Do you know why?" with **Yes** and **No** (see Excuses below). Sent once per day. |
+| The school decides an excuse | "The school accepted Salma's excuse", or "did not accept" with the school's reason. |
 
 **Rules about who is told:**
 - A child who never came through the gate (strap forgotten, or at home) gets **no lesson message**; the daily "absent today" message covers it.
 - A child who went out through the gate before the lesson gets **no lesson message**.
 - Each message is sent **once**.
 - A **restricted** parent isn't told anything about that child.
+
+### Excuses (every school)
+
+A parent can excuse an absence from the app, and the system asks for one when a child doesn't come.
+
+- **The question.** At the fixed time, a child who has no lesson marked present, late, excused or on a trip, and who has no excuse for that day, triggers the question above to every parent who may be told about the child.
+  - **Yes:** the app opens the excuse form for today. Sending an excuse also counts as "Yes".
+  - **No, or no answer in 15 minutes:** an **urgent alert** goes up on the dashboard: a red banner on every page, an urgent item in Follow-ups with the parents' phone numbers, and a message to every admin. It closes by itself when the child is marked present or heard at the gate (the parents are told), or staff close it with a note.
+  - The first reply from either parent counts. A "Yes" after the alert is noted on it, and the alert stays for staff.
+- **The excuse.** Whole days: a day or a date range, a reason (illness, appointment, family reason, other), a note and an optional photo or PDF (up to 5 MB). It can be sent up to **7 days after** the absence, or up to 30 days ahead for a planned absence, and covers at most 30 days. A parent with limited access can't send one.
+- **The decision.** Student Affairs sees it under **Excuses**, with the attachment, and accepts or rejects it. A rejection needs a reason, which the parent reads. Accepting turns the child's absent lessons on those days into **Excused**, and any absence marked later on those days too. After a rejection the parent can send another within the window.
+- **The student's profile** has an **Absences and excuses** list for the last 6 months: each absent day is **Excused** (green), **Excuse waiting** (grey), **No excuse yet** (amber) or **Excuse rejected** (red), with the parent's reason and the school's note, and the totals.
 
 ## 6. How the straps decide (schools with straps)
 

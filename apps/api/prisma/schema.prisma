@@ -116,6 +116,7 @@ model School {
   students   Student[]
   auditLogs  AuditLog[]
   attendance AttendanceRecord[]
+  excuses    Excuse[]
   classAways ClassAway[]
   notifications Notification[]
   gateways   Gateway[]
@@ -162,6 +163,7 @@ model User {
   teaching    TimetableEntry[]
   homerooms   Class[]
   marked      AttendanceRecord[]
+  excusesSent Excuse[] @relation("ExcuseSubmitter")
   notifications Notification[]
 
   @@index([schoolId, role])
@@ -306,6 +308,7 @@ model Student {
   guardians  StudentGuardian[]
   attendance AttendanceRecord[]
   absenceNotices AbsenceNotice[]
+  excuses    Excuse[]
   strap      Strap?
   presence   GatePresence[]
   exceptions AttendanceException[]
@@ -431,6 +434,8 @@ model AttendanceRecord {
   source      AttendanceSource
   reason      String?
   markedById  String?
+  // Set when an approved excuse turned this absence into an excused one.
+  excuseId    String?
   // Automatic mode: when the strap was first seen in the room and for how long.
   firstSeenAt DateTime?
   secondsSeen Int?
@@ -441,6 +446,7 @@ model AttendanceRecord {
   class    Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
   period   Period  @relation(fields: [periodId], references: [id], onDelete: Cascade)
   markedBy User?   @relation(fields: [markedById], references: [id], onDelete: SetNull)
+  excuse   Excuse? @relation(fields: [excuseId], references: [id], onDelete: SetNull)
 
   @@unique([studentId, date, periodId])
   @@index([schoolId, date])
@@ -487,15 +493,69 @@ model Notification {
   @@index([sentAt])
 }
 
-// Makes sure the "absent today" notice goes out once per student per day.
+// The "didn't come to school" question for one student on one day. It is sent once
+// (the row is the lock), and what the parent answered decides what happens next.
 model AbsenceNotice {
-  studentId String
-  date      DateTime @db.Date
-  sentAt    DateTime @default(now())
+  studentId    String
+  date         DateTime       @db.Date
+  sentAt       DateTime       @default(now())
+  // KNOWS: the parent knows where the child is. DOESNT_KNOW: they don't. Null: no answer yet.
+  answer       AbsenceAnswer?
+  answeredAt   DateTime?
+  answeredById String?
+  // When the dashboard was told to find the child (answer No, or no answer in time).
+  alertedAt    DateTime?
 
   student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@id([studentId, date])
+}
+
+enum AbsenceAnswer {
+  KNOWS
+  DOESNT_KNOW
+}
+
+enum ExcuseStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ExcuseReason {
+  SICK
+  APPOINTMENT
+  FAMILY
+  OTHER
+}
+
+// A parent's excuse for one or more whole school days. The school approves or rejects it.
+model Excuse {
+  id            String       @id @default(cuid())
+  schoolId      String
+  studentId     String
+  submittedById String
+  fromDate      DateTime     @db.Date
+  toDate        DateTime     @db.Date
+  reason        ExcuseReason
+  note          String?
+  // An optional photo or PDF (a doctor's note, say).
+  fileMime      String?
+  fileSize      Int?
+  fileData      Bytes?
+  status        ExcuseStatus @default(PENDING)
+  decidedById   String?
+  decidedAt     DateTime?
+  decisionNote  String?
+  createdAt     DateTime     @default(now())
+
+  school      School             @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student     Student            @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  submittedBy User               @relation("ExcuseSubmitter", fields: [submittedById], references: [id], onDelete: Cascade)
+  records     AttendanceRecord[]
+
+  @@index([schoolId, status])
+  @@index([studentId, fromDate])
 }
 
 enum GatewayKind {
@@ -580,6 +640,7 @@ enum ExceptionType {
   STRAP_NOT_SEEN // present by manual mark but the strap wasn't heard
   LOW_BATTERY
   GATEWAY_OFFLINE // a lesson couldn't be decided automatically; mark it manually
+  ABSENT_UNKNOWN // the child didn't come and the parents don't know where they are: someone must call
 }
 
 enum ExceptionStatus {

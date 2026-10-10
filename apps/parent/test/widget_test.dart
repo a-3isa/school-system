@@ -19,7 +19,7 @@ Future<void> start(WidgetTester tester, Map<String, Object> prefs, [http.Client?
 }
 
 /// A signed-in parent of Salma (4-A) on a school day.
-MockClient school({bool straps = false, bool consented = true, bool arrived = true}) {
+MockClient school({bool straps = false, bool consented = true, bool arrived = true, Map<String, Object?> today_ = const {}, List<String>? log}) {
   final today = todayCairo();
   final routes = <String, Object>{
     '/auth/me': {'id': 'u1', 'name': 'Dina Farouk', 'email': 'dina.farouk@gmail.com', 'phone': '+201005550192', 'phoneVerifiedAt': '2026-09-01T08:00:00.000Z', 'consentAt': consented ? '2026-09-01T08:00:00.000Z' : null, 'straps': straps, 'role': 'PARENT'},
@@ -31,12 +31,18 @@ MockClient school({bool straps = false, bool consented = true, bool arrived = tr
       'arrivedAt': arrived ? '${today}T04:42:00.000Z' : null,
       'leftAt': null,
       'place': null,
+      ...today_,
       'lessons': [
         {'period': 1, 'startTime': '00:00', 'endTime': '00:01', 'subject': 'English', 'room': 'Room 204', 'status': 'PRESENT'},
         {'period': 2, 'startTime': '00:01', 'endTime': '00:02', 'subject': 'Math', 'room': 'Room 204', 'status': 'ABSENT'},
         {'period': 6, 'startTime': '23:58', 'endTime': '23:59', 'subject': 'Art', 'room': 'Room 204', 'status': null},
       ],
     },
+    '/parent/children/s1/excuses': [
+      {'id': 'x1', 'studentId': 's1', 'fromDate': '2026-09-28T00:00:00.000Z', 'toDate': '2026-09-29T00:00:00.000Z', 'reason': 'SICK', 'note': 'Fever', 'status': 'APPROVED', 'decisionNote': 'Get well soon.', 'hasFile': true},
+      {'id': 'x2', 'studentId': 's1', 'fromDate': '2026-09-20T00:00:00.000Z', 'toDate': '2026-09-20T00:00:00.000Z', 'reason': 'FAMILY', 'note': null, 'status': 'REJECTED', 'decisionNote': 'Please send a note.', 'hasFile': false},
+    ],
+    '/parent/children/s1/absence-check': {'answer': 'KNOWS', 'alerted': false},
     '/notifications': [
       {'id': 'n1', 'type': 'attendance.lessonAbsent', 'title': 'Salma was absent from Math in Room 204', 'body': '…', 'readAt': null, 'createdAt': DateTime.now().toUtc().toIso8601String(),
         'data': {'studentId': 's1', 'date': today, 'subject': 'Math', 'room': 'Room 204'}},
@@ -45,6 +51,7 @@ MockClient school({bool straps = false, bool consented = true, bool arrived = tr
     ],
   };
   return MockClient((req) async {
+    log?.add('${req.method} ${req.url.path.replaceFirst('/api', '')} ${req.body}');
     final body = routes[req.url.path.replaceFirst('/api', '')];
     return body == null ? http.Response('{"message":"Not found"}', 404) : http.Response(jsonEncode(body), 200, headers: {'content-type': 'application/json; charset=utf-8'});
   });
@@ -101,6 +108,74 @@ void main() {
     await start(tester, {'lang': 'en', 'token': 't'}, school(straps: true, arrived: false));
     expect(find.text('Not yet arrived'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
+  });
+
+  Future<void> dayWith(WidgetTester tester, Map<String, Object?> extra, {List<String>? log}) async {
+    clock = () => DateTime.utc(2026, 10, 1, 7);
+    addTearDown(() => clock = DateTime.now);
+    await start(tester, {'lang': 'en', 'token': 't'}, school(today_: extra, log: log));
+  }
+
+  testWidgets('asks whether the parent knows when the child didn’t come, and No tells the school', (tester) async {
+    final log = <String>[];
+    await dayWith(tester, {'check': {'askedAt': '2026-10-01T05:00:00.000Z', 'answer': null, 'alerted': false}}, log: log);
+    expect(find.text('Salma didn’t come to school today'), findsOneWidget);
+    expect(find.text('Yes, I know'), findsOneWidget);
+    await tester.tap(find.text('No, I don’t'));
+    await tester.pumpAndSettle();
+    expect(log.where((l) => l.startsWith('POST /parent/children/s1/absence-check')).single, contains('"knows":false'));
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('Yes opens the excuse form for today', (tester) async {
+    final log = <String>[];
+    await dayWith(tester, {'check': {'askedAt': '2026-10-01T05:00:00.000Z', 'answer': null, 'alerted': false}}, log: log);
+    await tester.tap(find.text('Yes, I know'));
+    await tester.pumpAndSettle();
+    expect(log.any((l) => l.contains('"knows":true')), isTrue);
+    expect(find.text('Send an excuse'), findsOneWidget);
+    expect(find.text('Illness'), findsOneWidget);
+    expect(find.text('Send the excuse', skipOffstage: false), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('after No, the parent is told the school will call', (tester) async {
+    await dayWith(tester, {'check': {'askedAt': '2026-10-01T05:00:00.000Z', 'answer': 'DOESNT_KNOW', 'alerted': true}});
+    expect(find.textContaining('will call you'), findsOneWidget);
+    expect(find.text('Yes, I know'), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('shows where the excuse stands: waiting, accepted, or not accepted with a way to send another', (tester) async {
+    await dayWith(tester, {'excuse': {'id': 'x', 'status': 'PENDING', 'reason': 'SICK', 'decisionNote': null}});
+    expect(find.textContaining('waiting for the school'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+    await dayWith(tester, {'excuse': {'id': 'x', 'status': 'APPROVED', 'reason': 'SICK', 'decisionNote': null}});
+    expect(find.text('The school accepted your excuse.'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+    await dayWith(tester, {'excuse': {'id': 'x', 'status': 'REJECTED', 'reason': 'SICK', 'decisionNote': 'We need a doctor’s note.'}});
+    expect(find.textContaining('did not accept the excuse. We need a doctor’s note.'), findsOneWidget);
+    expect(find.text('Send a new excuse'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('lists the excuses sent, with the school’s decision', (tester) async {
+    await dayWith(tester, {});
+    await tester.tap(find.text('Excuses'));
+    await tester.pumpAndSettle();
+    expect(find.text('Accepted'), findsOneWidget);
+    expect(find.text('Not accepted'), findsOneWidget);
+    expect(find.text('Get well soon.'), findsOneWidget);
+    expect(find.text('Please send a note.'), findsOneWidget);
+    expect(find.text('New excuse'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('the question reads well in Arabic, agreeing with the child’s gender', (tester) async {
+    expect(S.ar.didntCome('سلمى', 'FEMALE'), 'لم تحضر سلمى إلى المدرسة اليوم');
+    expect(S.ar.didntCome('عمر', 'MALE'), 'لم يحضر عمر إلى المدرسة اليوم');
+    expect(S.ar.notification('attendance.absentCheck', 'سلمى', {}, '', 'FEMALE'), contains('هل تعلمون السبب'));
+    expect(S.en.notification('excuse.rejected', 'Salma', {}, ''), 'The school did not accept Salma’s excuse');
   });
 
   testWidgets('shows the child’s day: arrival, and every lesson with its status', (tester) async {

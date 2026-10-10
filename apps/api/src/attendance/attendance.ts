@@ -8,6 +8,7 @@ import { NotificationsService } from '../notifications/notifications';
 import { AttendanceService } from './attendance.service';
 import { AttendanceEvaluator } from '../devices/evaluator';
 import { DevicesModule } from '../devices/exceptions';
+import { ExcusesModule, ExcusesService } from '../excuses/excuses';
 
 class MarkDto {
   @IsString() studentId: string;
@@ -111,6 +112,7 @@ export class AttendanceJobs implements OnModuleInit, OnModuleDestroy {
     private readonly attendance: AttendanceService,
     private readonly notifications: NotificationsService,
     private readonly evaluator: AttendanceEvaluator,
+    private readonly excuses: ExcusesService,
   ) {}
 
   onModuleInit() {
@@ -126,6 +128,8 @@ export class AttendanceJobs implements OnModuleInit, OnModuleDestroy {
     try {
       await this.evaluator.tick(now);
       await this.attendance.sendAbsenceNotices(now);
+      await this.excuses.applyApproved();
+      await this.excuses.checkAlerts(now);
       await this.notifications.flush();
     } catch (e) {
       this.logger.error(e);
@@ -134,7 +138,7 @@ export class AttendanceJobs implements OnModuleInit, OnModuleDestroy {
 }
 
 @Module({
-  imports: [DevicesModule],
+  imports: [DevicesModule, ExcusesModule],
   controllers: [AttendanceController, ParentAttendanceController],
   providers: [AttendanceService, AttendanceJobs],
   exports: [AttendanceService],

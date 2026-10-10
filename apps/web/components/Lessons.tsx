@@ -55,6 +55,12 @@ export function LessonRow({ l, date, withButton = true }: { l: Lesson; date: str
   );
 }
 
+/** Waiting is grey, accepted is green, rejected is red. */
+export const EXCUSE_TONE: Record<string, Tone> = { PENDING: '', APPROVED: 'P', REJECTED: 'A' };
+
+/** An absent day: excused is green, an excuse waiting is grey, none sent is amber, a rejected one is red. */
+export const ABSENCE_TONE: Record<string, Tone> = { EXCUSED: 'P', PENDING: '', NO_EXCUSE: 'L', REJECTED: 'A' };
+
 export const EXCEPTION_TONE: Record<string, Tone> = {
   NOT_IN_CLASS: 'A',
   LEFT_LESSON: 'L',
@@ -62,4 +68,5 @@ export const EXCEPTION_TONE: Record<string, Tone> = {
   STRAP_NOT_SEEN: 'E',
   LOW_BATTERY: 'L',
   GATEWAY_OFFLINE: 'E',
+  ABSENT_UNKNOWN: 'A',
 };

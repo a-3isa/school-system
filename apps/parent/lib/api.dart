@@ -43,7 +43,10 @@ class Api {
     };
     final req = http.Request(method, uri)..headers.addAll(headers);
     if (body != null) req.body = jsonEncode(body);
-    final res = await http.Response.fromStream(await _client.send(req));
+    return _decode(await http.Response.fromStream(await _client.send(req)));
+  }
+
+  Future<dynamic> _decode(http.Response res) async {
     final data = res.body.isEmpty ? null : jsonDecode(res.body);
     if (res.statusCode >= 400) {
       final msg = data is Map && data['message'] != null
@@ -127,6 +130,21 @@ class Api {
   Future<Map<String, dynamic>> childToday(String id, String date) async => await get('/parent/children/$id/today?date=$date') as Map<String, dynamic>;
   Future<List<dynamic>> notifications() async => await get('/notifications') as List<dynamic>;
   Future<void> markRead(String id) => post('/notifications/$id/read');
+
+  /// The excuses sent for a child, newest first, with what the school decided.
+  Future<List<dynamic>> excuses(String childId) async => await get('/parent/children/$childId/excuses') as List<dynamic>;
+
+  /// "Do you know your child isn't at school?" Yes: an excuse follows. No: the school is told to find the child.
+  Future<void> answerAbsence(String childId, String date, bool knows) => post('/parent/children/$childId/absence-check', {'date': date, 'knows': knows});
+
+  /// Sends an excuse for whole days, with an optional photo or PDF.
+  Future<void> sendExcuse(String childId, {required String from, required String to, required String reason, String? note, String? fileName, Uint8List? fileBytes}) async {
+    final req = http.MultipartRequest('POST', Uri.parse('$apiUrl/parent/children/$childId/excuses'))
+      ..headers['authorization'] = 'Bearer $token'
+      ..fields.addAll({'fromDate': from, 'toDate': to, 'reason': reason, if (note != null && note.trim().isNotEmpty) 'note': note.trim()});
+    if (fileBytes != null) req.files.add(http.MultipartFile.fromBytes('file', fileBytes, filename: fileName ?? 'excuse'));
+    await _decode(await http.Response.fromStream(await _client.send(req)));
+  }
 }
 
 /// Today's date in Cairo as YYYY-MM-DD (Egypt is UTC+2, or UTC+3 in summer time).

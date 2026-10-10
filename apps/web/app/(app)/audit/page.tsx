@@ -8,7 +8,7 @@ import { Empty, ErrorNote, PageHead, Tabs } from '@/components/ui';
 type Filter = 'all' | 'attendance' | 'people' | 'setup';
 /** Which tab each kind of change belongs to, by the first part of its action. */
 const AREA: Record<string, Filter> = {
-  attendance: 'attendance', exception: 'attendance',
+  attendance: 'attendance', exception: 'attendance', excuse: 'attendance',
   student: 'people', guardian: 'people', staff: 'people', parent: 'people',
 };
 
