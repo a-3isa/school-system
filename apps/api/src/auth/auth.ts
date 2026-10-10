@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Get, HttpException, HttpStatus, Injectable, Module, Post, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, HttpException, HttpStatus, Injectable, Module, Post, Req, UnauthorizedException } from '@nestjs/common';
 import { JwtModule, JwtService } from '@nestjs/jwt';
 import { CodePurpose, Role } from '@prisma/client';
 import { IsEmail, IsString, Matches, MinLength } from 'class-validator';
@@ -9,6 +9,7 @@ import { NotificationsService } from '../notifications/notifications';
 import { AuditService } from '../audit/audit';
 import { AuthUser, CurrentUser, Public, Roles } from './auth.decorators';
 import { EmailService } from './email';
+import { LoginThrottle } from './login-throttle';
 import { WhatsAppService } from './whatsapp';
 
 const PHONE = /^\+\d{8,15}$/;
@@ -112,10 +113,18 @@ export class AuthService {
   }
 
   /** Everyone signs in with their email and password. */
-  async login(login: string, password: string) {
-    const user = await this.prisma.user.findFirst({ where: { email: login.trim().toLowerCase(), active: true } });
+  private readonly throttle = new LoginThrottle();
+
+  async login(login: string, password: string, address = 'unknown') {
+    const email = login.trim().toLowerCase();
+    this.throttle.check(email, address);
+    const user = await this.prisma.user.findFirst({ where: { email, active: true } });
     const ok = user?.passwordHash ? await bcrypt.compare(password, user.passwordHash) : false;
-    if (!user || !ok) throw new UnauthorizedException('Wrong email or password.');
+    if (!user || !ok) {
+      this.throttle.fail(email, address);
+      throw new UnauthorizedException('Wrong email or password.');
+    }
+    this.throttle.succeed(email, address);
     return this.issue(user);
   }
 
@@ -329,8 +338,8 @@ export class AuthController {
 
   @Public()
   @Post('login')
-  login(@Body() dto: LoginDto) {
-    return this.auth.login(dto.login, dto.password);
+  login(@Body() dto: LoginDto, @Req() req: { ip?: string }) {
+    return this.auth.login(dto.login, dto.password, req.ip);
   }
 
   /** Parent app › Create account, step 1: a code to the email the school registered. */

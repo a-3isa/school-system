@@ -93,7 +93,8 @@ class _GateState extends State<Gate> {
     if (_loading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
     final me = _me;
     if (me == null) return LoginScreen(api: widget.api, onSignedIn: _load);
-    if (me['consentAt'] == null) return ConsentScreen(api: widget.api, onAgreed: _load, onDecline: _signOut);
+    // Tracking consent only matters at a school that subscribes to smart bands; others have nothing to consent to.
+    if (me['straps'] == true && me['consentAt'] == null) return ConsentScreen(api: widget.api, onAgreed: _load, onDecline: _signOut);
     return HomeScreen(api: widget.api, me: me, onSignOut: _signOut);
   }
 }

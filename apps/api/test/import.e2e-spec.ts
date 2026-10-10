@@ -21,7 +21,9 @@ describe('Excel import (e2e)', () => {
   beforeAll(async () => {
     app = await startApp();
     const owner = await ownerClient(app, prisma, 'imp');
-    await owner.post('/api/owner/schools', { name: 'Import School', plan: 'ESSENTIALS', admin: { name: 'A', email: 'admin@imp.eg', password: 'admin-pass' } }).expect(201);
+    const school = await owner.post('/api/owner/schools', { name: 'Import School', plan: 'ESSENTIALS', admin: { name: 'A', email: 'admin@imp.eg', password: 'admin-pass' } }).expect(201);
+    // The Strap column is part of the smart-bands subscription.
+    await owner.patch(`/api/owner/schools/${school.body.id}/modules/attendance/features`, { features: { automatic: true } }).expect(200);
     admin = await login(app, 'admin@imp.eg', 'admin-pass');
     const grade = (await admin.post('/api/grades', { name: 'Grade 4', order: 4 })).body;
     await admin.post('/api/classes', { name: '4-A', gradeId: grade.id }).expect(201);

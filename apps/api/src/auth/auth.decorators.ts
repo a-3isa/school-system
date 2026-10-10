@@ -11,6 +11,7 @@ export interface AuthUser {
 export const IS_PUBLIC = 'isPublic';
 export const ROLES = 'roles';
 export const REQUIRES_MODULE = 'requiresModule';
+export const REQUIRES_FEATURE = 'requiresFeature';
 
 /** Every role that works at a school (everyone except parents and the platform owner). */
 export const STAFF: Role[] = [Role.SCHOOL_ADMIN, Role.TEACHER, Role.TRANSPORT, Role.NURSE, Role.CANTEEN, Role.ACCOUNTANT, Role.SOCIAL_WORKER];
@@ -25,6 +26,9 @@ export const Roles = (...roles: Role[]) => SetMetadata(ROLES, roles);
 
 /** Route only works when the school has this module switched on. */
 export const RequiresModule = (key: ModuleKey) => SetMetadata(REQUIRES_MODULE, key);
+
+/** Route only works when the school's subscription includes this feature of a module (e.g. attendance → automatic). */
+export const RequiresFeature = (module: ModuleKey, feature: string) => SetMetadata(REQUIRES_FEATURE, { module, feature });
 
 export const CurrentUser = createParamDecorator((_: unknown, ctx: ExecutionContext): AuthUser => {
   return ctx.switchToHttp().getRequest().user;

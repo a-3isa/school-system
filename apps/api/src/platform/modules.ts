@@ -1,5 +1,5 @@
 import { BadRequestException, Body, Controller, ForbiddenException, Get, Injectable, Module, NotFoundException, Param, Patch, Post, Put } from '@nestjs/common';
-import { AttendanceMode, Plan, Prisma, Role } from '@prisma/client';
+import { AttendanceMode, ExceptionStatus, Plan, Prisma, Role } from '@prisma/client';
 import { Type } from 'class-transformer';
 import { IsBoolean, IsEmail, IsEnum, IsObject, IsOptional, IsString, MinLength, ValidateNested } from 'class-validator';
 import { PrismaService } from '../prisma/prisma.service';
@@ -99,6 +99,13 @@ export class ModulesService {
     // The subscription decides how attendance starts: from the straps, or by hand.
     if (key === 'attendance' && features.automatic !== undefined) {
       await this.prisma.school.update({ where: { id: schoolId }, data: { attendanceMode: features.automatic ? AttendanceMode.AUTOMATIC : AttendanceMode.MANUAL } });
+      // Without straps there is nothing for staff to follow up from them: close what was still open.
+      if (!features.automatic) {
+        await this.prisma.attendanceException.updateMany({
+          where: { schoolId, status: ExceptionStatus.OPEN },
+          data: { status: ExceptionStatus.RESOLVED, resolvedById: actor.id, resolvedAt: new Date(), note: 'Closed automatically: smart bands were switched off for this school.' },
+        });
+      }
     }
     await this.audit.log(actor, 'module.features', 'module', key, features, schoolId);
     return this.list(schoolId);

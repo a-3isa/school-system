@@ -19,16 +19,16 @@ Future<void> start(WidgetTester tester, Map<String, Object> prefs, [http.Client?
 }
 
 /// A signed-in parent of Salma (4-A) on a school day.
-MockClient school() {
+MockClient school({bool straps = false, bool consented = true, bool arrived = true}) {
   final today = todayCairo();
   final routes = <String, Object>{
-    '/auth/me': {'id': 'u1', 'name': 'Dina Farouk', 'email': 'dina.farouk@gmail.com', 'phone': '+201005550192', 'phoneVerifiedAt': '2026-09-01T08:00:00.000Z', 'consentAt': '2026-09-01T08:00:00.000Z', 'role': 'PARENT'},
+    '/auth/me': {'id': 'u1', 'name': 'Dina Farouk', 'email': 'dina.farouk@gmail.com', 'phone': '+201005550192', 'phoneVerifiedAt': '2026-09-01T08:00:00.000Z', 'consentAt': consented ? '2026-09-01T08:00:00.000Z' : null, 'straps': straps, 'role': 'PARENT'},
     '/parent/children': [
       {'id': 's1', 'firstName': 'Salma', 'lastName': 'Gamal', 'class': {'id': 'c1', 'name': '4-A'}},
     ],
     '/parent/children/s1/today': {
       'date': today,
-      'arrivedAt': '${today}T04:42:00.000Z',
+      'arrivedAt': arrived ? '${today}T04:42:00.000Z' : null,
       'leftAt': null,
       'place': null,
       'lessons': [
@@ -77,6 +77,30 @@ void main() {
     expect(find.text('تسجيل الدخول'), findsNWidgets(2));
     expect(Directionality.of(tester.element(find.text('البريد الإلكتروني'))), TextDirection.rtl);
     expect((await SharedPreferences.getInstance()).getString('lang'), 'ar');
+  });
+
+  testWidgets('a school without smart bands never asks for tracking consent or shows an arrival', (tester) async {
+    clock = () => DateTime.utc(2026, 10, 1, 7);
+    addTearDown(() => clock = DateTime.now);
+    await start(tester, {'lang': 'en', 'token': 't'}, school(consented: false, arrived: false));
+    expect(find.text('I agree'), findsNothing);
+    expect(find.text('Not yet arrived'), findsNothing);
+    expect(find.text('Math'), findsOneWidget); // straight to the child's day
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('a school with smart bands asks for consent first', (tester) async {
+    await start(tester, {'lang': 'en', 'token': 't'}, school(straps: true, consented: false));
+    expect(find.text('I agree'), findsOneWidget);
+    expect(find.text('Math'), findsNothing);
+  });
+
+  testWidgets('with smart bands, a child who has not arrived says so', (tester) async {
+    clock = () => DateTime.utc(2026, 10, 1, 7);
+    addTearDown(() => clock = DateTime.now);
+    await start(tester, {'lang': 'en', 'token': 't'}, school(straps: true, arrived: false));
+    expect(find.text('Not yet arrived'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
   });
 
   testWidgets('shows the child’s day: arrival, and every lesson with its status', (tester) async {
