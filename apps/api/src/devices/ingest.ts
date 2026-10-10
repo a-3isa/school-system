@@ -55,6 +55,11 @@ export class IngestService {
     await this.prisma.gateway.update({ where: { id: gw.id }, data: { lastSeenAt: now, firmware: dto.firmware ?? undefined } });
     if (!gw.schoolId) return { stored: 0, unknown: dto.sightings.length, note: 'Gateway not claimed by a school yet.' };
     const schoolId = gw.schoolId;
+    // No subscription, no tracking: don't keep readings for a school that didn't buy straps.
+    const mod = await this.prisma.schoolModule.findUnique({ where: { schoolId_key: { schoolId, key: 'attendance' } } });
+    if (!mod?.enabled || !(mod.features as Record<string, boolean> | null)?.automatic) {
+      return { stored: 0, unknown: dto.sightings.length, note: 'Automatic attendance isn’t part of this school’s subscription.' };
+    }
 
     const macs = [...new Set(dto.sightings.map((s) => normaliseMac(s.mac)).filter((m): m is string => !!m))];
     const straps = await this.prisma.strap.findMany({ where: { schoolId, mac: { in: macs } } });

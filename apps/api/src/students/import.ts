@@ -53,12 +53,18 @@ export class StudentImportService {
     private readonly audit: AuditService,
   ) {}
 
-  async template(): Promise<Buffer> {
+  /** Does the school's subscription include straps? Only then does the sheet have a Strap column. */
+  async hasStraps(schoolId: string): Promise<boolean> {
+    const mod = await this.prisma.schoolModule.findUnique({ where: { schoolId_key: { schoolId, key: 'attendance' } } });
+    return !!mod?.enabled && !!(mod.features as Record<string, boolean> | null)?.automatic;
+  }
+
+  async template(straps: boolean): Promise<Buffer> {
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet('Students');
-    ws.columns = COLUMNS.map((c) => ({ header: c.header, key: c.key, width: 18 }));
+    ws.columns = COLUMNS.filter((c) => straps || c.key !== 'strap').map((c) => ({ header: c.header, key: c.key, width: 18 }));
     ws.getRow(1).font = { bold: true };
-    ws.addRow({ code: '2026-0001', firstName: 'Layla', lastName: 'Hussein', nameAr: 'ليلى حسين', class: '4-A', motherName: 'Nadia Hussein', motherEmail: 'nadia.hussein@example.com', motherPhone: '+201001234567', fatherName: 'Ibrahim Hussein', fatherEmail: 'ibrahim.hussein@example.com', fatherPhone: '+201101234567', strap: 'DC:0D:30:AA:4A:11' });
+    ws.addRow({ code: '2026-0001', firstName: 'Layla', lastName: 'Hussein', nameAr: 'ليلى حسين', class: '4-A', motherName: 'Nadia Hussein', motherEmail: 'nadia.hussein@example.com', motherPhone: '+201001234567', fatherName: 'Ibrahim Hussein', fatherEmail: 'ibrahim.hussein@example.com', fatherPhone: '+201101234567', ...(straps ? { strap: 'DC:0D:30:AA:4A:11' } : {}) });
     return Buffer.from(await wb.xlsx.writeBuffer());
   }
 
@@ -101,6 +107,7 @@ export class StudentImportService {
   async run(user: AuthUser, schoolId: string, buffer: Buffer, preview: boolean): Promise<ImportReport> {
     const rows = await this.read(buffer);
     const errors: ImportReport['errors'] = [];
+    const strapsAllowed = await this.hasStraps(schoolId);
     const classes = new Map((await this.prisma.class.findMany({ where: { schoolId } })).map((c) => [c.name.toLowerCase(), c.id]));
     const existing = new Map((await this.prisma.student.findMany({ where: { schoolId }, include: { guardians: true, strap: true } })).map((s) => [s.code, s]));
     const straps = new Map((await this.prisma.strap.findMany({ where: { schoolId } })).map((s) => [s.mac, s]));
@@ -134,7 +141,9 @@ export class StudentImportService {
       if (!before?.guardians.length && !(r.motherEmail || r.fatherEmail || r.guardianEmail)) {
         err('Each student needs at least one parent or guardian: fill the mother, father or guardian columns.');
       }
-      if (r.strap) {
+      if (r.strap && !strapsAllowed) {
+        err('Smart bands aren’t part of this school’s subscription, so leave the Strap column empty.');
+      } else if (r.strap) {
         const mac = normaliseMac(r.strap);
         if (!mac) err(`Strap “${r.strap}” isn’t a valid address.`);
         else {
@@ -197,10 +206,10 @@ export class StudentImportController {
   constructor(private readonly importer: StudentImportService) {}
 
   @Get('template')
-  async template(@Res() res: Response) {
+  async template(@SchoolId() schoolId: string, @Res() res: Response) {
     res.setHeader('content-type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('content-disposition', 'attachment; filename="students-template.xlsx"');
-    res.send(await this.importer.template());
+    res.send(await this.importer.template(await this.importer.hasStraps(schoolId)));
   }
 
   @Post()

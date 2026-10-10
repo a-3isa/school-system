@@ -4,7 +4,7 @@ import { JwtService } from '@nestjs/jwt';
 import { Role } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { MODULES, ModuleKey } from '../platform/registry';
-import { AuthUser, IS_PUBLIC, REQUIRES_MODULE, ROLES } from './auth.decorators';
+import { AuthUser, IS_PUBLIC, REQUIRES_FEATURE, REQUIRES_MODULE, ROLES } from './auth.decorators';
 
 /**
  * Runs on every request: checks the login token, the caller's role and that
@@ -53,6 +53,17 @@ export class AccessGuard implements CanActivate {
       });
       if (!mod?.enabled) {
         throw new ForbiddenException(`${MODULES[moduleKey].name} isn’t switched on for this school.`);
+      }
+    }
+
+    const needed = this.reflector.getAllAndOverride<{ module: ModuleKey; feature: string } | undefined>(REQUIRES_FEATURE, targets);
+    if (needed) {
+      if (!user.schoolId) throw new ForbiddenException('This action needs a school account.');
+      const mod = await this.prisma.schoolModule.findUnique({
+        where: { schoolId_key: { schoolId: user.schoolId, key: needed.module } },
+      });
+      if (!mod?.enabled || !(mod.features as Record<string, boolean> | null)?.[needed.feature]) {
+        throw new ForbiddenException('Smart bands and readers (automatic attendance) aren’t part of this school’s subscription.');
       }
     }
     return true;

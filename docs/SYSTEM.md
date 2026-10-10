@@ -137,6 +137,8 @@ Teachers and admins use **the same screen**:
   - no "came in through the gate" on Today
   - no "Where today" on a student's page
   - no strap line in the attendance list
+  - no strap column in the Excel import, and no tracking consent in the parent app
+  - the server refuses every Devices request (gateways, straps, rules) and keeps no readings from a gateway
 
   The attendance screen is the same; teachers take the register.
 - **With it:** attendance starts from the straps, each lesson is decided when it ends (section 6), and the tracking screens appear.

@@ -4,7 +4,7 @@ import { IsEnum, IsObject, IsOptional, IsString, Matches, MinLength, ValidateIf 
 import { createHash, randomBytes } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit';
-import { AuthUser, CurrentUser, Roles, SchoolId, STAFF } from '../auth/auth.decorators';
+import { AuthUser, CurrentUser, RequiresFeature, Roles, SchoolId, STAFF } from '../auth/auth.decorators';
 import { mapPrismaError } from '../common/validation';
 import { normaliseMac, rulesFor } from './rules';
 
@@ -206,6 +206,7 @@ export class OwnerGatewaysController {
   }
 }
 
+@RequiresFeature('attendance', 'automatic')
 @Roles(Role.SCHOOL_ADMIN)
 @Controller('devices')
 export class DevicesController {

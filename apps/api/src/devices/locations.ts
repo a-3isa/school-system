@@ -1,7 +1,7 @@
-import { Controller, ForbiddenException, Get, Injectable, NotFoundException, Param, Query } from '@nestjs/common';
+import { Controller, Get, Injectable, NotFoundException, Param, Query } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { RequiresModule, Roles, SchoolId, SCHOOL_WIDE, STAFF } from '../auth/auth.decorators';
+import { RequiresFeature, RequiresModule, Roles, SchoolId, SCHOOL_WIDE, STAFF } from '../auth/auth.decorators';
 import { dbDate } from '../common/dates';
 import { localParts, zonedTime } from '../common/time';
 import { SchoolCalendar } from '../setup/calendar';
@@ -38,7 +38,7 @@ export class LocationsService {
     const rows = await this.prisma.$queryRaw<{ strapId: string; gatewayId: string; seenAt: Date }[]>(Prisma.sql`
       SELECT DISTINCT ON ("strapId") "strapId", "gatewayId", "seenAt"
       FROM "Sighting"
-      WHERE "schoolId" = ${schoolId} AND "seenAt" >= ${from} AND "seenAt" <= ${to} AND "rssi" >= ${minRssi} ${only}
+      WHERE "schoolId" = ${schoolId} AND "seenAt" >= (${from}::timestamptz AT TIME ZONE 'UTC') AND "seenAt" <= (${to}::timestamptz AT TIME ZONE 'UTC') AND "rssi" >= ${minRssi} ${only}
       ORDER BY "strapId", date_trunc('minute', "seenAt") DESC, "rssi" DESC`);
     return new Map(rows.map((r) => [r.strapId, r]));
   }
@@ -112,7 +112,7 @@ export class LocationsService {
       FROM (
         SELECT date_trunc('minute', s."seenAt") AS minute, s."gatewayId", max(s."rssi") AS rssi, min(s."seenAt") AS first, max(s."seenAt") AS last
         FROM "Sighting" s JOIN "Strap" st ON st.id = s."strapId"
-        WHERE st."studentId" = ${studentId} AND s."schoolId" = ${schoolId} AND s."seenAt" >= ${from} AND s."seenAt" < ${to} AND s."rssi" >= ${minRssi}
+        WHERE st."studentId" = ${studentId} AND s."schoolId" = ${schoolId} AND s."seenAt" >= (${from}::timestamptz AT TIME ZONE 'UTC') AND s."seenAt" < (${to}::timestamptz AT TIME ZONE 'UTC') AND s."rssi" >= ${minRssi}
         GROUP BY 1, 2
       ) m
       ORDER BY m.minute, m.rssi DESC`);
@@ -132,31 +132,19 @@ export class LocationsService {
 
 /** The dashboard's "where are they now" and each student's movements. */
 @RequiresModule('attendance')
+@RequiresFeature('attendance', 'automatic')
 @Roles(...SCHOOL_WIDE)
 @Controller('locations')
 export class LocationsController {
-  constructor(
-    private readonly locations: LocationsService,
-    private readonly prisma: PrismaService,
-  ) {}
-
-  /** Tracking comes with automatic attendance (straps); without it there is nothing to show. */
-  private async subscribed(schoolId: string) {
-    const mod = await this.prisma.schoolModule.findUnique({ where: { schoolId_key: { schoolId, key: 'attendance' } } });
-    if (!(mod?.features as Record<string, boolean> | undefined)?.automatic) {
-      throw new ForbiddenException('Tracking comes with automatic attendance, which isn’t part of this school’s subscription.');
-    }
-  }
+  constructor(private readonly locations: LocationsService) {}
 
   @Get()
   async now(@SchoolId() schoolId: string) {
-    await this.subscribed(schoolId);
     return this.locations.now(schoolId);
   }
 
   @Get('students/:id')
   async day(@SchoolId() schoolId: string, @Param('id') id: string, @Query('date') date: string) {
-    await this.subscribed(schoolId);
     return this.locations.day(schoolId, id, date);
   }
 }

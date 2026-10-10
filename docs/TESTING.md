@@ -93,6 +93,8 @@ Run these from the `school-system` folder.
 ```bash
 npm test -w apps/api                          # API unit tests
 npm run test:e2e -w apps/api                  # API tests against school_test
+#   If your database user isn't school:school, point the tests at it first:
+#   TEST_DATABASE_URL=postgresql://USER:PASSWORD@localhost:5432/school_test
 npm run build -w apps/web                     # the dashboard compiles
 cd apps/parent && flutter analyze && flutter test && cd ../..
 ```

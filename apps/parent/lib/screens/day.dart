@@ -136,8 +136,10 @@ class _DayTabState extends State<DayTab> {
     final currentSubject = current?['subject'] as String?;
     final inCurrent = place != null && currentSubject != null && current?['room'] == place['name'];
 
+    // Arrival and "where now" come from the gate and room readers: a school without smart bands has neither.
+    final gates = widget.data.me['straps'] == true || arrived != null;
     return [
-      Semantics(
+      if (gates) Semantics(
         container: true,
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(arrived != null ? s.arrived(widget.data.child(_childId)?['gender'] as String?) : s.notArrived, style: TextStyle(fontSize: 13, color: c.ink2)),
