@@ -271,6 +271,15 @@ describe('Excuses and the “didn’t come” check (e2e)', () => {
       expect(p.days[0].lessons).toEqual([expect.objectContaining({ period: 1, status: 'ABSENT' })]);
     });
 
+    it('shows the register where each child’s excuse stands', async () => {
+      await mark(ids.Karim, 'ABSENT', today); // Karim's excuse is still waiting
+      const roster = (await admin.get(`/api/attendance/classes/${classId}/periods/${periodId}?date=${today}`).expect(200)).body.students;
+      const of = (name: string) => roster.find((s: any) => s.name.startsWith(name));
+      expect(of('Ali')).toEqual(expect.objectContaining({ status: 'ABSENT', excuse: expect.objectContaining({ status: 'PENDING' }) }));
+      expect(of('Layla')).toEqual(expect.objectContaining({ status: 'EXCUSED', excuse: expect.objectContaining({ status: 'APPROVED', reason: 'SICK' }) }));
+      expect(of('Omar').excuse).toBeNull(); // present, nothing to excuse
+    });
+
     it('lists excuses for upcoming days', async () => {
       const p = (await admin.get(`/api/students/${ids.Omar}/absences`).expect(200)).body;
       expect(p.upcoming.some((e: any) => e.reason === 'APPOINTMENT')).toBe(true);

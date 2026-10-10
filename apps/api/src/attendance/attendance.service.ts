@@ -84,6 +84,15 @@ export class AttendanceService {
     ]);
     const byStudent = new Map(records.map((r) => [r.studentId, r]));
     const live = await this.liveRoom(schoolId, school, slot, date, students.map((s) => s.id));
+    // Where an absent child's excuse stands (the latest one that covers this day).
+    const excuses = records.some((r) => r.status === AttendanceStatus.ABSENT || r.status === AttendanceStatus.EXCUSED)
+      ? await this.prisma.excuse.findMany({
+          where: { studentId: { in: students.map((s) => s.id) }, fromDate: { lte: dbDate(date) }, toDate: { gte: dbDate(date) } },
+          select: { studentId: true, status: true, reason: true },
+          orderBy: { createdAt: 'asc' },
+        })
+      : [];
+    const excuseOf = new Map(excuses.map((e) => [e.studentId, { status: e.status, reason: e.reason }]));
     return {
       date,
       class: { id: slot.cls.id, name: slot.cls.name },
@@ -98,6 +107,7 @@ export class AttendanceService {
         const r = byStudent.get(s.id);
         return {
           live: live?.students.get(s.id) ?? null,
+          excuse: excuseOf.get(s.id) ?? null,
           id: s.id,
           code: s.code,
           name: `${s.firstName} ${s.lastName}`,
