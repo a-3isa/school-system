@@ -197,6 +197,10 @@ Sign in at http://localhost:3001 as admin@demo.school.
    Both codes appear in Terminal 1.
 5. **Account → change mobile**. Staff then see "… updated their mobile number".
 6. A parent with two children can switch between them.
+7. **Excuses:** as the admin, mark a student **Absent** for today. Within a minute that student's parent gets "didn't come to school today". In the app:
+   - **Yes, I know** opens the excuse form. Attach a photo, send it, and the day shows "waiting for the school".
+   - **No, I don't** shows "the school will call you", and the dashboard shows a red urgent banner.
+   - As the admin, open **Excuses**: open the attachment, **Reject** (a reason is required) or **Accept**. The student's page, under **Absences and excuses**, shows the state in colour, and the parent sees the decision.
 
 ## 12. Check the owner console
 

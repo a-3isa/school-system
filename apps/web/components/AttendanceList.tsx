@@ -4,7 +4,8 @@ import { useMemo, useRef, useState } from 'react';
 import { minutes, nowCairo, put, timeCairo, todayCairo } from '@/lib/api';
 import { useAction, useApi, useEvery } from '@/lib/hooks';
 import { useI18n } from '@/lib/i18n';
-import { ErrorNote, LiveStamp, Note, Status, STATUS_GLYPH, toast } from './ui';
+import { ABSENCE_TONE, EXCUSE_TONE } from './Lessons';
+import { ErrorNote, LiveStamp, Note, Status, STATUS_GLYPH, Tag, toast } from './ui';
 
 const CHOICES: Status[] = ['PRESENT', 'LATE', 'ABSENT', 'EXCUSED'];
 const REFRESH_MS = 15_000;
@@ -150,6 +151,12 @@ export function AttendanceList({ classId, periodId, date, crumb }: { classId: st
               <div className="who">
                 <b>{s.name}</b>
                 {state && <span className={`state ${state.cls}`}><i aria-hidden="true" />{x(state.text)}</span>}
+                {!changed && s.status === 'ABSENT' && (
+                  <Tag tone={ABSENCE_TONE[s.excuse ? (s.excuse.status === 'REJECTED' ? 'REJECTED' : 'PENDING') : 'NO_EXCUSE']}>
+                    {t.absences.status[s.excuse ? (s.excuse.status === 'REJECTED' ? 'REJECTED' : 'PENDING') : 'NO_EXCUSE']}
+                  </Tag>
+                )}
+                {!changed && s.status === 'EXCUSED' && s.excuse?.status === 'APPROVED' && <Tag tone={EXCUSE_TONE.APPROVED}>{t.excuses.reason[s.excuse.reason] ?? s.excuse.reason}</Tag>}
                 {changed && <span className="unsaved">{t.att.unsaved}</span>}
                 {savedBy && <span className="saved-by">{savedBy}</span>}
               </div>

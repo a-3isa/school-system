@@ -155,6 +155,9 @@ class S {
     String g(String boy, String girl, String neutral) => switch (gender) { 'MALE' => boy, 'FEMALE' => girl, _ => neutral };
     return switch (type) {
       'attendance.arrived' => _('$name arrived safely at school', g('وصل $name المدرسة بالسلامة', 'وصلت $name المدرسة بالسلامة', 'وصول $name إلى المدرسة بالسلامة')),
+      'attendance.absentCheck' => _('$name didn’t come to school today. Do you know why?', g('لم يحضر $name إلى المدرسة اليوم. هل تعلمون السبب؟', 'لم تحضر $name إلى المدرسة اليوم. هل تعلمون السبب؟', 'لم يُسجَّل حضور $name اليوم. هل تعلمون السبب؟')),
+      'excuse.approved' => _('The school accepted $name’s excuse', 'قبلت المدرسة عذر $name'),
+      'excuse.rejected' => _('The school did not accept $name’s excuse', 'لم تقبل المدرسة عذر $name'),
       'attendance.absent' => _('$name is absent today', g('$name غائب اليوم', '$name غائبة اليوم', 'سُجِّل غياب $name اليوم')),
       'attendance.left' => _('$name left school early', g('غادر $name المدرسة مبكرًا', 'غادرت $name المدرسة مبكرًا', 'انصراف $name من المدرسة مبكرًا')),
       'attendance.lessonAbsent' when where != null => _('$name missed $where. Student Affairs is following up.', '${g('غاب $name عن', 'غابت $name عن', 'غياب $name عن')} حصة $where. وتتابع شؤون الطلبة الأمر.'),
@@ -179,4 +182,53 @@ class S {
   String get doneA => _('Your mobile number is now', 'رقم هاتفكم الآن');
   String get doneC => _('Student Affairs has been notified.', 'وقد أُبلغت شؤون الطلبة بذلك.');
   String get done => _('Done', 'تم');
+
+  // excuses
+  String get excusesTitle => _('Excuses', 'الأعذار');
+  String get sendExcuse => _('Send an excuse', 'إرسال عذر');
+  String get newExcuse => _('New excuse', 'عذر جديد');
+  String excuseFor(String child) => _('For $child', 'عن غياب $child');
+  String get fromDay => _('From', 'من');
+  String get toDay => _('To', 'إلى');
+  String get reasonLabel => _('Reason', 'السبب');
+  String reason(String r) => switch (r) {
+        'SICK' => _('Illness', 'مرض'),
+        'APPOINTMENT' => _('Appointment', 'موعد'),
+        'FAMILY' => _('Family reason', 'ظرف عائلي'),
+        'OTHER' => _('Other', 'سبب آخر'),
+        _ => r,
+      };
+  String get noteLabel => _('Note (optional)', 'ملاحظة (اختيارية)');
+  String get noteHelp => _('For example: fever since last night, seen by the doctor.', 'مثال: ارتفاع في الحرارة منذ الليلة الماضية، وقد عُرض على الطبيب.');
+  String get attach => _('Attach a photo or PDF', 'إرفاق صورة أو ملف PDF');
+  String get attachHelp => _('Optional. A doctor’s note helps the school accept the excuse.', 'اختياري. تساعد شهادة الطبيب المدرسة على قبول العذر.');
+  String get attachChange => _('Choose another file', 'اختيار ملف آخر');
+  String get removeFile => _('Remove', 'إزالة');
+  String get excuseWindow => _('You can send an excuse up to 7 days after an absence, or ahead of time.', 'يمكنكم إرسال العذر حتى 7 أيام بعد الغياب، أو مقدّمًا.');
+  String get sendIt => _('Send the excuse', 'إرسال العذر');
+  String get excuseSent => _('The excuse was sent', 'تم إرسال العذر');
+  String get excuseSentSub => _('Student Affairs will look at it and let you know.', 'ستراجعه شؤون الطلبة وتُبلغكم بالقرار.');
+  String get noExcuses => _('No excuses sent yet.', 'لم يُرسَل أي عذر بعد.');
+  String get excusesSub => _('Excuses you sent, and what the school decided.', 'الأعذار التي أرسلتموها وقرار المدرسة بشأنها.');
+  String excuseDays(String from, String to) => from == to ? dayMonth(from) : _('${dayMonth(from)} to ${dayMonth(to)}', 'من ${dayMonth(from)} إلى ${dayMonth(to)}');
+  String excuseStatus(String st) => switch (st) {
+        'PENDING' => _('Waiting for the school', 'بانتظار قرار المدرسة'),
+        'APPROVED' => _('Accepted', 'مقبول'),
+        'REJECTED' => _('Not accepted', 'غير مقبول'),
+        _ => st,
+      };
+
+  // the "didn't come" question
+  String didntCome(String child, [String? gender]) =>
+      _('$child didn’t come to school today', switch (gender) { 'FEMALE' => 'لم تحضر $child إلى المدرسة اليوم', 'MALE' => 'لم يحضر $child إلى المدرسة اليوم', _ => 'لم يُسجَّل حضور $child اليوم' });
+  String get doYouKnow => _('Do you know why?', 'هل تعلمون السبب؟');
+  String get yesIKnow => _('Yes, I know', 'نعم، أعلم');
+  String get noIDont => _('No, I don’t', 'لا، لا أعلم');
+  String get asked15 => _('If we don’t hear from you, the school will call you.', 'إن لم نسمع منكم فستتصل بكم المدرسة.');
+  String get schoolWillCall => _('The school has been told and will call you now. If you hear from your child, please call the school.', 'أُبلغت المدرسة وستتصل بكم الآن. إن علمتم بمكان ابنكم أو ابنتكم يُرجى الاتصال بالمدرسة.');
+  String get pleaseExcuse => _('Thank you. Please send an excuse so the school can record the absence.', 'شكرًا لكم. يُرجى إرسال عذر ليسجّل المدرسة الغياب.');
+  String excusePending(String child) => _('Your excuse for $child is waiting for the school.', 'عذر $child بانتظار قرار المدرسة.');
+  String get excuseAccepted => _('The school accepted your excuse.', 'قبلت المدرسة عذركم.');
+  String excuseRejected(String? why) => _('The school did not accept the excuse.${why == null ? '' : ' $why'}', 'لم تقبل المدرسة العذر.${why == null ? '' : ' $why'}');
+  String get sendNewExcuse => _('Send a new excuse', 'إرسال عذر جديد');
 }

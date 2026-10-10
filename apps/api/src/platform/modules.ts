@@ -1,5 +1,5 @@
 import { BadRequestException, Body, Controller, ForbiddenException, Get, Injectable, Module, NotFoundException, Param, Patch, Post, Put } from '@nestjs/common';
-import { AttendanceMode, ExceptionStatus, Plan, Prisma, Role } from '@prisma/client';
+import { AttendanceMode, ExceptionStatus, ExceptionType, Plan, Prisma, Role } from '@prisma/client';
 import { Type } from 'class-transformer';
 import { IsBoolean, IsEmail, IsEnum, IsObject, IsOptional, IsString, MinLength, ValidateNested } from 'class-validator';
 import { PrismaService } from '../prisma/prisma.service';
@@ -102,7 +102,7 @@ export class ModulesService {
       // Without straps there is nothing for staff to follow up from them: close what was still open.
       if (!features.automatic) {
         await this.prisma.attendanceException.updateMany({
-          where: { schoolId, status: ExceptionStatus.OPEN },
+          where: { schoolId, status: ExceptionStatus.OPEN, type: { not: ExceptionType.ABSENT_UNKNOWN } },
           data: { status: ExceptionStatus.RESOLVED, resolvedById: actor.id, resolvedAt: new Date(), note: 'Closed automatically: smart bands were switched off for this school.' },
         });
       }

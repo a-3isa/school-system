@@ -627,3 +627,6 @@ html[lang='ar'] h1 { line-height: 1.4; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
+.note.urgent { margin: 0 0 16px; text-decoration: none; border: 2px solid var(--a); align-items: center; animation: urgent-pulse 2s ease-in-out infinite; }
+@keyframes urgent-pulse { 50% { box-shadow: 0 0 0 4px var(--a-bg); } }
+@media (prefers-reduced-motion: reduce) { .note.urgent { animation: none; } }

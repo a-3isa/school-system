@@ -99,7 +99,7 @@ describe('Manual attendance (e2e)', () => {
     expect(await svc.sendAbsenceNotices()).toBe(0); // not twice
     expect(await ours()).toBe(1);
     const notes = await parent.get('/api/notifications').expect(200);
-    expect(notes.body[0]).toEqual(expect.objectContaining({ type: 'attendance.absent', title: 'Ali is marked absent today' }));
+    expect(notes.body[0]).toEqual(expect.objectContaining({ type: 'attendance.absentCheck', title: 'Ali didn’t come to school today' }));
     await parent.post(`/api/notifications/${notes.body[0].id}/read`).expect(201);
   });
 

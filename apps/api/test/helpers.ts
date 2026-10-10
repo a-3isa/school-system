@@ -21,6 +21,12 @@ export function client(app: INestApplication, token: string) {
     put: (url: string, body?: object) => auth(request(srv()).put(url)).send(body),
     patch: (url: string, body?: object) => auth(request(srv()).patch(url)).send(body),
     delete: (url: string) => auth(request(srv()).delete(url)),
+    /** A multipart form without a file. */
+    form: (url: string, fields: Record<string, string>) => {
+      let r = auth(request(srv()).post(url));
+      for (const [k, v] of Object.entries(fields)) r = r.field(k, v);
+      return r;
+    },
     upload: (url: string, fields: Record<string, string>, file: Buffer, name = 'file.png', method: 'post' | 'put' = 'post') => {
       let r = auth(request(srv())[method](url));
       for (const [k, v] of Object.entries(fields)) r = r.field(k, v);
