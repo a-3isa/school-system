@@ -3,7 +3,7 @@ process.env.JWT_SECRET = 'test-secret';
 process.env.DISABLE_JOBS = '1';
 
 import { INestApplication } from '@nestjs/common';
-import { Test } from '@nestjs/testing';
+import { Test, TestingModuleBuilder } from '@nestjs/testing';
 import { PrismaClient, Role } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import request from 'supertest';
@@ -35,8 +35,9 @@ export function client(app: INestApplication, token: string) {
   };
 }
 
-export async function startApp() {
-  const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
+/** Starts the whole app. A test can swap parts of it (e.g. the push sender) first. */
+export async function startApp(customize: (builder: TestingModuleBuilder) => TestingModuleBuilder = (b) => b) {
+  const moduleRef = await customize(Test.createTestingModule({ imports: [AppModule] })).compile();
   const app = configureApp(moduleRef.createNestApplication());
   await app.init();
   return app;

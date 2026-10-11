@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -6,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:parent_app/api.dart';
 import 'package:parent_app/main.dart';
+import 'package:parent_app/push.dart';
 import 'package:parent_app/screens/home.dart';
 import 'package:parent_app/settings.dart';
 import 'package:parent_app/strings.dart';
@@ -59,7 +61,27 @@ MockClient school({bool straps = false, bool consented = true, bool arrived = tr
   });
 }
 
+/// A push layer the test can watch and trigger.
+class FakePush implements Push {
+  final started = <String>[];
+  final langs = <String>[];
+  var stopped = 0;
+  final _arrived = StreamController<void>.broadcast();
+  void arrive() => _arrived.add(null);
+  @override
+  Future<void> start(Api api, String lang) async => started.add(lang);
+  @override
+  Future<void> setLang(Api api, String lang) async => langs.add(lang);
+  @override
+  Future<void> stop(Api api) async => stopped++;
+  @override
+  Stream<void> get arrived => _arrived.stream;
+  @override
+  void dispose() {}
+}
+
 void main() {
+  setUp(() => pushFactory = () => NoPush());
   testWidgets('shows sign-in when not signed in', (tester) async {
     await start(tester, {'lang': 'en'});
     expect(find.text('Sign in'), findsNWidgets(2)); // the title and the button
@@ -307,6 +329,92 @@ void main() {
       expect(data.has('messaging', 'meetings'), isFalse);
       expect(data.has('academics'), isFalse);
       expect((await loaded()).has('messaging'), isFalse);
+    });
+  });
+
+  group('push notifications', () {
+    late FakePush push;
+    setUp(() {
+      push = FakePush();
+      pushFactory = () => push;
+    });
+
+    testWidgets('a signed-in parent is registered for push, in the language of the app', (tester) async {
+      clock = () => DateTime.utc(2026, 10, 1, 7);
+      addTearDown(() => clock = DateTime.now);
+      await start(tester, {'lang': 'ar', 'token': 't'}, school());
+      expect(push.started, ['ar']);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('nobody is registered while the tracking consent is still waiting', (tester) async {
+      await start(tester, {'lang': 'en', 'token': 't'}, school(straps: true, consented: false));
+      expect(find.text('I agree'), findsOneWidget);
+      expect(push.started, isEmpty);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('nobody is registered before signing in', (tester) async {
+      await start(tester, {'lang': 'en'});
+      expect(push.started, isEmpty);
+    });
+
+    testWidgets('switching language tells the server, so pushes are worded in it', (tester) async {
+      clock = () => DateTime.utc(2026, 10, 1, 7);
+      addTearDown(() => clock = DateTime.now);
+      SharedPreferences.setMockInitialValues({'lang': 'en', 'token': 't'});
+      final prefs = await SharedPreferences.getInstance();
+      final settings = AppSettings(prefs);
+      await tester.pumpWidget(ParentApp(api: Api(prefs, school()), settings: settings));
+      await tester.pumpAndSettle();
+      expect(push.langs, isEmpty);
+      await settings.setLang('ar');
+      await tester.pumpAndSettle();
+      expect(push.langs, ['ar']);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('signing out forgets the phone first', (tester) async {
+      clock = () => DateTime.utc(2026, 10, 1, 7);
+      addTearDown(() => clock = DateTime.now);
+      await start(tester, {'lang': 'en', 'token': 't'}, school());
+      await tester.tap(find.text('Account'));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Sign out'));
+      await tester.tap(find.text('Sign out'));
+      await tester.pumpAndSettle();
+      expect(push.stopped, 1);
+      expect(find.text('Sign in'), findsWidgets); // back to the sign-in screen
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('a push that arrives while the app is open refreshes what it shows', (tester) async {
+      clock = () => DateTime.utc(2026, 10, 1, 7);
+      addTearDown(() => clock = DateTime.now);
+      final log = <String>[];
+      await start(tester, {'lang': 'en', 'token': 't'}, school(log: log));
+      int loads() => log.where((l) => l.startsWith('GET /notifications')).length;
+      final before = loads();
+      push.arrive();
+      await tester.pumpAndSettle();
+      expect(loads(), before + 1);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    test('the phone is registered and forgotten through the API', () async {
+      SharedPreferences.setMockInitialValues({'token': 't'});
+      final log = <String>[];
+      final api = Api(
+        await SharedPreferences.getInstance(),
+        MockClient((req) async {
+          log.add('${req.method} ${req.url.path.replaceFirst('/api', '')} ${req.body}');
+          return http.Response('{"ok":true}', 200, headers: {'content-type': 'application/json'});
+        }),
+      );
+      await api.registerDevice('abc:def', 'android', 'ar');
+      await api.removeDevice('abc:def');
+      expect(log[0], 'POST /notifications/devices {"token":"abc:def","platform":"android","lang":"ar"}');
+      expect(log[1], startsWith('DELETE /notifications/devices/abc%3Adef'));
     });
   });
 }

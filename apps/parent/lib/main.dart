@@ -3,6 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'api.dart';
+import 'push.dart';
 import 'screens/consent.dart';
 import 'screens/home.dart';
 import 'screens/login.dart';
@@ -58,11 +59,29 @@ class Gate extends StatefulWidget {
 class _GateState extends State<Gate> {
   Map<String, dynamic>? _me;
   bool _loading = true;
+  final Push _push = pushFactory();
+  bool _pushOn = false;
+  String? _lang;
 
   @override
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // A parent who switches language gets their pushes in it.
+    final lang = Settings.of(context).lang;
+    if (_lang != null && lang != _lang && _pushOn) _push.setLang(widget.api, lang);
+    _lang = lang;
+  }
+
+  @override
+  void dispose() {
+    _push.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -83,7 +102,17 @@ class _GateState extends State<Gate> {
     }
   }
 
+  /// A signed-in parent who is past the consent screen gets pushes: start once per sign-in.
+  void _startPush(String lang) {
+    if (_pushOn) return;
+    _pushOn = true;
+    _push.start(widget.api, lang);
+  }
+
   Future<void> _signOut() async {
+    // While the login still works, forget this phone, so it stops ringing for this parent.
+    if (_pushOn) await _push.stop(widget.api);
+    _pushOn = false;
     await widget.api.signOut();
     setState(() => _me = null);
   }
@@ -95,6 +124,7 @@ class _GateState extends State<Gate> {
     if (me == null) return LoginScreen(api: widget.api, onSignedIn: _load);
     // Tracking consent only matters at a school that subscribes to smart bands; others have nothing to consent to.
     if (me['straps'] == true && me['consentAt'] == null) return ConsentScreen(api: widget.api, onAgreed: _load, onDecline: _signOut);
-    return HomeScreen(api: widget.api, me: me, onSignOut: _signOut);
+    _startPush(Settings.of(context).lang);
+    return HomeScreen(api: widget.api, me: me, onSignOut: _signOut, push: _push);
   }
 }

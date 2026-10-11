@@ -143,6 +143,10 @@ class Api {
   Future<List<dynamic>> notifications() async => await get('/notifications') as List<dynamic>;
   Future<void> markRead(String id) => post('/notifications/$id/read');
 
+  /// Tells the server which phone to push to, and in which language.
+  Future<void> registerDevice(String token, String platform, String lang) => post('/notifications/devices', {'token': token, 'platform': platform, 'lang': lang});
+  Future<void> removeDevice(String token) => delete('/notifications/devices/${Uri.encodeComponent(token)}');
+
   /// The excuses sent for a child, newest first, with what the school decided.
   Future<List<dynamic>> excuses(String childId) async => await get('/parent/children/$childId/excuses') as List<dynamic>;
 

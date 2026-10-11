@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 
 import '../api.dart';
+import '../push.dart';
 import '../strings.dart';
 import '../theme.dart';
 import 'account.dart';
@@ -85,8 +86,10 @@ class HomeData extends ChangeNotifier {
 }
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key, required this.api, required this.me, required this.onSignOut});
+  const HomeScreen({super.key, required this.api, required this.me, required this.onSignOut, this.push});
   final Api api;
+  /// Tells the screen when a push arrives while the app is open, so it refreshes.
+  final Push? push;
   final Map<String, dynamic> me;
   final VoidCallback onSignOut;
 
@@ -98,6 +101,7 @@ class _HomeScreenState extends State<HomeScreen> {
   late final HomeData _data = HomeData(widget.api, widget.me);
   String _tab = 'day';
   Timer? _timer;
+  StreamSubscription<void>? _pushed;
 
   @override
   void initState() {
@@ -105,11 +109,13 @@ class _HomeScreenState extends State<HomeScreen> {
     _data.load();
     _data.loadCrest();
     _timer = Timer.periodic(const Duration(minutes: 1), (_) => _data.load());
+    _pushed = widget.push?.arrived.listen((_) => _data.load());
   }
 
   @override
   void dispose() {
     _timer?.cancel();
+    _pushed?.cancel();
     _data.dispose();
     super.dispose();
   }
