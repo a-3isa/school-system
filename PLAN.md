@@ -261,7 +261,7 @@ Each phase ends with something a school can use and pay for. Nothing gets rebuil
 - Activities & clubs, trips and permission slips, events
 - Academics: grades, exams, report cards (built on the Phase 1 timetable)
 - Behavior & notes, clinic visits
-- Messaging: parent–teacher chat, announcements, polls, meetings, emergency broadcast
+- Messaging: parent–teacher chat, announcements, polls, meetings, emergency broadcast. **Built.** Announcements to a bus or a club follow with Transport and Activities; WhatsApp to bus supervisors with Transport
 
 **Phase 5 · Business & add-ons**
 - Reports & analytics, multi-branch

@@ -104,6 +104,16 @@ class _DayTabState extends State<DayTab> {
             if (_loadedAt != null) _Updated(at: _loadedAt!),
           ]),
           const SizedBox(height: 14),
+          for (final e in data.emergencies) ...[
+            Notice(
+              title: '${s.urgent}: ${e['title']}',
+              text: e['body'] as String?,
+              fg: c.aFg,
+              bg: c.aBg,
+              actions: [FilledButton(onPressed: () => data.acknowledge(e['id'] as String), child: Text(s.haveRead))],
+            ),
+            const SizedBox(height: 14),
+          ],
           if (data.error != null && kids.isEmpty) ErrorBox(s.offline),
           if (kids.isEmpty && data.error == null) Padding(padding: const EdgeInsets.only(top: 24), child: Text(s.noChildren, style: TextStyle(color: c.ink2, fontSize: 15, height: 1.5))),
           if (kids.length > 1) ...[ChildSwitch(kids: kids, selected: _childId, onPick: _pick), const SizedBox(height: 14)],

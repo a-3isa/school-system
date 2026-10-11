@@ -5,6 +5,7 @@ import '../strings.dart';
 import '../theme.dart';
 import '../widgets.dart';
 import 'home.dart';
+import 'meetings.dart';
 
 /// One way into a part of school life. A tile shows only when the school has
 /// the module (or feature) and the app has a screen for it.
@@ -26,7 +27,9 @@ final _tiles = <_Tile>[
 ];
 
 /// The screen behind each tile, by its key. Each feature adds its own when it is built.
-final Map<String, Widget Function(Api, HomeData)> _screens = {};
+final Map<String, Widget Function(Api, HomeData)> _screens = {
+  'meetings': (api, data) => MeetingsScreen(api: api, data: data),
+};
 
 /// Whether the school has anything for the School tab at all.
 bool hasSchoolTab(HomeData data) => _tiles.any((t) => t.on(data));
@@ -51,11 +54,15 @@ class SchoolTab extends StatelessWidget {
         for (final t in open) ...[
           Panel(
             padding: EdgeInsets.zero,
-            child: ListTile(
-              leading: Icon(t.icon, color: c.primary),
-              title: Text(t.label(s), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-              trailing: Icon(Icons.chevron_right, color: c.ink3),
-              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => _screens[t.key]!(api, data))),
+            // The panel paints the background, so the tile gets its own Material for the touch ripple.
+            child: Material(
+              type: MaterialType.transparency,
+              child: ListTile(
+                leading: Icon(t.icon, color: c.primary),
+                title: Text(t.label(s), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                trailing: Icon(Icons.chevron_right, color: c.ink3),
+                onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => _screens[t.key]!(api, data))),
+              ),
             ),
           ),
           const SizedBox(height: 10),
