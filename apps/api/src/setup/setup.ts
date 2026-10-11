@@ -3,7 +3,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
 import { sniff } from '../students/files';
 import { AttendanceMode, ClassGender, Role, RoomKind, SchoolSystem, SecondaryStream, Stage } from '@prisma/client';
-import { ArrayMaxSize, ArrayMinSize, IsArray, IsDateString, IsEnum, IsIn, IsInt, IsOptional, IsString, Matches, Max, Min, MinLength, ValidateIf } from 'class-validator';
+import { ArrayMaxSize, ArrayMinSize, IsArray, IsDateString, IsEnum, IsIn, IsInt, IsOptional, IsString, Matches, Max, MaxLength, Min, MinLength, ValidateIf } from 'class-validator';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit';
 import { AuthUser, CurrentUser, Roles, SchoolId, SCHOOL_WIDE, STAFF } from '../auth/auth.decorators';
@@ -21,6 +21,8 @@ export class SchoolSettingsDto {
   /** Office hours shown to parents in chat; messages can be sent at any time. */
   @IsOptional() @Matches(TIME_RE, { message: 'chatFrom must look like 08:00' }) chatFrom?: string;
   @IsOptional() @Matches(TIME_RE, { message: 'chatTo must look like 15:00' }) chatTo?: string;
+  /** Printed under the principal's comment on report cards; an empty value clears it. */
+  @IsOptional() @IsString() @MaxLength(100) principalName?: string;
   @IsOptional() @IsArray() @ArrayMinSize(1) @ArrayMaxSize(7) @IsInt({ each: true }) @Min(0, { each: true }) @Max(6, { each: true })
   schoolDays?: number[];
 }
@@ -143,7 +145,11 @@ export class SetupService {
     }
     const school = await this.prisma.school.update({
       where: { id: schoolId },
-      data: { ...dto, schoolDays: dto.schoolDays ? [...new Set(dto.schoolDays)].sort() : undefined },
+      data: {
+        ...dto,
+        schoolDays: dto.schoolDays ? [...new Set(dto.schoolDays)].sort() : undefined,
+        principalName: dto.principalName === undefined ? undefined : dto.principalName.trim() || null,
+      },
     });
     await this.audit.log(user, 'school.update', 'school', schoolId, { ...dto });
     return school;
