@@ -7,6 +7,23 @@ import { MODULES, ModuleKey } from '../platform/registry';
 import { AuthUser, IS_PUBLIC, REQUIRES_FEATURE, REQUIRES_MODULE, ROLES } from './auth.decorators';
 
 /**
+ * The account behind a login token's subject, if it is still active. Role and
+ * school come from the database, not the token, so a deactivated account or a
+ * changed role takes effect on the next request.
+ */
+export async function loadActiveUser(prisma: PrismaService, sub: string): Promise<AuthUser | null> {
+  const row = await prisma.user.findUnique({ where: { id: sub }, select: { id: true, schoolId: true, role: true, active: true } });
+  return row?.active ? { id: row.id, schoolId: row.schoolId, role: row.role } : null;
+}
+
+/** Does the school have this module switched on and, if given, this feature of it? */
+export async function schoolHas(prisma: PrismaService, schoolId: string, module: ModuleKey, feature?: string): Promise<boolean> {
+  const mod = await prisma.schoolModule.findUnique({ where: { schoolId_key: { schoolId, key: module } } });
+  if (!mod?.enabled) return false;
+  return !feature || !!(mod.features as Record<string, boolean> | null)?.[feature];
+}
+
+/**
  * Runs on every request: checks the login token, the caller's role and that
  * the school has the route's module switched on.
  */
@@ -33,11 +50,8 @@ export class AccessGuard implements CanActivate {
     } catch {
       throw new UnauthorizedException('Your session has expired. Sign in again.');
     }
-    // Role and school come from the database, not the token, so a deactivated
-    // account or a changed role takes effect on the next request.
-    const row = await this.prisma.user.findUnique({ where: { id: sub }, select: { id: true, schoolId: true, role: true, active: true } });
-    if (!row?.active) throw new UnauthorizedException('Your session has expired. Sign in again.');
-    const user: AuthUser = { id: row.id, schoolId: row.schoolId, role: row.role };
+    const user = await loadActiveUser(this.prisma, sub);
+    if (!user) throw new UnauthorizedException('Your session has expired. Sign in again.');
     req.user = user;
 
     const roles = this.reflector.getAllAndOverride<Role[] | undefined>(ROLES, targets);
@@ -48,10 +62,7 @@ export class AccessGuard implements CanActivate {
     const moduleKey = this.reflector.getAllAndOverride<ModuleKey | undefined>(REQUIRES_MODULE, targets);
     if (moduleKey && moduleKey !== 'core') {
       if (!user.schoolId) throw new ForbiddenException('This action needs a school account.');
-      const mod = await this.prisma.schoolModule.findUnique({
-        where: { schoolId_key: { schoolId: user.schoolId, key: moduleKey } },
-      });
-      if (!mod?.enabled) {
+      if (!(await schoolHas(this.prisma, user.schoolId, moduleKey))) {
         throw new ForbiddenException(`${MODULES[moduleKey].name} isn’t switched on for this school.`);
       }
     }
@@ -59,10 +70,7 @@ export class AccessGuard implements CanActivate {
     const needed = this.reflector.getAllAndOverride<{ module: ModuleKey; feature: string } | undefined>(REQUIRES_FEATURE, targets);
     if (needed) {
       if (!user.schoolId) throw new ForbiddenException('This action needs a school account.');
-      const mod = await this.prisma.schoolModule.findUnique({
-        where: { schoolId_key: { schoolId: user.schoolId, key: needed.module } },
-      });
-      if (!mod?.enabled || !(mod.features as Record<string, boolean> | null)?.[needed.feature]) {
+      if (!(await schoolHas(this.prisma, user.schoolId, needed.module, needed.feature))) {
         throw new ForbiddenException(
           needed.module === 'attendance' && needed.feature === 'automatic'
             ? 'Smart bands and readers (automatic attendance) aren’t part of this school’s subscription.'
