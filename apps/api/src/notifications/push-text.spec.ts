@@ -1,0 +1,71 @@
+import { arabicTitled, dayLine, pushBody, TextContext } from './push-text';
+
+const ctx = (over: Partial<TextContext> = {}): TextContext => ({ lang: 'en', name: 'Salma', gender: 'FEMALE', data: {}, ...over });
+
+describe('pushBody', () => {
+  it('says the same as the app’s list, in English', () => {
+    expect(pushBody('attendance.arrived', ctx())).toBe('Salma arrived safely at school');
+    expect(pushBody('attendance.absentCheck', ctx())).toBe('Salma didn’t come to school today. Do you know why?');
+    expect(pushBody('attendance.absent', ctx())).toBe('Salma is absent today');
+    expect(pushBody('attendance.left', ctx())).toBe('Salma left school early');
+    expect(pushBody('attendance.lessonAbsent', ctx({ data: { subject: 'Math', room: 'Room 204' } }))).toBe('Salma missed Math in Room 204. Student Affairs is following up.');
+    expect(pushBody('attendance.lessonPresent', ctx({ data: { subject: 'Math', room: 'Room 204' } }))).toBe('Salma is back in Math, Room 204');
+    expect(pushBody('excuse.approved', ctx())).toBe('The school accepted Salma’s excuse');
+    expect(pushBody('excuse.rejected', ctx())).toBe('The school did not accept Salma’s excuse');
+  });
+
+  it('agrees with the child’s gender in Arabic', () => {
+    const boy = ctx({ lang: 'ar', name: 'أحمد', gender: 'MALE' });
+    const girl = ctx({ lang: 'ar', name: 'ليلى', gender: 'FEMALE' });
+    const neutral = ctx({ lang: 'ar', name: 'سلمى', gender: null });
+    expect(pushBody('attendance.arrived', boy)).toBe('وصل أحمد المدرسة بالسلامة');
+    expect(pushBody('attendance.arrived', girl)).toBe('وصلت ليلى المدرسة بالسلامة');
+    expect(pushBody('attendance.arrived', neutral)).toBe('وصول سلمى إلى المدرسة بالسلامة');
+    expect(pushBody('attendance.absent', boy)).toBe('أحمد غائب اليوم');
+    expect(pushBody('attendance.absent', girl)).toBe('ليلى غائبة اليوم');
+    expect(pushBody('attendance.left', girl)).toBe('غادرت ليلى المدرسة مبكرًا');
+    expect(pushBody('attendance.absentCheck', boy)).toBe('لم يحضر أحمد إلى المدرسة اليوم. هل تعلمون السبب؟');
+    expect(pushBody('attendance.lessonAbsent', { ...girl, data: { subject: 'الرياضيات', room: 'فصل 204' } })).toBe('غابت ليلى عن حصة الرياضيات في فصل 204. وتتابع شؤون الطلبة الأمر.');
+    expect(pushBody('attendance.lessonPresent', { ...boy, data: { subject: 'الرياضيات', room: 'فصل 204' } })).toBe('عاد أحمد إلى حصة الرياضيات بفصل 204');
+    expect(pushBody('excuse.approved', boy)).toBe('قبلت المدرسة عذر أحمد');
+  });
+
+  it('words messages from the school in both languages', () => {
+    expect(pushBody('announcement.new', ctx({ data: { title: 'Sports day' } }))).toBe('New from the school: Sports day');
+    expect(pushBody('announcement.new', ctx({ lang: 'ar', data: { title: 'اليوم الرياضي' } }))).toBe('جديد من المدرسة: اليوم الرياضي');
+    expect(pushBody('announcement.emergency', ctx({ lang: 'ar', name: null, data: { title: 'إغلاق مبكر' } }))).toBe('عاجل من المدرسة: إغلاق مبكر');
+    expect(pushBody('poll.new', ctx({ data: { question: 'Which lunch?' } }))).toBe('The school asks your opinion: Which lunch?');
+    expect(pushBody('message.new', ctx({ data: { from: 'Ms. Hana Nabil' } }))).toBe('New message from Ms. Hana Nabil about Salma');
+    expect(pushBody('message.new', ctx({ lang: 'ar', data: { from: 'Ms. Hana Nabil' } }))).toBe('رسالة جديدة من مس Hana Nabil بشأن Salma');
+  });
+
+  it('words a cancelled meeting with the day and the time', () => {
+    const data = { teacher: 'Mr. Sherif Kamal', date: '2026-10-04', time: '14:00' };
+    expect(pushBody('meeting.cancelled', ctx({ name: null, data }))).toBe('Your meeting with Mr. Sherif Kamal on Sunday 4 October at 14:00 was cancelled');
+    const ar = pushBody('meeting.cancelled', ctx({ lang: 'ar', name: null, data }))!;
+    expect(ar).toContain('مستر Sherif Kamal');
+    expect(ar).toContain('الأحد 4 أكتوبر');
+    expect(ar).toContain('⁦' + '14:00' + '⁩'); // the time stays left to right inside Arabic
+  });
+
+  it('has nothing to say for what it doesn’t know, or when a name is missing', () => {
+    expect(pushBody('something.else', ctx())).toBeNull();
+    expect(pushBody('attendance.arrived', ctx({ name: null }))).toBeNull();
+    expect(pushBody('attendance.lessonAbsent', ctx({ data: { subject: 'Math' } }))).toBeNull();
+    expect(pushBody('announcement.new', ctx({ data: {} }))).toBeNull();
+  });
+});
+
+describe('helpers', () => {
+  it('gives teachers their Arabic titles', () => {
+    expect(arabicTitled('Ms. Hana Nabil')).toBe('مس Hana Nabil');
+    expect(arabicTitled('Mrs. Dina Adel')).toBe('مدام Dina Adel');
+    expect(arabicTitled('Dr. Omar Fathy')).toBe('د. Omar Fathy');
+    expect(arabicTitled('Hana Nabil')).toBe('Hana Nabil');
+  });
+
+  it('writes a date as a weekday and day', () => {
+    expect(dayLine('2026-10-01', 'en')).toBe('Thursday 1 October');
+    expect(dayLine('2026-10-01', 'ar')).toBe('الخميس 1 أكتوبر');
+  });
+});

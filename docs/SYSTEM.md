@@ -147,7 +147,7 @@ Teachers and admins use **the same screen**:
 
 ## 5. What parents are told
 
-All messages arrive as **app notifications**, and every one is also kept in the app's list.
+All messages arrive as **app notifications**, and every one is also kept in the app's list. When Firebase is connected (`docs/PUSH.md`), each also rings the parent's phone, worded in the language their app is in and agreeing with the child's gender in Arabic. A parent can have several phones; signing out stops the phone from ringing. Staff get no push.
 
 | When | Message (example) |
 |---|---|
@@ -325,7 +325,7 @@ The platform is made for Egypt's private, language and international schools, an
   - The firmware compiles but hasn't run on an ESP32 with real straps.
   - The detection numbers (−70 / −85 dBm, 70%, 10 minutes) need tuning in real rooms.
 - **Sending for real:**
-  - **Push notifications:** Firebase isn't connected yet. Messages are saved and visible in the app's list, but nothing pops up on the phone.
+  - **Push notifications:** connected to Firebase (project `school-platform-eg`), but not yet tried on a real phone. Android should work once the server has its key (`FIREBASE_SERVICE_ACCOUNT`); iPhones need an Apple APNs key uploaded in the Firebase console and the Push Notifications capability in Xcode. Tapping a push (or a notification in the list) opens what it is about; on the web it only opens the app. The web build gets browser push too. See `docs/PUSH.md`.
   - **Email:** needs an email account to send from (`SMTP_URL` in `apps/api/.env`). Until then, sign-up and password codes are written in the server log.
   - **WhatsApp:** needs a WhatsApp Business account with an approved code template (`WHATSAPP_*` in `apps/api/.env`). Until then, mobile codes are written in the server log.
   - **School emails to parents:** announcements reach parents as app notifications only. Emailed newsletters aren't built.

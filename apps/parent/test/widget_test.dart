@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:parent_app/api.dart';
 import 'package:parent_app/main.dart';
+import 'package:parent_app/push.dart';
 import 'package:parent_app/screens/home.dart';
 import 'package:parent_app/settings.dart';
 import 'package:parent_app/socket.dart';
@@ -84,7 +85,38 @@ class FakeChatSocket implements ChatSocket {
   void dispose() {}
 }
 
+/// A push layer the test can watch and trigger.
+class FakePush implements Push {
+  final started = <String>[];
+  final langs = <String>[];
+  var stopped = 0;
+  final _arrived = StreamController<void>.broadcast();
+  final _opened = StreamController<Map<String, dynamic>>.broadcast();
+  Map<String, dynamic>? launch;
+  void arrive() => _arrived.add(null);
+  void tap(Map<String, dynamic> data) => _opened.add(data);
+  @override
+  Future<void> start(Api api, String lang) async => started.add(lang);
+  @override
+  Future<void> setLang(Api api, String lang) async => langs.add(lang);
+  @override
+  Future<void> stop(Api api) async => stopped++;
+  @override
+  Stream<void> get arrived => _arrived.stream;
+  @override
+  Stream<Map<String, dynamic>> get opened => _opened.stream;
+  @override
+  Future<Map<String, dynamic>?> takeLaunch() async {
+    final l = launch;
+    launch = null;
+    return l;
+  }
+  @override
+  void dispose() {}
+}
+
 void main() {
+  setUp(() => pushFactory = () => NoPush());
   // No test opens a real connection.
   setUp(() => chatSocketFactory = (_) => NoChatSocket());
 
@@ -574,6 +606,181 @@ void main() {
       expect(S.ar.votesN(5), '5 أصوات');
       expect(S.ar.votesN(11), '11 صوتًا');
       expect(S.ar.staffName({'name': 'Hana Nabil', 'honorific': 'MS'}), 'مس Hana Nabil');
+    });
+  });
+
+  group('push notifications', () {
+    late FakePush push;
+    setUp(() {
+      push = FakePush();
+      pushFactory = () => push;
+    });
+
+    testWidgets('a signed-in parent is registered for push, in the language of the app', (tester) async {
+      clock = () => DateTime.utc(2026, 10, 1, 7);
+      addTearDown(() => clock = DateTime.now);
+      await start(tester, {'lang': 'ar', 'token': 't'}, school());
+      expect(push.started, ['ar']);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('nobody is registered while the tracking consent is still waiting', (tester) async {
+      await start(tester, {'lang': 'en', 'token': 't'}, school(straps: true, consented: false));
+      expect(find.text('I agree'), findsOneWidget);
+      expect(push.started, isEmpty);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('nobody is registered before signing in', (tester) async {
+      await start(tester, {'lang': 'en'});
+      expect(push.started, isEmpty);
+    });
+
+    testWidgets('switching language tells the server, so pushes are worded in it', (tester) async {
+      clock = () => DateTime.utc(2026, 10, 1, 7);
+      addTearDown(() => clock = DateTime.now);
+      SharedPreferences.setMockInitialValues({'lang': 'en', 'token': 't'});
+      final prefs = await SharedPreferences.getInstance();
+      final settings = AppSettings(prefs);
+      await tester.pumpWidget(ParentApp(api: Api(prefs, school()), settings: settings));
+      await tester.pumpAndSettle();
+      expect(push.langs, isEmpty);
+      await settings.setLang('ar');
+      await tester.pumpAndSettle();
+      expect(push.langs, ['ar']);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('signing out forgets the phone first', (tester) async {
+      clock = () => DateTime.utc(2026, 10, 1, 7);
+      addTearDown(() => clock = DateTime.now);
+      await start(tester, {'lang': 'en', 'token': 't'}, school());
+      await tester.tap(find.text('Account'));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Sign out'));
+      await tester.tap(find.text('Sign out'));
+      await tester.pumpAndSettle();
+      expect(push.stopped, 1);
+      expect(find.text('Sign in'), findsWidgets); // back to the sign-in screen
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('a push that arrives while the app is open refreshes what it shows', (tester) async {
+      clock = () => DateTime.utc(2026, 10, 1, 7);
+      addTearDown(() => clock = DateTime.now);
+      final log = <String>[];
+      await start(tester, {'lang': 'en', 'token': 't'}, school(log: log));
+      int loads() => log.where((l) => l.startsWith('GET /notifications')).length;
+      final before = loads();
+      push.arrive();
+      await tester.pumpAndSettle();
+      expect(loads(), before + 1);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    test('the phone is registered and forgotten through the API', () async {
+      SharedPreferences.setMockInitialValues({'token': 't'});
+      final log = <String>[];
+      final api = Api(
+        await SharedPreferences.getInstance(),
+        MockClient((req) async {
+          log.add('${req.method} ${req.url.path.replaceFirst('/api', '')} ${req.body}');
+          return http.Response('{"ok":true}', 200, headers: {'content-type': 'application/json'});
+        }),
+      );
+      await api.registerDevice('abc:def', 'android', 'ar');
+      await api.removeDevice('abc:def');
+      expect(log[0], 'POST /notifications/devices {"token":"abc:def","platform":"android","lang":"ar"}');
+      expect(log[1], startsWith('DELETE /notifications/devices/abc%3Adef'));
+    });
+
+    group('tapping a notification', () {
+      const hana = {'id': 't1', 'name': 'Hana Nabil', 'honorific': 'MS', 'role': 'TEACHER'};
+      const salma = {'id': 's1', 'firstName': 'Salma', 'class': {'name': '4-A'}};
+      final at = '2026-10-01T07:30:00.000Z';
+      Map<String, Object?> messagingMe() => {
+            'modules': ['core', 'attendance', 'messaging'],
+            'features': {
+              'messaging': {'chat': true, 'polls': true, 'meetings': true},
+            },
+          };
+      Map<String, Object?> note(String id, String type, Map<String, Object?> data) => {'id': id, 'type': type, 'title': 'English title', 'body': '…', 'readAt': null, 'createdAt': DateTime.now().toUtc().toIso8601String(), 'data': data};
+      Map<String, Object> routes({List<Map<String, Object?>> notes = const []}) => {
+            '/notifications': notes,
+            '/parent/announcements': [
+              {'id': 'a1', 'title': 'Sports day', 'body': 'Please send trainers.', 'priority': 'NORMAL', 'sentAt': at, 'readAt': null, 'hasFile': false},
+            ],
+            '/parent/threads': [],
+            '/threads/th1': {'id': 'th1', 'student': salma, 'staff': hana, 'canReply': true},
+            '/threads/th1/messages': [],
+            '/threads/th1/read': {'read': 0},
+            '/parent/children/s1/contacts': {'contacts': [hana], 'chatFrom': '08:00', 'chatTo': '15:00'},
+            '/parent/children/s1/meetings': {'booked': [], 'teachers': []},
+            '/notifications/n1/read': {'ok': true},
+            '/notifications/n9/read': {'ok': true},
+          };
+
+      Future<void> open(WidgetTester tester, {List<Map<String, Object?>> notes = const [], List<String>? log}) async {
+        clock = () => DateTime.utc(2026, 10, 1, 7);
+        addTearDown(() => clock = DateTime.now);
+        await start(tester, {'lang': 'en', 'token': 't'}, school(me_: messagingMe(), more: routes(notes: notes), log: log));
+      }
+
+      testWidgets('a notification in the list opens what it is about', (tester) async {
+        await open(tester, notes: [note('n1', 'excuse.approved', {'studentId': 's1'})]);
+        await tester.tap(find.text('Notifications'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('The school accepted Salma’s excuse'));
+        await tester.pumpAndSettle();
+        expect(find.text(S.en.excusesSub), findsOneWidget); // the excuses screen
+        await tester.pumpWidget(const SizedBox());
+      });
+
+      testWidgets('an attendance notification goes back to the child’s day', (tester) async {
+        await open(tester, notes: [note('n1', 'attendance.arrived', {'studentId': 's1'})]);
+        await tester.tap(find.text('Notifications'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Salma arrived safely at school'));
+        await tester.pumpAndSettle();
+        expect(find.text('Today’s lessons'), findsOneWidget);
+        await tester.pumpWidget(const SizedBox());
+      });
+
+      testWidgets('a tap on a push about a message opens that conversation, and marks the push read', (tester) async {
+        final log = <String>[];
+        await open(tester, log: log);
+        push.tap({'type': 'message.new', 'threadId': 'th1', 'studentId': 's1', 'notificationId': 'n9', 'from': 'Ms. Hana Nabil'});
+        await tester.pumpAndSettle();
+        expect(find.text('Ms. Hana Nabil'), findsOneWidget); // the conversation's header
+        expect(log.where((l) => l.startsWith('POST /notifications/n9/read')), hasLength(1));
+        await tester.pumpWidget(const SizedBox());
+      });
+
+      testWidgets('a tap on a push about an announcement opens it', (tester) async {
+        await open(tester);
+        push.tap({'type': 'announcement.new', 'announcementId': 'a1'});
+        await tester.pumpAndSettle();
+        expect(find.text('Please send trainers.'), findsWidgets);
+        expect(find.text('Sports day'), findsWidgets);
+        await tester.pumpWidget(const SizedBox());
+      });
+
+      testWidgets('the push that started the app is opened once the app is ready', (tester) async {
+        push.launch = {'type': 'meeting.cancelled', 'studentId': 's1', 'teacher': 'Ms. Hana Nabil', 'date': '2026-10-04', 'time': '14:00'};
+        await open(tester);
+        expect(find.text('Parent meetings'), findsOneWidget);
+        expect(push.launch, isNull); // used once
+        await tester.pumpWidget(const SizedBox());
+      });
+
+      testWidgets('a push the app doesn’t know a screen for lands on the notification list', (tester) async {
+        await open(tester);
+        push.tap({'type': 'something.new'});
+        await tester.pumpAndSettle();
+        expect(find.text('No notifications yet.'), findsNothing); // the list is on screen (it is titled)
+        expect(find.text('Notifications'), findsWidgets);
+        await tester.pumpWidget(const SizedBox());
+      });
     });
   });
 }

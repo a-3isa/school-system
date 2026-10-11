@@ -9,8 +9,10 @@ import 'home.dart';
 /// Everything the school told the parent, newest first, grouped by day.
 /// Unread ones are tinted with a dot; tapping one marks it read.
 class NotificationsTab extends StatelessWidget {
-  const NotificationsTab({super.key, required this.data});
+  const NotificationsTab({super.key, required this.data, this.onOpen});
   final HomeData data;
+  /// Tapping a notification takes the parent to what it is about.
+  final void Function(String type, Map<String, dynamic> info)? onOpen;
 
   @override
   Widget build(BuildContext context) {
@@ -47,7 +49,7 @@ class NotificationsTab extends StatelessWidget {
             Padding(padding: const EdgeInsets.symmetric(horizontal: 20), child: Text(s.noNotifs, style: TextStyle(color: c.ink2, fontSize: 15, height: 1.5))),
           for (final g in groups.entries) ...[
             Padding(padding: const EdgeInsets.fromLTRB(20, 10, 20, 6), child: Text(dayLabel(g.key), style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: c.ink2))),
-            for (final n in g.value) _Row(n: n, data: data),
+            for (final n in g.value) _Row(n: n, data: data, onOpen: onOpen),
           ],
         ],
       ),
@@ -56,9 +58,10 @@ class NotificationsTab extends StatelessWidget {
 }
 
 class _Row extends StatelessWidget {
-  const _Row({required this.n, required this.data});
+  const _Row({required this.n, required this.data, this.onOpen});
   final Map<String, dynamic> n;
   final HomeData data;
+  final void Function(String type, Map<String, dynamic> info)? onOpen;
 
   @override
   Widget build(BuildContext context) {
@@ -90,7 +93,11 @@ class _Row extends StatelessWidget {
     return Semantics(
       label: unread ? s.unread : null,
       child: InkWell(
-        onTap: unread ? () => data.markRead([n['id'] as String]) : null,
+        onTap: () {
+          // A failed mark-as-read (no network) isn't worth interrupting the parent for.
+          if (unread) data.markRead([n['id'] as String]).catchError((_) {});
+          onOpen?.call(type, info);
+        },
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           decoration: BoxDecoration(color: unread ? c.unread : null, border: Border(top: BorderSide(color: c.line))),

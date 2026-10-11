@@ -173,6 +173,7 @@ model User {
   marked      AttendanceRecord[]
   excusesSent Excuse[] @relation("ExcuseSubmitter")
   notifications Notification[]
+  deviceTokens DeviceToken[]
 
   announcementsWritten Announcement[]     @relation("AnnouncementAuthor")
   announcementReads    AnnouncementRead[]
@@ -692,6 +693,23 @@ model AttendanceException {
   student Student? @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@index([schoolId, date, status])
+}
+
+// A phone a parent's app has registered for push notifications (Firebase Cloud Messaging).
+model DeviceToken {
+  id         String   @id @default(cuid())
+  userId     String
+  token      String   @unique
+  // "android", "ios" or "web".
+  platform   String
+  // The language the app is shown in, so the push is worded in it.
+  lang       String   @default("en")
+  createdAt  DateTime @default(now())
+  lastSeenAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 // Marks a period as already decided from strap sightings.

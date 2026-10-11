@@ -4,11 +4,14 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 
 import '../api.dart';
+import '../push.dart';
 import '../socket.dart';
 import '../strings.dart';
 import '../theme.dart';
 import 'account.dart';
 import 'day.dart';
+import 'excuse.dart';
+import 'meetings.dart';
 import 'messages.dart';
 import 'notifications.dart';
 import 'school.dart';
@@ -28,6 +31,13 @@ class HomeData extends ChangeNotifier {
   bool loaded = false;
   /// The child every tab is showing.
   String? childId;
+  /// An announcement that a tapped notification asks the Messages tab to open.
+  String? openAnnouncementId;
+
+  void openAnnouncement(String id) {
+    openAnnouncementId = id;
+    notifyListeners();
+  }
   /// Urgent messages from the school that the parent hasn't confirmed yet.
   List<Map<String, dynamic>> emergencies = [];
   ChatSocket? _chat;
@@ -108,8 +118,10 @@ class HomeData extends ChangeNotifier {
 }
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key, required this.api, required this.me, required this.onSignOut});
+  const HomeScreen({super.key, required this.api, required this.me, required this.onSignOut, this.push});
   final Api api;
+  /// Tells the screen when a push arrives while the app is open, so it refreshes.
+  final Push? push;
   final Map<String, dynamic> me;
   final VoidCallback onSignOut;
 
@@ -121,18 +133,65 @@ class _HomeScreenState extends State<HomeScreen> {
   late final HomeData _data = HomeData(widget.api, widget.me);
   String _tab = 'day';
   Timer? _timer;
+  StreamSubscription<void>? _pushed;
+  StreamSubscription<Map<String, dynamic>>? _tapped;
 
   @override
   void initState() {
     super.initState();
-    _data.load();
+    // The children are known once this has loaded, so a tap that started the app can be shown properly.
+    _data.load().then((_) async {
+      final launch = await widget.push?.takeLaunch();
+      if (launch != null && mounted) _openPush(launch);
+    });
     _data.loadCrest();
     _timer = Timer.periodic(const Duration(minutes: 1), (_) => _data.load());
+    _pushed = widget.push?.arrived.listen((_) => _data.load());
+    _tapped = widget.push?.opened.listen(_openPush);
+  }
+
+  /// A tapped push: mark it read and show what it is about.
+  void _openPush(Map<String, dynamic> data) {
+    final id = data['notificationId'] as String?;
+    if (id != null) _data.markRead([id]).catchError((_) {});
+    _open(data['type'] as String? ?? '', data);
+  }
+
+  /// Takes the parent to what a notification is about: the child's day, their excuses,
+  /// a conversation, the news, or a meeting. Anything else lands on the notification list.
+  Future<void> _open(String type, Map<String, dynamic> info) async {
+    if (!mounted) return;
+    final child = _data.child(info['studentId'] as String?);
+    if (child != null) _data.selectChild(child['id'] as String);
+    void go(String tab) => setState(() => _tab = tab);
+    final nav = Navigator.of(context);
+
+    if (type.startsWith('attendance.') || type == 'announcement.emergency') return go('day'); // the urgent message is pinned there
+    if ((type == 'excuse.approved' || type == 'excuse.rejected') && child != null) {
+      await nav.push(MaterialPageRoute(builder: (_) => ExcusesScreen(api: widget.api, child: child)));
+      return;
+    }
+    if (type == 'message.new' && info['threadId'] is String && _data.has('messaging', 'chat')) {
+      await nav.push(MaterialPageRoute(builder: (_) => ChatScreen(api: widget.api, data: _data, threadId: info['threadId'] as String)));
+      return;
+    }
+    if (type == 'announcement.new' && _data.has('messaging')) {
+      if (info['announcementId'] is String) _data.openAnnouncement(info['announcementId'] as String);
+      return go('messages');
+    }
+    if (type == 'poll.new' && _data.has('messaging')) return go('messages');
+    if (type == 'meeting.cancelled' && _data.has('messaging', 'meetings')) {
+      await nav.push(MaterialPageRoute(builder: (_) => MeetingsScreen(api: widget.api, data: _data)));
+      return;
+    }
+    go('notifs');
   }
 
   @override
   void dispose() {
     _timer?.cancel();
+    _pushed?.cancel();
+    _tapped?.cancel();
     _data.dispose();
     super.dispose();
   }
@@ -149,7 +208,7 @@ class _HomeScreenState extends State<HomeScreen> {
           _Tab('day', s.tabDay, Icons.wb_sunny_outlined, DayTab(api: widget.api, data: _data)),
           if (_data.has('messaging')) _Tab('messages', s.tabMessages, Icons.forum_outlined, MessagesTab(api: widget.api, data: _data)),
           if (hasSchoolTab(_data)) _Tab('school', s.tabSchool, Icons.school_outlined, SchoolTab(api: widget.api, data: _data)),
-          _Tab('notifs', s.tabNotifs, Icons.notifications_none, NotificationsTab(data: _data), badge: _data.unread),
+          _Tab('notifs', s.tabNotifs, Icons.notifications_none, NotificationsTab(data: _data, onOpen: _open), badge: _data.unread),
           _Tab('account', s.tabAccount, Icons.person_outline, AccountTab(api: widget.api, me: widget.me, onSignOut: widget.onSignOut)),
         ];
         final index = tabs.indexWhere((t) => t.key == _tab).clamp(0, tabs.length - 1);
