@@ -198,10 +198,11 @@ export class ReportCardsService {
       cards: cards.map((c) => {
         const live = c.status === 'PUBLISHED' && c.snapshot ? (c.snapshot as unknown as ReportSnapshot) : this.snapshotOf(ctx, c, c.student, { present: 0, late: 0, absent: 0, excused: 0, onTrip: 0, days: 0 }, now);
         const comments = (c.subjectComments ?? {}) as Record<string, string>;
+        // A subject with no teacher has nobody to wait for, so it isn’t counted as a missing comment.
         return {
           id: c.id, studentId: c.studentId, name: `${c.student.firstName} ${c.student.lastName}`, nameAr: c.student.nameAr, code: c.student.code, status: c.status, publishedAt: c.publishedAt,
           percent: live.overall.percent, band: live.overall.band,
-          missing: { subjects: live.subjects.filter((s) => !comments[s.subjectId]).length, classTeacher: !c.classTeacherComment, principal: !c.principalComment },
+          missing: { subjects: live.subjects.filter((s) => s.teacher && !comments[s.subjectId]).length, classTeacher: !c.classTeacherComment, principal: !c.principalComment },
         };
       }),
     };

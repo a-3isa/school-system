@@ -47,7 +47,7 @@ describe('Academics (e2e)', () => {
     const student = async (key: string, code: string, classId: string, gender: string, parent: object) => {
       id[key] = (await admin.post('/api/students', { ...(await kid(admin)), gender, code, firstName: key, lastName: 'Test', classId, parent }).expect(201)).body.id;
     };
-    const mother = (n: number, name: string) => ({ relation: 'MOTHER', name, email: `p${n}@acad.eg`, phone: `+20180000${String(n).padStart(3, '0')}`, password: 'parent-pass' });
+    const mother = (n: number, name: string) => ({ relation: 'MOTHER', name, email: `p${n}@acad.eg`, phone: `+20125000${String(n).padStart(3, '0')}`, password: 'parent-pass' });
     await student('Ali', 'A1', id.classA, 'MALE', mother(1, 'Rania'));
     await student('Layla', 'A2', id.classA, 'FEMALE', mother(3, 'Nadia'));
     await student('Salma', 'A3', id.classB, 'FEMALE', mother(2, 'Dina'));

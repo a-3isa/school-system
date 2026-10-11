@@ -313,7 +313,7 @@ export class AssessmentsService {
       class: cls,
       year: { id: year.id, name: year.name },
       term: useTerm,
-      assessments: assessments.map((a) => ({ id: a.id, kind: a.kind, title: a.title, date: isoDate(a.date), maxScore: a.maxScore, weight: a.weight, publishedAt: a.publishedAt, startTime: a.startTime, endTime: a.endTime })),
+      assessments: assessments.map((a) => ({ id: a.id, kind: a.kind, title: a.title, date: isoDate(a.date), maxScore: a.maxScore, weight: a.weight, publishedAt: a.publishedAt, startTime: a.startTime, endTime: a.endTime, roomId: a.roomId })),
       students: students.map((s) => {
         const marks: Record<string, { score: number | null; absent: boolean; excused: boolean; comment: string | null }> = {};
         const items: MarkItem[] = [];

@@ -5,6 +5,7 @@ import '../strings.dart';
 import '../theme.dart';
 import '../widgets.dart';
 import 'behaviour.dart';
+import 'grades.dart';
 import 'home.dart';
 import 'meetings.dart';
 
@@ -29,6 +30,7 @@ final _tiles = <_Tile>[
 
 /// The screen behind each tile, by its key. Each feature adds its own when it is built.
 final Map<String, Widget Function(Api, HomeData)> _screens = {
+  'grades': (api, data) => GradesScreen(api: api, data: data),
   'behaviour': (api, data) => BehaviourScreen(api: api, data: data),
   'meetings': (api, data) => MeetingsScreen(api: api, data: data),
 };

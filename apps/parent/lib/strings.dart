@@ -177,6 +177,8 @@ class S {
       'announcement.emergency' => _('Urgent from the school: ${data['title']}', 'عاجل من المدرسة: ${data['title']}'),
       'poll.new' => _('The school asks your opinion: ${data['question']}', 'تودّ المدرسة معرفة رأيكم: ${data['question']}'),
       'message.new' => _('New message from ${data['from']} about $name', 'رسالة جديدة من ${data['from']} بشأن $name'),
+      'marks.published' when data['subject'] != null && data['title'] != null => _('New mark for $name in ${data['subject']}: ${data['title']}', 'درجة جديدة لـ$name في ${data['subject']}: ${data['title']}'),
+      'reportCard.published' when data['term'] == 1 || data['term'] == 2 => _('$name’s report card for term ${data['term']} is ready', 'صدرت شهادة $name عن الفصل الدراسي ${data['term'] == 1 ? 'الأول' : 'الثاني'}'),
       'behaviour.note' => switch (data['kind']) {
           'PRAISE' => _('Well done! A note of praise for $name', 'أحسنتم! ثناء من المدرسة على $name'),
           'INCIDENT' => _('Student Affairs has written to you about $name', 'تواصلت شؤون الطلبة معكم بشأن $name'),
@@ -299,6 +301,72 @@ class S {
   String behaviourPointsN(int n) {
     final v = '${n > 0 ? '+' : n < 0 ? '−' : ''}${n.abs()}';
     return isAr ? _ltr(v) : v;
+  }
+
+  // grades, exams and report cards
+  String get gradesTitle => _('Grades', 'الدرجات');
+  String get gradesSub => _('Marks your teachers have published', 'الدرجات التي نشرها المعلمون');
+  String termShort(int n) => _('Term $n', n == 1 ? 'الفصل الأول' : 'الفصل الثاني');
+  String termLong(int n) => _('Term $n', 'الفصل الدراسي ${n == 1 ? 'الأول' : 'الثاني'}');
+  String get overallGrade => _('Overall', 'المجموع العام');
+  String get noGrades => _('No marks have been published for this term yet.', 'لم تُنشر درجات هذا الفصل الدراسي بعد.');
+  String get noTrend => _('A progress line appears once there are two marks.', 'يظهر خط التقدم بعد وجود درجتين.');
+  String get progressLine => _('Progress', 'التقدم');
+  String assessmentKind(String kind) => switch (kind) {
+        'CLASSWORK' => _('Classwork', 'أعمال الفصل'),
+        'QUIZ' => _('Quiz', 'اختبار قصير'),
+        'HOMEWORK' => _('Homework', 'واجب'),
+        'PROJECT' => _('Project', 'مشروع'),
+        'MIDTERM' => _('Midterm exam', 'امتحان منتصف الفصل'),
+        'FINAL' => _('Final exam', 'امتحان نهاية الفصل'),
+        _ => kind,
+      };
+  String get upcomingExams => _('Upcoming exams', 'الامتحانات القادمة');
+  String get noUpcomingExams => _('No exams are scheduled.', 'لا توجد امتحانات مجدولة.');
+  String get reportCardsTitle => _('Report cards', 'الشهادات');
+  String get noReportCards => _('No report cards have been published yet.', 'لم تُنشر شهادات بعد.');
+  String reportCardFor(int term, String year) => _('Term $term · $year', '${termLong(term)} · ${_ltr(year)}');
+  String get reportCard => _('Report card', 'شهادة الفصل الدراسي');
+  String get studentIdLabel => _('Student ID', 'كود الطالب');
+  String get yearGroupLabel => _('Year group', 'الصف الدراسي');
+  String get classLabel => _('Class', 'الفصل');
+  String get yearLabel => _('Academic year', 'العام الدراسي');
+  String get termLabel => _('Term', 'الفصل الدراسي');
+  String get subjectLabel => _('Subject', 'المادة');
+  String get gradeLabel => _('Grade', 'التقدير');
+  String get teacherCommentLabel => _('Teacher’s comment', 'تعليق المعلم');
+  String get classTeacherComment => _('Class teacher’s comment', 'تعليق رائد الفصل');
+  String get principalComment => _('Principal’s comment', 'تعليق مدير المدرسة');
+  String get classTeacherLabel => _('Class teacher', 'رائد الفصل');
+  String get principalLabel => _('Principal', 'مدير المدرسة');
+  String get noMarkYet => _('No mark yet', 'لا توجد درجة بعد');
+  String gpa(num n) => _('GPA ${n.toStringAsFixed(2)}', 'المعدل التراكمي ${_ltr(n.toStringAsFixed(2))}');
+  String issuedOn(String date) => _('Issued ${dayLine(date)}', 'صدرت بتاريخ ${dayLine(date)}');
+  /// "20 days, absent 2": Arabic counts change with the number.
+  String attendanceLine(int days, int absent) {
+    String d(int n) => isAr ? (n == 0 ? '0 يوم' : _arCount(n, 'يوم واحد', 'يومان', 'أيام', 'يومًا')) : (n == 1 ? '1 day' : '$n days');
+    return _('Attendance: ${d(days)}, absent $absent', 'الحضور: ${d(days)}، الغياب: ${d(absent)}');
+  }
+  String attendanceDetail(int present, int late, int excused) => _('Present $present · Late $late · Excused $excused', 'حضور $present · تأخر $late · بعذر $excused');
+  /// 85 → "85%", 67.5 → "67.5%"; always Latin digits.
+  String pct(num p) {
+    final v = '${p == p.roundToDouble() ? p.round() : p}%';
+    return isAr ? _ltr(v) : v;
+  }
+  /// The score of one assessment, "17 / 20".
+  String scoreOf(num score, num max) {
+    String f(num n) => n == n.roundToDouble() ? '${n.round()}' : '$n';
+    final v = '${f(score)} / ${f(max)}';
+    return isAr ? _ltr(v) : v;
+  }
+  /// A band's name in this language.
+  String bandName(Map<String, dynamic>? band) => band == null ? '—' : (isAr ? band['labelAr'] : band['label']) as String;
+  /// "Ms. Hana Nabil" → «مس Hana Nabil» in Arabic.
+  String titledName(String? name) {
+    if (name == null || !isAr) return name ?? '';
+    final m = RegExp(r'^(Mr|Ms|Mrs|Dr)\.\s+(.*)$').firstMatch(name);
+    if (m == null) return name;
+    return '${const {'Mr': 'مستر', 'Ms': 'مس', 'Mrs': 'مدام', 'Dr': 'د.'}[m.group(1)]} ${m.group(2)}';
   }
 
   // account
