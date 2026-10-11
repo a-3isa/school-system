@@ -1,12 +1,15 @@
 import 'reflect-metadata';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import { IoAdapter } from '@nestjs/platform-socket.io';
 import { AppModule } from './app.module';
 
 export function configureApp(app: INestApplication) {
   app.setGlobalPrefix('api');
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
   app.enableCors();
+  // Live chat: the socket server shares the HTTP server.
+  app.useWebSocketAdapter(new IoAdapter(app));
   return app;
 }
 

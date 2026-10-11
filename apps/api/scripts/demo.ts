@@ -150,9 +150,50 @@ async function main() {
     secrets[serial] = gw.secret;
     console.log(`Gateway ${serial}: secret ${gw.secret}`);
   }
+  await demoMessaging(owner, admin, school.id, hana.id);
   console.log(`Demo school ready (${school.id}). Sign in as admin@demo.school / demo-admin-1`);
   // Today so far, as if the gateways had been running since the morning.
   await playDay(api, owner, admin, secrets);
+}
+
+/** Messages for the demo school: announcements, a poll, a chat with a teacher, and meeting times. */
+async function demoMessaging(owner: string, admin: string, schoolId: string, hanaId: string) {
+  // Chat, polls and meetings come with the Complete plan; the owner switches them on for this demo.
+  await call(owner, 'PATCH', `/owner/schools/${schoolId}/modules/messaging/features`, { features: { chat: true, polls: true, meetings: true } });
+  const A = (m: string, p: string, b?: unknown) => call(admin, m, p, b);
+  const hana = (await call(null, 'POST', '/auth/login', { login: 'hana@demo.school', password: 'demo-teacher-1' })).token;
+  const classes: any[] = await A('GET', '/classes');
+  const c4a = classes.find((c) => c.name === '4/1');
+
+  const welcome = await A('POST', '/announcements', {
+    title: 'Welcome to the new school year',
+    body: 'Dear parents, we are glad to welcome you and your children. The first parents’ meeting will be announced soon. Please keep the Student Affairs office informed of any change in your contact details.',
+    audience: { kind: 'SCHOOL' },
+  });
+  await A('POST', `/announcements/${welcome.id}/send`);
+  const quiz = await call(hana, 'POST', '/announcements', { title: 'Maths quiz on Thursday', body: 'Class 4/1 will have a short quiz on multiplication this Thursday. Please help your child to revise the tables of 6, 7 and 8.', audience: { kind: 'CLASSES', ids: [c4a.id] } });
+  await call(hana, 'POST', `/announcements/${quiz.id}/send`);
+
+  const closesAt = new Date(Date.now() + 7 * 86400_000).toISOString();
+  await A('POST', '/polls', {
+    question: 'Which day suits you best for the first parents’ meeting?', options: ['Sunday', 'Tuesday', 'Thursday'], closesAt, audience: { kind: 'SCHOOL' },
+  });
+
+  // A conversation: the mother of Layla (4/1) and her Maths teacher.
+  const parent = (await call(null, 'POST', '/auth/login', { login: 'parent1@demo.school', password: 'demo-parent-1' })).token;
+  const kids: any[] = await call(parent, 'GET', '/parent/children');
+  const layla = kids.find((k) => k.firstName === 'Layla') ?? kids[0];
+  const thread = await call(parent, 'POST', `/parent/children/${layla.id}/threads`, { staffId: hanaId });
+  await call(parent, 'POST', `/threads/${thread.id}/messages`, { body: 'Good morning Ms. Hana, how is Layla doing in Maths this term?' });
+  await call(hana, 'POST', `/threads/${thread.id}/messages`, { body: 'Good morning! Layla is doing very well and takes part in every lesson. She could practise the tables of 7 and 8 a little more.' });
+  await call(parent, 'POST', `/threads/${thread.id}/messages`, { body: 'Thank you, we will practise together this week.' });
+  await call(hana, 'POST', `/threads/${thread.id}/read`);
+
+  // Meeting times on the next school day.
+  const day = new Date();
+  do day.setUTCDate(day.getUTCDate() + 1);
+  while (day.getUTCDay() > 4);
+  await call(hana, 'POST', '/meetings/windows', { date: day.toISOString().slice(0, 10), fromTime: '14:00', toTime: '15:00', slotMinutes: 20, place: 'Room 204' });
 }
 
 main().catch((e) => {

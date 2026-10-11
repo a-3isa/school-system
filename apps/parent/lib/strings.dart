@@ -114,7 +114,6 @@ class S {
   String get tabAccount => _('Account', 'الحساب');
 
   // messages and school hubs
-  String get messagesSoon => _('Messages from the school will appear here.', 'ستظهر هنا رسائل المدرسة.');
   String get schoolNothingYet => _('Nothing here yet.', 'لا يوجد شيء هنا بعد.');
   String get tileGrades => _('Grades', 'الدرجات');
   String get tileBehaviour => _('Behaviour', 'السلوك');
@@ -174,9 +173,84 @@ class S {
       'attendance.left' => _('$name left school early', g('غادر $name المدرسة مبكرًا', 'غادرت $name المدرسة مبكرًا', 'انصراف $name من المدرسة مبكرًا')),
       'attendance.lessonAbsent' when where != null => _('$name missed $where. Student Affairs is following up.', '${g('غاب $name عن', 'غابت $name عن', 'غياب $name عن')} حصة $where. وتتابع شؤون الطلبة الأمر.'),
       'attendance.lessonPresent' when subject != null && room != null => _('$name is back in $subject, $room', '${g('عاد $name إلى', 'عادت $name إلى', 'عودة $name إلى')} حصة $subject ب$room'),
+      'announcement.new' => _('New from the school: ${data['title']}', 'جديد من المدرسة: ${data['title']}'),
+      'announcement.emergency' => _('Urgent from the school: ${data['title']}', 'عاجل من المدرسة: ${data['title']}'),
+      'poll.new' => _('The school asks your opinion: ${data['question']}', 'تودّ المدرسة معرفة رأيكم: ${data['question']}'),
+      'message.new' => _('New message from ${data['from']} about $name', 'رسالة جديدة من ${data['from']} بشأن $name'),
+      'meeting.cancelled' when data['teacher'] != null && data['date'] != null && data['time'] != null => _(
+          'Your meeting with ${data['teacher']} on ${dayLine(data['date'] as String)} at ${data['time']} was cancelled',
+          'أُلغي موعد مقابلتكم مع ${data['teacher']} يوم ${dayLine(data['date'] as String)} الساعة ${_ltr(data['time'] as String)}'),
       _ => fallback,
     };
   }
+
+  /// Notifications that are about the school, not about one child, so they read the same without a child.
+  static const schoolNotificationTypes = {'announcement.new', 'announcement.emergency', 'poll.new', 'meeting.cancelled'};
+
+  // messaging
+  String _ltr(String s) => '${String.fromCharCode(0x2066)}$s${String.fromCharCode(0x2069)}';
+
+  /// Arabic counts: the noun changes with the number (صوت واحد، صوتان، 3 أصوات، 11 صوتًا).
+  String _arCount(int n, String one, String two, String few, String many) {
+    final r = n % 100;
+    if (n == 1) return one;
+    if (n == 2) return two;
+    if (r >= 3 && r <= 10) return '$n $few';
+    return '$n $many';
+  }
+
+  String get newsTab => _('School news', 'أخبار المدرسة');
+  String get chatsTab => _('Conversations', 'المحادثات');
+  String get noNews => _('Nothing from the school yet.', 'لا توجد رسائل من المدرسة بعد.');
+  String get urgent => _('Urgent', 'عاجل');
+  String get haveRead => _('I have read this', 'اطلعتُ على الرسالة');
+  String get pdfAttachment => _('This message has a PDF attached. You can ask the school office for a copy.', 'مع هذه الرسالة ملف PDF مرفق. يمكنكم طلب نسخة منه من مكتب المدرسة.');
+  String get poll => _('Poll', 'استطلاع');
+  String get sendAnswer => _('Send my answer', 'إرسال إجابتي');
+  String get thanksAnswer => _('Thank you. Your answer has been received.', 'شكرًا لكم، وصلت إجابتكم.');
+  String get pollClosed => _('This poll has closed.', 'انتهى هذا الاستطلاع.');
+  String get pickOne => _('Choose one answer', 'اختاروا إجابة واحدة');
+  String get pickMany => _('You can choose more than one answer', 'يمكنكم اختيار أكثر من إجابة');
+  String votesN(int n) => _(n == 1 ? '1 vote' : '$n votes', _arCount(n, 'صوت واحد', 'صوتان', 'أصوات', 'صوتًا'));
+
+  String get noChats => _('No conversations yet.', 'لا توجد محادثات بعد.');
+  String get newMessage => _('New message', 'رسالة جديدة');
+  String contactsFor(String child) => _('Who would you like to write to about $child?', 'مع من تودّون التواصل بشأن $child؟');
+  String get classTeacher => _('Class teacher', 'رائد الفصل');
+  String get studentAffairs => _('Student Affairs', 'شؤون الطلبة');
+  String get noContacts => _('There is nobody to write to yet. Please contact the school.', 'لا يوجد من يمكن مراسلته بعد. يُرجى التواصل مع المدرسة.');
+  String officeHours(String from, String to) => _('Usually replies between $from and $to', 'الرد عادةً بين ${_ltr(from)} و${_ltr(to)}');
+  String get typeMessage => _('Write a message', 'اكتبوا رسالة');
+  String get send => _('Send', 'إرسال');
+  String get seen => _('Seen', 'تمت القراءة');
+  String get earlier => _('Earlier messages', 'رسائل أقدم');
+  String get fileTooBig => _('The file is larger than 5 MB.', 'حجم الملف أكبر من 5 ميجابايت.');
+  String get attachment => _('Attachment', 'مرفق');
+  String aboutChild(String name) => _('About $name', 'بشأن $name');
+  /// A member of staff as they are addressed: "Ms. Hana Nabil" / «مس Hana Nabil».
+  String staffName(Map<String, dynamic> u) {
+    final name = u['name'] as String? ?? '';
+    final title = switch (u['honorific']) {
+      'MR' => _('Mr.', 'مستر'),
+      'MS' => _('Ms.', 'مس'),
+      'MRS' => _('Mrs.', 'مدام'),
+      'DR' => _('Dr.', 'د.'),
+      _ => null,
+    };
+    return title == null ? name : '$title $name';
+  }
+
+  String get meetingsTitle => _('Parent meetings', 'مقابلات أولياء الأمور');
+  String get yourMeetings => _('Your meetings', 'مقابلاتكم');
+  String get noMeetings => _('You have no meetings booked.', 'لا توجد مقابلات محجوزة.');
+  String get freeTimes => _('Free times', 'المواعيد المتاحة');
+  String get noFreeTimes => _('No free times at the moment.', 'لا توجد مواعيد متاحة حاليًا.');
+  String get bookThis => _('Book this time', 'حجز هذا الموعد');
+  String get meetingNote => _('Note for the teacher (optional)', 'ملاحظة للمعلم (اختيارية)');
+  String get meetingBooked => _('Your meeting is booked.', 'تم حجز موعدكم.');
+  String get cancelMeeting => _('Cancel meeting', 'إلغاء المقابلة');
+  String get meetingCancelled => _('Your meeting was cancelled.', 'تم إلغاء المقابلة.');
+  String meetingAt(String time, String place) => _('$time · $place', '${_ltr(time)} · $place');
 
   // account
   String get name => _('Name', 'الاسم');

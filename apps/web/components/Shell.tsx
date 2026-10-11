@@ -6,6 +6,7 @@ import { todayCairo } from '@/lib/api';
 import { useApi, useEvery } from '@/lib/hooks';
 import { LangSwitch, useI18n } from '@/lib/i18n';
 import { has, useSession } from '@/lib/session';
+import { useChatEvent } from '@/lib/socket';
 import { Dict } from '@/lib/strings';
 import { initials, Toaster } from './ui';
 import { Crest } from './Crest';
@@ -31,7 +32,11 @@ const SCHOOL_WIDE = ['SCHOOL_ADMIN', 'TRANSPORT', 'NURSE', 'CANTEEN', 'ACCOUNTAN
 /** Every member of staff, teachers included. */
 export const STAFF = [...SCHOOL_WIDE, 'TEACHER'];
 
-// Later features add their own items here (messages, academics, behaviour, activities).
+/** Who writes announcements and polls (teachers to their own classes only), and who chats with parents. */
+const WRITERS = ['SCHOOL_ADMIN', 'SOCIAL_WORKER', 'TEACHER'];
+const CHATTERS = ['SCHOOL_ADMIN', 'TEACHER'];
+
+// Later features add their own items here (academics, behaviour, activities).
 const SCHOOL_NAV: { group: NavKey; items: NavItem[] }[] = [
   { group: 'teaching', items: [{ href: '/class', key: 'myClass', roles: ['TEACHER'] }] },
   { group: 'overview', items: [{ href: '/today', key: 'today', roles: SCHOOL_WIDE }] },
@@ -42,6 +47,16 @@ const SCHOOL_NAV: { group: NavKey; items: NavItem[] }[] = [
       { href: '/attendance/exceptions', key: 'exceptions', module: 'attendance', roles: SCHOOL_WIDE, count: 'exceptions' },
       { href: '/excuses', key: 'excuses', module: 'attendance', roles: ADMIN, count: 'excuses' },
       { href: '/where', key: 'where', module: 'attendance', roles: SCHOOL_WIDE, straps: true },
+    ],
+  },
+  {
+    group: 'messages',
+    items: [
+      { href: '/messages', key: 'inbox', module: 'messaging', feature: 'chat', roles: CHATTERS, count: 'messages' },
+      { href: '/announcements', key: 'announcements', module: 'messaging', roles: WRITERS },
+      { href: '/polls', key: 'polls', module: 'messaging', feature: 'polls', roles: WRITERS },
+      { href: '/meetings', key: 'meetings', module: 'messaging', feature: 'meetings', roles: CHATTERS },
+      { href: '/emergency', key: 'emergency', module: 'messaging', roles: ADMIN },
     ],
   },
   {
@@ -85,7 +100,13 @@ export function Shell({ children }: { children: ReactNode }) {
   const showExcuses = me.modules.includes('attendance') && me.role === 'SCHOOL_ADMIN';
   const waiting = useApi<any[]>(showExcuses ? '/excuses?status=PENDING' : null);
   useEvery(60_000, waiting.reload, showExcuses);
-  const counts = { exceptions: open.data?.length ?? 0, excuses: waiting.data?.length ?? 0, messages: 0 };
+  // Unread parent messages: counted every minute, and straight away when one arrives.
+  const showMessages = has(me, 'messaging', 'chat') && CHATTERS.includes(me.role);
+  const unread = useApi<{ count: number }>(showMessages ? '/threads/unread-count' : null);
+  useEvery(60_000, unread.reload, showMessages);
+  useChatEvent('message', unread.reload, showMessages);
+  useChatEvent('read', unread.reload, showMessages);
+  const counts = { exceptions: open.data?.length ?? 0, excuses: waiting.data?.length ?? 0, messages: unread.data?.count ?? 0 };
   // A child who isn't at school and whose parents don't know where they are: the one thing that can't wait.
   const urgent = (open.data ?? []).filter((e) => e.type === 'ABSENT_UNKNOWN');
 
