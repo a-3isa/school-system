@@ -11,19 +11,21 @@ export interface Audience {
 }
 
 /** Whole school, some year groups, some classes, or a club: who a message or event is for. */
-export function AudiencePicker({ value, onChange, allowActivity, activities }: {
+export function AudiencePicker({ value, onChange, allowActivity, activities, only }: {
   value: Audience;
   onChange: (a: Audience) => void;
   /** Offer "A club" (needs `activities`). */
   allowActivity?: boolean;
   activities?: { id: string; name: string }[];
+  /** Offer only these choices, e.g. a teacher writes to classes only. */
+  only?: AudienceKind[];
 }) {
   const { t, x } = useI18n();
   const gradeName = useGradeName();
   const grades = useApi<any[]>(value.kind === 'GRADES' ? '/grades' : null);
   const classes = useApi<any[]>(value.kind === 'CLASSES' ? '/classes' : null);
 
-  const kinds: AudienceKind[] = allowActivity ? ['SCHOOL', 'GRADES', 'CLASSES', 'ACTIVITY'] : ['SCHOOL', 'GRADES', 'CLASSES'];
+  const kinds: AudienceKind[] = only ?? (allowActivity ? ['SCHOOL', 'GRADES', 'CLASSES', 'ACTIVITY'] : ['SCHOOL', 'GRADES', 'CLASSES']);
   const toggle = (id: string) =>
     onChange({ ...value, ids: value.ids.includes(id) ? value.ids.filter((i) => i !== id) : [...value.ids, id] });
 

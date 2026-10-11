@@ -124,6 +124,14 @@ model School {
   exceptions AttendanceException[]
   // Detection rules for automatic attendance; see src/devices/rules.ts.
   detection  Json @default("{}")
+  // Office hours shown to parents in chat (HH:mm, school time zone); not enforced.
+  chatFrom   String @default("08:00")
+  chatTo     String @default("15:00")
+
+  announcements  Announcement[]
+  polls          Poll[]
+  chatThreads    ChatThread[]
+  meetingWindows MeetingWindow[]
 }
 
 model SchoolModule {
@@ -166,6 +174,17 @@ model User {
   excusesSent Excuse[] @relation("ExcuseSubmitter")
   notifications Notification[]
   deviceTokens DeviceToken[]
+
+  announcementsWritten Announcement[]     @relation("AnnouncementAuthor")
+  announcementReads    AnnouncementRead[]
+  pollsWritten         Poll[]             @relation("PollAuthor")
+  pollTargets          PollTarget[]
+  pollVotes            PollVote[]
+  chatsAsParent        ChatThread[]       @relation("ChatParent")
+  chatsAsStaff         ChatThread[]       @relation("ChatStaff")
+  chatSent             ChatMessage[]      @relation("ChatSender")
+  meetingWindows       MeetingWindow[]    @relation("MeetingTeacher")
+  meetingsBooked       MeetingSlot[]      @relation("MeetingParent")
 
   @@index([schoolId, role])
 }
@@ -314,6 +333,8 @@ model Student {
   presence   GatePresence[]
   exceptions AttendanceException[]
   files      StudentFile[]
+  chatThreads  ChatThread[]
+  meetingSlots MeetingSlot[]
 
   @@unique([schoolId, code])
   @@unique([schoolId, nationalId])
@@ -720,4 +741,191 @@ model VerificationCode {
   createdAt DateTime    @default(now())
 
   @@index([target, purpose, createdAt])
+}
+
+// ---- Messaging ---------------------------------------------------------------
+
+enum AnnouncementPriority {
+  NORMAL
+  // Sent by Student Affairs to every parent; pinned in the app until acknowledged (decision T7).
+  EMERGENCY
+}
+
+// A message from the school to the parents of an audience: the whole school, year groups, classes or a club.
+model Announcement {
+  id         String               @id @default(cuid())
+  schoolId   String
+  title      String
+  body       String
+  // { kind: SCHOOL|GRADES|CLASSES|ACTIVITY, ids: string[] }, see src/common/audience.ts
+  audience   Json
+  priority   AnnouncementPriority @default(NORMAL)
+  authorId   String?
+  fileData   Bytes?
+  fileType   String?
+  fileName   String?
+  createdAt  DateTime             @default(now())
+  // Null while a draft; set when sent.
+  sentAt     DateTime?
+  // How many parents it reached when it was sent.
+  recipients Int                  @default(0)
+
+  school School             @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  author User?              @relation("AnnouncementAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  reads  AnnouncementRead[]
+
+  @@index([schoolId, sentAt])
+}
+
+// One row per parent an announcement was sent to.
+model AnnouncementRead {
+  announcementId String
+  userId         String
+  readAt         DateTime?
+  // Emergency only: the parent pressed "I have read this".
+  acknowledgedAt DateTime?
+
+  announcement Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([announcementId, userId])
+  @@index([userId])
+}
+
+model Poll {
+  id          String    @id @default(cuid())
+  schoolId    String
+  question    String
+  audience    Json
+  // Parents may pick more than one option.
+  multiple    Boolean   @default(false)
+  // Staff see totals only, never who voted for what.
+  anonymous   Boolean   @default(true)
+  // Parents see the results after voting.
+  showResults Boolean   @default(true)
+  closesAt    DateTime
+  authorId    String?
+  createdAt   DateTime  @default(now())
+  closedAt    DateTime?
+
+  school  School       @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  author  User?        @relation("PollAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  options PollOption[]
+  votes   PollVote[]
+  // The parents it was sent to.
+  targets PollTarget[]
+
+  @@index([schoolId, createdAt])
+}
+
+model PollOption {
+  id     String @id @default(cuid())
+  pollId String
+  label  String
+  order  Int
+
+  poll  Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  votes PollVote[]
+}
+
+model PollTarget {
+  pollId String
+  userId String
+
+  poll Poll @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([pollId, userId])
+  @@index([userId])
+}
+
+model PollVote {
+  pollId    String
+  optionId  String
+  userId    String
+  createdAt DateTime @default(now())
+
+  poll   Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  option PollOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  user   User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([pollId, userId, optionId])
+}
+
+// A conversation between one parent and one member of staff about one child.
+model ChatThread {
+  id            String   @id @default(cuid())
+  schoolId      String
+  studentId     String
+  parentId      String
+  staffId       String
+  createdAt     DateTime @default(now())
+  lastMessageAt DateTime @default(now())
+
+  school   School        @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student  Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  parent   User          @relation("ChatParent", fields: [parentId], references: [id], onDelete: Cascade)
+  staff    User          @relation("ChatStaff", fields: [staffId], references: [id], onDelete: Cascade)
+  messages ChatMessage[]
+
+  @@unique([studentId, parentId, staffId])
+  @@index([schoolId, staffId, lastMessageAt])
+  @@index([parentId, lastMessageAt])
+}
+
+model ChatMessage {
+  id        String    @id @default(cuid())
+  threadId  String
+  senderId  String
+  body      String
+  fileData  Bytes?
+  fileType  String?
+  fileName  String?
+  createdAt DateTime  @default(now())
+  // When the other side opened the thread after this message arrived.
+  readAt    DateTime?
+
+  thread ChatThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  sender User       @relation("ChatSender", fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([threadId, createdAt])
+}
+
+// A teacher's free time for parent meetings on one day, cut into slots.
+model MeetingWindow {
+  id          String   @id @default(cuid())
+  schoolId    String
+  teacherId   String
+  date        DateTime @db.Date
+  fromTime    String // HH:mm
+  toTime      String // HH:mm
+  slotMinutes Int
+  // "Room 204", "Online (link sent the day before)"
+  place       String
+  createdAt   DateTime @default(now())
+
+  school  School        @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  teacher User          @relation("MeetingTeacher", fields: [teacherId], references: [id], onDelete: Cascade)
+  slots   MeetingSlot[]
+
+  @@index([schoolId, date])
+  @@index([teacherId, date])
+}
+
+model MeetingSlot {
+  id         String    @id @default(cuid())
+  windowId   String
+  startsAt   DateTime
+  endsAt     DateTime
+  bookedById String?
+  studentId  String?
+  note       String?
+  bookedAt   DateTime?
+
+  window   MeetingWindow @relation(fields: [windowId], references: [id], onDelete: Cascade)
+  bookedBy User?         @relation("MeetingParent", fields: [bookedById], references: [id], onDelete: SetNull)
+  student  Student?      @relation(fields: [studentId], references: [id], onDelete: SetNull)
+
+  @@index([windowId, startsAt])
+  @@index([bookedById])
 }

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../api.dart';
 import '../push.dart';
+import '../socket.dart';
 import '../strings.dart';
 import '../theme.dart';
 import 'account.dart';
@@ -28,6 +29,17 @@ class HomeData extends ChangeNotifier {
   bool loaded = false;
   /// The child every tab is showing.
   String? childId;
+  /// Urgent messages from the school that the parent hasn't confirmed yet.
+  List<Map<String, dynamic>> emergencies = [];
+  ChatSocket? _chat;
+  /// The live connection for chat, opened the first time it is needed.
+  ChatSocket get chat => _chat ??= chatSocketFactory(api);
+
+  @override
+  void dispose() {
+    _chat?.dispose();
+    super.dispose();
+  }
 
   int get unread => notifications.where((n) => n['readAt'] == null).length;
 
@@ -75,8 +87,19 @@ class HomeData extends ChangeNotifier {
     } catch (e) {
       error = e.toString();
     }
+    // An urgent message stays on top until it is confirmed; not being able to ask never blocks the rest.
+    if (has('messaging')) {
+      try {
+        emergencies = (await api.emergencies()).cast<Map<String, dynamic>>();
+      } catch (_) {}
+    }
     loaded = true;
     notifyListeners();
+  }
+
+  Future<void> acknowledge(String id) async {
+    await api.acknowledge(id);
+    await load();
   }
 
   Future<void> markRead(Iterable<String> ids) async {

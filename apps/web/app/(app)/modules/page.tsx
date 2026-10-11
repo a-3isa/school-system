@@ -4,7 +4,7 @@ import { del, patch, upload } from '@/lib/api';
 import { Crest } from '@/components/Crest';
 import { useAction, useApi } from '@/lib/hooks';
 import { useI18n } from '@/lib/i18n';
-import { useSession } from '@/lib/session';
+import { has, useSession } from '@/lib/session';
 import { ErrorNote, PageHead, Pill, Section, Switch, toast } from '@/components/ui';
 
 /** Saturday first, as Egyptian school weeks are read. */
@@ -20,10 +20,10 @@ export default function ModulesPage() {
   const modules = useApi<any[]>('/modules');
   const school = useApi('/school');
   const act = useAction();
-  const [settings, setSettings] = useState({ absenceNoticeTime: '08:15', schoolDays: [0, 1, 2, 3, 4] as number[] });
+  const [settings, setSettings] = useState({ absenceNoticeTime: '08:15', chatFrom: '08:00', chatTo: '15:00', schoolDays: [0, 1, 2, 3, 4] as number[] });
 
   useEffect(() => {
-    if (school.data) setSettings({ absenceNoticeTime: school.data.absenceNoticeTime, schoolDays: school.data.schoolDays });
+    if (school.data) setSettings({ absenceNoticeTime: school.data.absenceNoticeTime, chatFrom: school.data.chatFrom, chatTo: school.data.chatTo, schoolDays: school.data.schoolDays });
   }, [school.data]);
 
   const setFeature = async (key: string, feature: string, on: boolean) => {
@@ -83,6 +83,16 @@ export default function ModulesPage() {
           <span><b>{t.modules.absTime}</b><span>{t.modules.absTimeHelp}</span></span>
           <input className="input num" type="time" aria-label={t.modules.absTime} style={{ width: 140 }} value={settings.absenceNoticeTime} onChange={(e) => setSettings({ ...settings, absenceNoticeTime: e.target.value })} />
         </div>
+        {has(me, 'messaging', 'chat') && (
+          <div className="settings-row">
+            <span><b>{t.modules.chatHours}</b><span>{t.modules.chatHoursHelp}</span></span>
+            <span className="row" style={{ gap: 8 }}>
+              <input className="input num" type="time" aria-label={t.modules.chatFrom} style={{ width: 120 }} value={settings.chatFrom} onChange={(e) => setSettings({ ...settings, chatFrom: e.target.value })} />
+              <span aria-hidden="true">–</span>
+              <input className="input num" type="time" aria-label={t.modules.chatTo} style={{ width: 120 }} value={settings.chatTo} onChange={(e) => setSettings({ ...settings, chatTo: e.target.value })} />
+            </span>
+          </div>
+        )}
         <div className="settings-row">
           <span />
           <button className="btn primary" type="submit" disabled={act.busy}>{t.modules.saveSettings}</button>

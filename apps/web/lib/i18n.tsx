@@ -41,6 +41,39 @@ const SERVER_AR: [RegExp, (...m: string[]) => string][] = [
   [/^(.+) isn’t switched on for this school\.$/, (_, m) => `خدمة «${m}» غير مفعّلة لهذه المدرسة.`],
   [/^Choose at least one year group or class\.$/, () => 'يُرجى اختيار صف دراسي أو فصل واحد على الأقل.'],
   [/^Year group or class not found\.$/, () => 'لم يتم العثور على الصف الدراسي أو الفصل.'],
+  // Messaging
+  ...(
+    [
+      ['Announcement not found.', 'لم يتم العثور على الإعلان.'],
+      ['Only the author or Student Affairs can change this announcement.', 'يمكن للكاتب أو لشؤون الطلبة فقط تعديل هذا الإعلان.'],
+      ['This announcement has already been sent.', 'تم إرسال هذا الإعلان بالفعل.'],
+      ['Teachers can write to their own classes only.', 'يمكن للمعلمين الكتابة إلى فصولهم فقط.'],
+      ['Attach a photo (JPG, PNG or WebP) or a PDF.', 'يُرجى إرفاق صورة (JPG أو PNG أو WebP) أو ملف PDF.'],
+      ['Only drafts can be deleted.', 'لا يمكن حذف إلا المسودات.'],
+      ['There are no parents to send this to yet.', 'لا يوجد أولياء أمور لإرسال هذه الرسالة إليهم بعد.'],
+      ['No attachment.', 'لا يوجد مرفق.'],
+      ['Poll not found.', 'لم يتم العثور على الاستطلاع.'],
+      ['Every answer needs some text.', 'يجب أن تحتوي كل إجابة على نص.'],
+      ['Each answer must be different.', 'يجب أن تختلف الإجابات عن بعضها.'],
+      ['The closing time must be in the future.', 'يجب أن يكون موعد الإغلاق في المستقبل.'],
+      ['Conversation not found.', 'لم يتم العثور على المحادثة.'],
+      ['Only the teacher in this conversation can reply.', 'يمكن لمعلم هذه المحادثة وحده الرد عليها.'],
+      ['This conversation is closed.', 'هذه المحادثة مغلقة.'],
+      ['Write a message first.', 'اكتبوا رسالة أولًا.'],
+      ['Only Student Affairs can see every conversation.', 'شؤون الطلبة وحدها يمكنها الاطلاع على كل المحادثات.'],
+      ['Choose the teacher.', 'اختاروا المعلم.'],
+      ['You can add meeting times for yourself only.', 'يمكنكم إضافة مواعيد المقابلات لأنفسكم فقط.'],
+      ['Teacher not found.', 'لم يتم العثور على المعلم.'],
+      ['The end time must be after the start time.', 'يجب أن يكون وقت الانتهاء بعد وقت البدء.'],
+      ['This time is too short for one meeting.', 'هذه الفترة أقصر من أن تتسع لمقابلة واحدة.'],
+      ['Choose a day that hasn’t passed.', 'اختاروا يومًا لم يمضِ بعد.'],
+      ['The school is closed that day.', 'المدرسة مغلقة في هذا اليوم.'],
+      ['This overlaps another meeting time on the same day.', 'تتداخل هذه الفترة مع فترة مقابلات أخرى في اليوم نفسه.'],
+      ['Meeting time not found.', 'لم يتم العثور على موعد المقابلة.'],
+      ['This time isn’t booked.', 'هذا الموعد غير محجوز.'],
+      ['Office hours must end after they start.', 'يجب أن تنتهي ساعات الاستقبال بعد بدايتها.'],
+    ] as [string, string][]
+  ).map(([en, ar]): [RegExp, () => string] => [new RegExp(`^${en.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`), () => ar]),
 ];
 export function serverTextAr(s: string): string {
   for (const [re, f] of SERVER_AR) {

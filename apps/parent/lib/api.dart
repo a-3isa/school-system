@@ -146,6 +146,44 @@ class Api {
   /// Tells the server which phone to push to, and in which language.
   Future<void> registerDevice(String token, String platform, String lang) => post('/notifications/devices', {'token': token, 'platform': platform, 'lang': lang});
   Future<void> removeDevice(String token) => delete('/notifications/devices/${Uri.encodeComponent(token)}');
+  // ---- messaging ----------------------------------------------------------
+
+  Future<List<dynamic>> announcements() async => await get('/parent/announcements') as List<dynamic>;
+  /// Urgent messages the parent hasn't confirmed yet.
+  Future<List<dynamic>> emergencies() async => await get('/parent/announcements/emergency') as List<dynamic>;
+  Future<void> readAnnouncement(String id) => post('/parent/announcements/$id/read');
+  Future<void> acknowledge(String id) => post('/parent/announcements/$id/acknowledge');
+
+  Future<List<dynamic>> polls() async => await get('/parent/polls') as List<dynamic>;
+  Future<void> vote(String pollId, List<String> optionIds) => post('/parent/polls/$pollId/vote', {'optionIds': optionIds});
+
+  Future<List<dynamic>> threads() async => await get('/parent/threads') as List<dynamic>;
+  /// Who the parent may write to about a child, and the school's office hours.
+  Future<Map<String, dynamic>> contacts(String childId) async => await get('/parent/children/$childId/contacts') as Map<String, dynamic>;
+  Future<Map<String, dynamic>> startThread(String childId, String staffId) async => await post('/parent/children/$childId/threads', {'staffId': staffId}) as Map<String, dynamic>;
+  Future<Map<String, dynamic>> thread(String id) async => await get('/threads/$id') as Map<String, dynamic>;
+  /// A page of messages, newest first.
+  Future<List<dynamic>> messages(String threadId, {String? before}) async =>
+      await get('/threads/$threadId/messages${before == null ? '' : '?before=${Uri.encodeQueryComponent(before)}'}') as List<dynamic>;
+  Future<Map<String, dynamic>> sendMessage(String threadId, String body, {String? fileName, Uint8List? fileBytes}) async => fileBytes == null
+      ? await post('/threads/$threadId/messages', {'body': body}) as Map<String, dynamic>
+      : await upload('/threads/$threadId/messages', {if (body.isNotEmpty) 'body': body}, fileName: fileName, fileBytes: fileBytes) as Map<String, dynamic>;
+  Future<void> readThread(String id) => post('/threads/$id/read');
+
+  Future<Map<String, dynamic>> meetings(String childId) async => await get('/parent/children/$childId/meetings') as Map<String, dynamic>;
+  Future<void> bookMeeting(String childId, String slotId, {String? note}) =>
+      post('/parent/children/$childId/meetings/$slotId/book', {if (note != null && note.trim().isNotEmpty) 'note': note.trim()});
+  Future<void> cancelMeeting(String slotId) => post('/parent/meetings/$slotId/cancel');
+
+  /// A file or image the school sent, or null when it can't be fetched.
+  Future<Uint8List?> bytes(String path) async {
+    try {
+      final res = await _client.get(Uri.parse('$apiUrl$path'), headers: {if (token != null) 'authorization': 'Bearer $token'});
+      return res.statusCode == 200 && res.bodyBytes.isNotEmpty ? res.bodyBytes : null;
+    } catch (_) {
+      return null;
+    }
+  }
 
   /// The excuses sent for a child, newest first, with what the school decided.
   Future<List<dynamic>> excuses(String childId) async => await get('/parent/children/$childId/excuses') as List<dynamic>;

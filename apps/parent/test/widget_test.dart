@@ -10,6 +10,7 @@ import 'package:parent_app/main.dart';
 import 'package:parent_app/push.dart';
 import 'package:parent_app/screens/home.dart';
 import 'package:parent_app/settings.dart';
+import 'package:parent_app/socket.dart';
 import 'package:parent_app/strings.dart';
 import 'package:parent_app/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -46,6 +47,10 @@ MockClient school({bool straps = false, bool consented = true, bool arrived = tr
       {'id': 'x2', 'studentId': 's1', 'fromDate': '2026-09-20T00:00:00.000Z', 'toDate': '2026-09-20T00:00:00.000Z', 'reason': 'FAMILY', 'note': null, 'status': 'REJECTED', 'decisionNote': 'Please send a note.', 'hasFile': false},
     ],
     '/parent/children/s1/absence-check': {'answer': 'KNOWS', 'alerted': false},
+    '/parent/announcements': [],
+    '/parent/announcements/emergency': [],
+    '/parent/polls': [],
+    '/parent/threads': [],
     '/notifications': [
       {'id': 'n1', 'type': 'attendance.lessonAbsent', 'title': 'Salma was absent from Math in Room 204', 'body': '…', 'readAt': null, 'createdAt': DateTime.now().toUtc().toIso8601String(),
         'data': {'studentId': 's1', 'date': today, 'subject': 'Math', 'room': 'Room 204'}},
@@ -56,9 +61,28 @@ MockClient school({bool straps = false, bool consented = true, bool arrived = tr
   routes.addAll(more);
   return MockClient((req) async {
     log?.add('${req.method} ${req.url.path.replaceFirst('/api', '')} ${req.body}');
-    final body = routes[req.url.path.replaceFirst('/api', '')];
+    var body = routes[req.url.path.replaceFirst('/api', '')];
+    if (body is Object Function(http.Request)) body = body(req);
     return body == null ? http.Response('{"message":"Not found"}', 404) : http.Response(jsonEncode(body), 200, headers: {'content-type': 'application/json; charset=utf-8'});
   });
+}
+
+/// A live connection the test can push messages through.
+class FakeChatSocket implements ChatSocket {
+  final _messages = StreamController<Map<String, dynamic>>.broadcast();
+  final _reads = StreamController<Map<String, dynamic>>.broadcast();
+  void push(Map<String, dynamic> e) => _messages.add(e);
+  void pushRead(Map<String, dynamic> e) => _reads.add(e);
+  @override
+  Stream<Map<String, dynamic>> get messages => _messages.stream;
+  @override
+  Stream<Map<String, dynamic>> get reads => _reads.stream;
+  @override
+  bool get connected => true;
+  @override
+  Stream<bool> get connection => const Stream.empty();
+  @override
+  void dispose() {}
 }
 
 /// A push layer the test can watch and trigger.
@@ -82,6 +106,9 @@ class FakePush implements Push {
 
 void main() {
   setUp(() => pushFactory = () => NoPush());
+  // No test opens a real connection.
+  setUp(() => chatSocketFactory = (_) => NoChatSocket());
+
   testWidgets('shows sign-in when not signed in', (tester) async {
     await start(tester, {'lang': 'en'});
     expect(find.text('Sign in'), findsNWidgets(2)); // the title and the button
@@ -276,7 +303,7 @@ void main() {
       }
       await tester.tap(find.text('Messages'));
       await tester.pumpAndSettle();
-      expect(find.text('Messages from the school will appear here.'), findsOneWidget);
+      expect(find.text('Nothing from the school yet.'), findsOneWidget);
       await tester.pumpWidget(const SizedBox());
     });
 
@@ -329,6 +356,245 @@ void main() {
       expect(data.has('messaging', 'meetings'), isFalse);
       expect(data.has('academics'), isFalse);
       expect((await loaded()).has('messaging'), isFalse);
+    });
+  });
+
+  group('messaging', () {
+    const all = {
+      'messaging': {'chat': true, 'polls': true, 'meetings': true},
+    };
+    Map<String, Object?> messagingMe() => {
+          'modules': ['core', 'attendance', 'messaging'],
+          'features': all,
+        };
+    const hana = {'id': 't1', 'name': 'Hana Nabil', 'honorific': 'MS', 'role': 'TEACHER'};
+    const salma = {'id': 's1', 'firstName': 'Salma', 'class': {'name': '4-A'}};
+    final at = '2026-10-01T07:30:00.000Z';
+
+    Future<void> openMessages(WidgetTester tester, MockClient client) async {
+      clock = () => DateTime.utc(2026, 10, 1, 7);
+      addTearDown(() => clock = DateTime.now);
+      await start(tester, {'lang': 'en', 'token': 't'}, client);
+      await tester.tap(find.text('Messages'));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('the news feed shows announcements and polls, and a vote sends the chosen answer', (tester) async {
+      final log = <String>[];
+      await openMessages(
+        tester,
+        school(
+          log: log,
+          me_: messagingMe(),
+          more: {
+            '/parent/announcements': [
+              {'id': 'a1', 'title': 'Sports day', 'body': 'Please send trainers on Sunday.', 'priority': 'NORMAL', 'sentAt': at, 'readAt': null, 'hasFile': false},
+            ],
+            '/parent/polls': [
+              {'id': 'p1', 'question': 'Which lunch?', 'multiple': false, 'open': true, 'myVotes': [], 'createdAt': '2026-10-01T06:00:00.000Z', 'options': [
+                {'id': 'o1', 'label': 'Pasta'},
+                {'id': 'o2', 'label': 'Rice'},
+              ]},
+            ],
+          },
+        ),
+      );
+      expect(find.text('Sports day'), findsOneWidget);
+      expect(find.text('Which lunch?'), findsOneWidget);
+      expect(find.text('Send my answer'), findsOneWidget);
+      await tester.tap(find.text('Rice'));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Send my answer'));
+      await tester.tap(find.text('Send my answer'));
+      await tester.pumpAndSettle();
+      expect(log.where((l) => l.startsWith('POST /parent/polls/p1/vote')).single, contains('"optionIds":["o2"]'));
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('a poll the parent answered thanks them, or shows the result when the school allows it', (tester) async {
+      await openMessages(
+        tester,
+        school(
+          me_: messagingMe(),
+          more: {
+            '/parent/polls': [
+              {'id': 'p1', 'question': 'Thanks?', 'multiple': false, 'open': true, 'myVotes': ['o1'], 'createdAt': at, 'options': [{'id': 'o1', 'label': 'Yes'}]},
+              {'id': 'p2', 'question': 'Result?', 'multiple': false, 'open': false, 'myVotes': ['o1'], 'voters': 4, 'createdAt': '2026-10-01T06:00:00.000Z', 'options': [
+                {'id': 'o1', 'label': 'Pasta', 'votes': 3},
+                {'id': 'o2', 'label': 'Rice', 'votes': 1},
+              ]},
+            ],
+          },
+        ),
+      );
+      expect(find.text('Thank you. Your answer has been received.'), findsOneWidget);
+      expect(find.text('3 votes'), findsOneWidget);
+      expect(find.text('1 vote'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('an urgent message stays on top of Today until the parent confirms it', (tester) async {
+      clock = () => DateTime.utc(2026, 10, 1, 7);
+      addTearDown(() => clock = DateTime.now);
+      final log = <String>[];
+      var confirmed = false;
+      await start(
+        tester,
+        {'lang': 'en', 'token': 't'},
+        school(
+          log: log,
+          me_: messagingMe(),
+          more: {
+            '/parent/announcements/emergency': (http.Request _) => confirmed ? <Object>[] : [{'id': 'e1', 'title': 'Early closing', 'body': 'School closes at 11:00.', 'priority': 'EMERGENCY'}],
+            '/parent/announcements/e1/acknowledge': (http.Request _) {
+              confirmed = true;
+              return {'ok': true};
+            },
+          },
+        ),
+      );
+      expect(find.text('Urgent: Early closing'), findsOneWidget);
+      await tester.tap(find.text('I have read this'));
+      await tester.pumpAndSettle();
+      expect(log.where((l) => l.startsWith('POST /parent/announcements/e1/acknowledge')), hasLength(1));
+      expect(find.text('Urgent: Early closing'), findsNothing);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('conversations: open one, send a message, and see a live reply arrive', (tester) async {
+      final socket = FakeChatSocket();
+      chatSocketFactory = (_) => socket;
+      final log = <String>[];
+      Map<String, Object?> message(String id, String sender, String body) => {'id': id, 'threadId': 'th1', 'senderId': sender, 'body': body, 'hasFile': false, 'createdAt': at, 'readAt': null};
+      await openMessages(
+        tester,
+        school(
+          log: log,
+          me_: messagingMe(),
+          more: {
+            '/parent/threads': [
+              {'id': 'th1', 'student': salma, 'staff': hana, 'unread': 1, 'last': {'body': 'Salma did well today', 'createdAt': at, 'mine': false}},
+            ],
+            '/threads/th1': {'id': 'th1', 'student': salma, 'staff': hana, 'canReply': true},
+            '/threads/th1/messages': (http.Request r) => r.method == 'POST' ? message('m2', 'u1', 'Thank you') : [message('m1', 't1', 'Salma did well today')],
+            '/parent/children/s1/contacts': {'contacts': [hana], 'chatFrom': '08:00', 'chatTo': '15:00'},
+            '/threads/th1/read': {'read': 1},
+          },
+        ),
+      );
+      await tester.tap(find.text('Conversations'));
+      await tester.pumpAndSettle();
+      expect(find.text('Ms. Hana Nabil'), findsOneWidget);
+      expect(find.text('Salma did well today'), findsOneWidget);
+
+      await tester.tap(find.text('Ms. Hana Nabil'));
+      await tester.pumpAndSettle();
+      expect(find.text('About Salma · Usually replies between 08:00 and 15:00'), findsOneWidget);
+      expect(find.text('Salma did well today'), findsOneWidget);
+
+      await tester.enterText(find.byType(TextField), 'Thank you');
+      await tester.tap(find.byTooltip('Send'));
+      await tester.pumpAndSettle();
+      expect(log.where((l) => l.startsWith('POST /threads/th1/messages')).single, contains('"body":"Thank you"'));
+      expect(find.text('Thank you'), findsOneWidget);
+
+      socket.push({'threadId': 'th1', 'message': message('m3', 't1', 'You are welcome')});
+      await tester.pumpAndSettle();
+      expect(find.text('You are welcome'), findsOneWidget);
+      // The teacher opening the thread marks the parent's messages as seen.
+      socket.pushRead({'threadId': 'th1', 'readerId': 't1', 'at': at});
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Seen'), findsWidgets);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('a new message starts from the child’s teachers and Student Affairs', (tester) async {
+      final log = <String>[];
+      await openMessages(
+        tester,
+        school(
+          log: log,
+          me_: messagingMe(),
+          more: {
+            '/parent/children/s1/contacts': {
+              'contacts': [
+                {...hana, 'subjects': ['Math'], 'homeroom': true},
+                {'id': 'a1', 'name': 'Admin', 'role': 'SCHOOL_ADMIN', 'subjects': [], 'homeroom': false},
+              ],
+              'chatFrom': '08:00',
+              'chatTo': '15:00',
+            },
+            '/parent/children/s1/threads': {'id': 'th9', 'student': salma, 'staff': hana, 'unread': 0, 'last': null},
+            '/threads/th9': {'id': 'th9', 'student': salma, 'staff': hana, 'canReply': true},
+            '/threads/th9/messages': <Object>[],
+            '/threads/th9/read': {'read': 0},
+          },
+        ),
+      );
+      await tester.tap(find.text('Conversations'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('New message'));
+      await tester.pumpAndSettle();
+      expect(find.text('Who would you like to write to about Salma?'), findsOneWidget);
+      expect(find.text('Ms. Hana Nabil'), findsOneWidget);
+      expect(find.text('Class teacher · Math'), findsOneWidget);
+      expect(find.text('Student Affairs'), findsOneWidget);
+      await tester.tap(find.text('Ms. Hana Nabil'));
+      await tester.pumpAndSettle();
+      expect(log.where((l) => l.startsWith('POST /parent/children/s1/threads')).single, contains('"staffId":"t1"'));
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('meetings: free times are offered by teacher and day, and booking sends the slot', (tester) async {
+      final log = <String>[];
+      await openMessages(
+        tester,
+        school(
+          log: log,
+          me_: messagingMe(),
+          more: {
+            '/parent/children/s1/meetings': {
+              'booked': [],
+              'teachers': [
+                {'teacher': {...hana, 'subjects': ['Math'], 'homeroom': false}, 'slots': [
+                  {'id': 'sl1', 'startsAt': '2026-10-04T11:00:00.000Z', 'endsAt': '2026-10-04T11:20:00.000Z', 'place': 'Room 204'},
+                ]},
+              ],
+            },
+            '/parent/children/s1/meetings/sl1/book': {'id': 'sl1'},
+          },
+        ),
+      );
+      await tester.tap(find.text('School'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Meetings'));
+      await tester.pumpAndSettle();
+      expect(find.text('Ms. Hana Nabil'), findsOneWidget);
+      expect(find.text('Sunday 4 October'), findsOneWidget);
+      await tester.tap(find.byType(ActionChip));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'About homework');
+      await tester.tap(find.text('Book this time'));
+      await tester.pumpAndSettle();
+      final post = log.where((l) => l.startsWith('POST /parent/children/s1/meetings/sl1/book')).single;
+      expect(post, contains('"note":"About homework"'));
+      expect(find.text('Your meeting is booked.'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    test('notifications read well in Arabic, including the school-wide ones', () {
+      expect(S.ar.notification('announcement.new', '', {'title': 'يوم رياضي'}, 'x'), 'جديد من المدرسة: يوم رياضي');
+      expect(S.ar.notification('announcement.emergency', '', {'title': 'إغلاق مبكر'}, 'x'), 'عاجل من المدرسة: إغلاق مبكر');
+      expect(S.ar.notification('poll.new', '', {'question': 'ما الغداء؟'}, 'x'), 'تودّ المدرسة معرفة رأيكم: ما الغداء؟');
+      expect(S.ar.notification('message.new', 'Layla', {'from': 'مس Hana'}, 'x', 'FEMALE'), 'رسالة جديدة من مس Hana بشأن Layla');
+      expect(S.en.notification('message.new', 'Salma', {'from': 'Ms. Hana Nabil'}, 'x'), 'New message from Ms. Hana Nabil about Salma');
+      expect(S.en.notification('meeting.cancelled', '', {'teacher': 'Ms. Hana Nabil', 'date': '2026-10-04', 'time': '14:00'}, 'x'),
+          'Your meeting with Ms. Hana Nabil on Sunday 4 October at 14:00 was cancelled');
+      expect(S.ar.votesN(1), 'صوت واحد');
+      expect(S.ar.votesN(2), 'صوتان');
+      expect(S.ar.votesN(5), '5 أصوات');
+      expect(S.ar.votesN(11), '11 صوتًا');
+      expect(S.ar.staffName({'name': 'Hana Nabil', 'honorific': 'MS'}), 'مس Hana Nabil');
     });
   });
 

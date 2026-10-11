@@ -18,6 +18,9 @@ export class SchoolSettingsDto {
   @IsOptional() @IsString() nameAr?: string;
   @IsOptional() @IsEnum(AttendanceMode) attendanceMode?: AttendanceMode;
   @IsOptional() @Matches(TIME_RE, { message: 'absenceNoticeTime must look like 08:15' }) absenceNoticeTime?: string;
+  /** Office hours shown to parents in chat; messages can be sent at any time. */
+  @IsOptional() @Matches(TIME_RE, { message: 'chatFrom must look like 08:00' }) chatFrom?: string;
+  @IsOptional() @Matches(TIME_RE, { message: 'chatTo must look like 15:00' }) chatTo?: string;
   @IsOptional() @IsArray() @ArrayMinSize(1) @ArrayMaxSize(7) @IsInt({ each: true }) @Min(0, { each: true }) @Max(6, { each: true })
   schoolDays?: number[];
 }
@@ -130,6 +133,12 @@ export class SetupService {
       const automatic = (mod?.features as Record<string, boolean> | undefined)?.automatic;
       if (!mod?.enabled || !automatic) {
         throw new BadRequestException('Automatic attendance isn’t included in this school’s plan.');
+      }
+    }
+    if (dto.chatFrom !== undefined || dto.chatTo !== undefined) {
+      const now = await this.school(schoolId);
+      if (toMinutes(dto.chatFrom ?? now.chatFrom) >= toMinutes(dto.chatTo ?? now.chatTo)) {
+        throw new BadRequestException('Office hours must end after they start.');
       }
     }
     const school = await this.prisma.school.update({

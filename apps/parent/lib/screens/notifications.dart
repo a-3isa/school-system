@@ -75,9 +75,14 @@ class _Row extends StatelessWidget {
       'attendance.absentCheck' => ('?', c.lFg, c.lBg),
       'attendance.left' => ('←', c.eFg, c.eBg),
       'attendance.absent' || 'attendance.lessonAbsent' || 'excuse.rejected' => ('×', c.aFg, c.aBg),
+      'announcement.emergency' || 'meeting.cancelled' => ('!', c.aFg, c.aBg),
+      'announcement.new' || 'message.new' => ('✉', c.eFg, c.eBg),
+      'poll.new' => ('?', c.lFg, c.lBg),
       _ => ('i', c.eFg, c.eBg),
     };
-    final text = child == null ? n['title'] as String : s.notification(type, name, info, n['title'] as String, child['gender'] as String?);
+    final text = child == null && !S.schoolNotificationTypes.contains(type)
+        ? n['title'] as String
+        : s.notification(type, name, info, n['title'] as String, child?['gender'] as String?);
     final who = child == null
         ? n['body'] as String
         : ltr([child['class']?['name'], '${child['firstName']} ${child['lastName']}'].whereType<String>().join(' · '));

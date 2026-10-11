@@ -110,3 +110,10 @@ export async function download(path: string, filename: string) {
   a.click();
   URL.revokeObjectURL(url);
 }
+
+/** The moment a date and time (HH:MM) on a Cairo clock fall on, as a Date. Cairo is UTC+3 in summer time and UTC+2 otherwise. */
+export function cairoInstant(date: string, hm: string): Date {
+  const at = (offset: number) => new Date(Date.parse(`${date}T${hm}:00Z`) - offset * 3600_000);
+  const reads = (d: Date) => new Intl.DateTimeFormat('sv-SE', { timeZone: 'Africa/Cairo', dateStyle: 'short', timeStyle: 'short' }).format(d);
+  return [3, 2].map(at).find((d) => reads(d) === `${date} ${hm}`) ?? at(2);
+}

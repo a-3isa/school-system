@@ -176,6 +176,20 @@ A parent can excuse an absence from the app, and the system asks for one when a 
 - **The decision.** Student Affairs sees it under **Excuses**, with the attachment, and accepts or rejects it. A rejection needs a reason, which the parent reads. Accepting turns the child's absent lessons on those days into **Excused**, and any absence marked later on those days too. After a rejection the parent can send another within the window.
 - **The student's profile** has an **Absences and excuses** list for the last 6 months: each absent day is **Excused** (green), **Excuse waiting** (grey), **No excuse yet** (amber) or **Excuse rejected** (red), with the parent's reason and the school's note, and the totals.
 
+### Messaging (Messaging module)
+
+Parents read all of this in the app's **Messages** tab. Announcements and the emergency message are in every plan; chat, polls and meetings are in Complete (section 2).
+
+- **Announcements.** Student Affairs writes one to the whole school, to year groups or to classes; a teacher writes to their own classes only (the ones they teach or lead). A draft can be edited, given a photo or PDF (up to 5 MB) and deleted; **Send** reaches each parent once, and the sender sees how many that is first. Student Affairs sees who has read it. A parent restricted for a child isn't sent what is written to that child's class.
+- **Emergency message.** Only Student Affairs, only to **every** parent. It shows in red at the top of the parent's Today screen until they press **I have read this**, and the dashboard shows how many have confirmed.
+- **Polls.** A question with 2 to 10 answers, one choice or several, a closing time, anonymous or not, with results shown to parents after they vote or not. A parent can change their answer until it closes. Student Affairs sees who voted for what only when the poll was not anonymous. A teacher sees only their own polls.
+- **Chat.** A parent writes to a child's teachers, the class teacher or Student Affairs, and a teacher sees only their own conversations. Messages arrive live while the app or dashboard is open; otherwise the other person gets a notification. Text up to 2,000 characters, with an optional photo or PDF. A message shows **Seen** once the other side has opened it.
+  - Student Affairs is one name for parents. Any admin can answer it, and any admin can read every conversation, but answers only their own.
+  - **Office hours** (in School settings) are shown to parents; messages can be sent at any time.
+  - A parent the school has restricted for a child can no longer open that child's conversations, and teachers can't write to them.
+- **Meetings.** A teacher offers times on a school day (a window cut into slots of 10 to 30 minutes, with a place). A parent books one slot with one of their child's teachers, with a note; one meeting per teacher per day. Two parents tapping the same time at once: one gets it, the other is asked to choose another. A parent can cancel until **2 hours before**; the teacher can cancel at any time, and removing a whole window tells everyone who booked.
+- **Who is told:** new announcements, polls and cancelled meetings by app notification. Chat messages only when the person isn't connected.
+
 ## 6. How the straps decide (schools with straps)
 
 - **Gateways:** they only listen and report. Every few seconds each gateway sends what it heard to the server: each strap, how loud, when, and its battery. Gateways decide nothing.
@@ -314,6 +328,7 @@ The platform is made for Egypt's private, language and international schools, an
   - **Push notifications:** connected to Firebase (project `school-platform-eg`), but not yet tried on a real phone. Android should work once the server has its key (`FIREBASE_SERVICE_ACCOUNT`); iPhones need an Apple APNs key uploaded in the Firebase console and the Push Notifications capability in Xcode. Tapping a push opens the app but not the right screen yet. See `docs/PUSH.md`.
   - **Email:** needs an email account to send from (`SMTP_URL` in `apps/api/.env`). Until then, sign-up and password codes are written in the server log.
   - **WhatsApp:** needs a WhatsApp Business account with an approved code template (`WHATSAPP_*` in `apps/api/.env`). Until then, mobile codes are written in the server log.
-  - **School emails to parents** (newsletters, announcements) come with the Messaging module, after Phase 1.
+  - **School emails to parents:** announcements reach parents as app notifications only. Emailed newsletters aren't built.
+  - **Opening a PDF in the app:** a PDF sent with an announcement can't be opened in the parent app yet (photos show in full); parents ask the school office for a copy.
 - **Hosting:** no production server, domain, HTTPS or MQTT broker is set up yet.
 - **Passwords:** changing a password doesn't sign out sessions that are already open; deactivating the account does.
