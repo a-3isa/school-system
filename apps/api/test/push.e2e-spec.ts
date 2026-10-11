@@ -82,6 +82,7 @@ describe('Push notifications (e2e)', () => {
       await mona.post('/api/notifications/devices', { token: tok('b'), platform: 'windows' }).expect(400);
       await mona.post('/api/notifications/devices', { token: tok('b'), platform: 'ios', lang: 'fr' }).expect(400);
       await mona.post('/api/notifications/devices', { token: tok('b'), platform: 'ios' }).expect(201); // the language is optional
+      await mona.post('/api/notifications/devices', { token: tok('w'), platform: 'web', lang: 'ar' }).expect(201); // a browser
     });
 
     it('moves with the phone, so it never rings for the parent before', async () => {

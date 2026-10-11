@@ -35,7 +35,29 @@ The server sends with a **service account** that can only send messages (`school
 - **Android needs a real phone or emulator to try.** Install the app, sign in, and press a notification trigger (for example mark a child absent). The Android toolchain on this machine still needs `flutter doctor --android-licenses`.
 - **Production.** Put `FIREBASE_SERVICE_ACCOUNT` on the production server when it exists.
 
+## Tapping a push
+
+Tapping a push, or a notification in the app's list, takes the parent to what it is about:
+
+| Notification | Opens |
+|---|---|
+| Arrival, absence, early departure, lesson, urgent message | the child's day (Today) |
+| Excuse accepted or rejected | that child's excuses |
+| New message | that conversation |
+| New announcement | the Messages tab, with the announcement open |
+| New poll | the Messages tab |
+| Cancelled meeting | the meetings screen |
+| Anything else | the notification list |
+
+The child is chosen first, so a parent with two children lands on the right one. Tapping also marks the notification read. This works when the app is in the background and when the tap started the app; the app waits until its children are loaded before it opens the screen.
+
+## The web build
+
+The parent app's web build gets push too (browser notifications), through the "School Parent (Web)" app in the same Firebase project, `apps/parent/web/firebase-messaging-sw.js` and the `web` platform in `lib/firebase_options.dart`. The browser asks for permission when the parent signs in. The service worker must use the same Firebase JS SDK version as the Flutter plugin (`supportedFirebaseJsSdkVersion` in `firebase_core_web`, now 12.19.0): update both together when `firebase_core` is upgraded, or the worker won't register.
+
+Tried end to end with the real server key: an announcement sent from the school dashboard reached an open browser tab through Firebase. Browsers need HTTPS in production (localhost is fine for testing).
+
 ## Not done
 
-- Tapping a push opens the app but doesn't jump to the right screen yet.
-- The web build of the parent app doesn't get push (it has no Firebase configuration).
+- On the web, tapping a notification focuses the app but doesn't jump to the screen (browsers have no "opened from notification" event for Flutter).
+- Push has not been tried on a real phone.

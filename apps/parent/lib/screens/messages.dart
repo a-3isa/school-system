@@ -42,13 +42,33 @@ class _MessagesTabState extends State<MessagesTab> {
     _timer = Timer.periodic(const Duration(minutes: 1), (_) => _load());
     // A new message changes the list at once, without waiting for the minute.
     if (_chat) _live = widget.data.chat.messages.listen((_) => _load());
+    widget.data.addListener(_maybeOpen);
   }
 
   @override
   void dispose() {
+    widget.data.removeListener(_maybeOpen);
     _timer?.cancel();
     _live?.cancel();
     super.dispose();
+  }
+
+  /// A tapped notification about an announcement opens it, once the list has it.
+  Future<void> _maybeOpen() async {
+    final id = widget.data.openAnnouncementId;
+    if (id == null || !mounted) return;
+    widget.data.openAnnouncementId = null;
+    Map<String, dynamic>? find() => _announcements.where((a) => a['id'] == id).firstOrNull;
+    var a = find();
+    if (a == null) {
+      await _load();
+      a = find();
+    }
+    if (a == null || !mounted) return;
+    final announcement = a;
+    setState(() => _segment = 'news');
+    await Navigator.of(context).push(MaterialPageRoute(builder: (_) => AnnouncementScreen(api: widget.api, a: announcement)));
+    await _load();
   }
 
   Future<void> _load() async {

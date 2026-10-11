@@ -17,7 +17,7 @@ export interface NewNotification {
 
 export class RegisterDeviceDto {
   @IsString() @MinLength(20) @MaxLength(4096) token: string;
-  @IsIn(['android', 'ios']) platform: 'android' | 'ios';
+  @IsIn(['android', 'ios', 'web']) platform: 'android' | 'ios' | 'web';
   @IsOptional() @IsIn(['en', 'ar']) lang?: Lang;
 }
 

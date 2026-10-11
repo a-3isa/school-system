@@ -700,7 +700,7 @@ model DeviceToken {
   id         String   @id @default(cuid())
   userId     String
   token      String   @unique
-  // "android" or "ios".
+  // "android", "ios" or "web".
   platform   String
   // The language the app is shown in, so the push is worded in it.
   lang       String   @default("en")
