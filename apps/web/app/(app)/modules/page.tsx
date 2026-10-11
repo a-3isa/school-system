@@ -10,6 +10,9 @@ import { ErrorNote, PageHead, Pill, Section, Switch, toast } from '@/components/
 /** Saturday first, as Egyptian school weeks are read. */
 const WEEK = [6, 0, 1, 2, 3, 4, 5];
 
+/** Features that come with the subscription: only the platform owner switches them (see the API's registry). */
+const SUBSCRIPTION: Record<string, string[]> = { messaging: ['chat', 'polls', 'meetings'] };
+
 export default function ModulesPage() {
   const { me, refresh } = useSession();
   const [crestVersion, setCrestVersion] = useState(0);
@@ -94,7 +97,9 @@ export default function ModulesPage() {
               {features.map(([f, on]) => (
                 <div key={f} className="settings-row">
                   <span><b>{feature(f)}</b></span>
-                  <Switch on={on} label={feature(f)} disabled={!m.enabled || act.busy} onChange={(v) => setFeature(m.key, f, v)} />
+                  {SUBSCRIPTION[m.key]?.includes(f)
+                    ? (on && m.enabled ? <Pill tone="P" glyph="✓">{t.modules.inSub}</Pill> : <Pill tone="E" glyph="–">{t.modules.notInSub}</Pill>)
+                    : <Switch on={on} label={feature(f)} disabled={!m.enabled || act.busy} onChange={(v) => setFeature(m.key, f, v)} />}
                 </div>
               ))}
               {!features.length && <div className="settings-row"><span><span>{t.modules.noOptions}</span></span></div>}

@@ -5,7 +5,7 @@ import { ReactNode, useEffect } from 'react';
 import { todayCairo } from '@/lib/api';
 import { useApi, useEvery } from '@/lib/hooks';
 import { LangSwitch, useI18n } from '@/lib/i18n';
-import { useSession } from '@/lib/session';
+import { has, useSession } from '@/lib/session';
 import { Dict } from '@/lib/strings';
 import { initials, Toaster } from './ui';
 import { Crest } from './Crest';
@@ -16,18 +16,24 @@ interface NavItem {
   href: string;
   key: NavKey;
   module?: string;
+  /** A feature switch inside the module (e.g. messaging › polls). */
+  feature?: string;
   roles?: string[];
   /** Only for schools that subscribe to automatic attendance (straps). */
   straps?: boolean;
-  /** Shows a number beside the link: open follow-ups, or excuses waiting for a decision. */
-  count?: 'exceptions' | 'excuses';
+  /** Shows a number beside the link: open follow-ups, excuses waiting for a decision, or unread messages. */
+  count?: 'exceptions' | 'excuses' | 'messages';
 }
 
 const ADMIN = ['SCHOOL_ADMIN'];
-/** Staff who see the whole school; a teacher only sees the class in front of them. */
-const SCHOOL_WIDE = ['SCHOOL_ADMIN', 'TRANSPORT', 'NURSE', 'CANTEEN', 'ACCOUNTANT'];
+/** Staff who see the whole school; a teacher only sees their own classes. */
+const SCHOOL_WIDE = ['SCHOOL_ADMIN', 'TRANSPORT', 'NURSE', 'CANTEEN', 'ACCOUNTANT', 'SOCIAL_WORKER'];
+/** Every member of staff, teachers included. */
+export const STAFF = [...SCHOOL_WIDE, 'TEACHER'];
 
+// Later features add their own items here (messages, academics, behaviour, activities).
 const SCHOOL_NAV: { group: NavKey; items: NavItem[] }[] = [
+  { group: 'teaching', items: [{ href: '/class', key: 'myClass', roles: ['TEACHER'] }] },
   { group: 'overview', items: [{ href: '/today', key: 'today', roles: SCHOOL_WIDE }] },
   {
     group: 'attendance',
@@ -79,14 +85,14 @@ export function Shell({ children }: { children: ReactNode }) {
   const showExcuses = me.modules.includes('attendance') && me.role === 'SCHOOL_ADMIN';
   const waiting = useApi<any[]>(showExcuses ? '/excuses?status=PENDING' : null);
   useEvery(60_000, waiting.reload, showExcuses);
-  const counts = { exceptions: open.data?.length ?? 0, excuses: waiting.data?.length ?? 0 };
+  const counts = { exceptions: open.data?.length ?? 0, excuses: waiting.data?.length ?? 0, messages: 0 };
   // A child who isn't at school and whose parents don't know where they are: the one thing that can't wait.
   const urgent = (open.data ?? []).filter((e) => e.type === 'ABSENT_UNKNOWN');
 
   const groups = (me.role === 'OWNER' ? OWNER_NAV : SCHOOL_NAV)
     .map((g) => ({
       ...g,
-      items: g.items.filter((i) => (!i.module || me.modules.includes(i.module)) && (!i.roles || i.roles.includes(me.role)) && (!i.straps || me.straps)),
+      items: g.items.filter((i) => (!i.module || has(me, i.module, i.feature)) && (!i.roles || i.roles.includes(me.role)) && (!i.straps || me.straps)),
     }))
     .filter((g) => g.items.length);
   // The most specific matching link is the current page.
@@ -94,35 +100,13 @@ export function Shell({ children }: { children: ReactNode }) {
     .sort((a, b) => b.href.length - a.href.length)[0]?.href;
 
   // Nobody stays on a page that isn't theirs (typed in, or a school without straps).
-  const home = me.role === 'TEACHER' ? '/class' : groups[0]?.items[0]?.href;
-  const allowed = me.role === 'TEACHER' ? pathname === '/class' : !!current;
+  // A teacher's first link is their class in front of them.
+  const home = groups[0]?.items[0]?.href;
+  const allowed = !!current;
   useEffect(() => {
     if (!allowed && home && pathname !== home) router.replace(home);
   }, [allowed, home, pathname, router]);
   if (!allowed) return null;
-
-  // A teacher has one screen and no menu: the class in front of them.
-  if (me.role === 'TEACHER') {
-    return (
-      <div className="app solo">
-        <main className="main">
-          <div className="topbar">
-            <span className="topbar-school"><Crest name={schoolName} hasLogo={me.schoolLogo} size="sm" /><span className="school-text"><b>{lang === 'ar' && me.schoolNameAr ? me.schoolNameAr : schoolName}</b><span className="sub">{strapsLabel}</span></span></span>
-            <div className="topbar-right">
-              <span className="me">
-                <span className="avatar" aria-hidden="true">{initials(me.name)}</span>
-                <span className="me-text"><b>{staff(me)}</b><span>{roleName}</span></span>
-              </span>
-              <LangSwitch />
-              <button type="button" className="signout" onClick={logout}>{t.shell.signOut}</button>
-            </div>
-          </div>
-          {children}
-        </main>
-        <Toaster />
-      </div>
-    );
-  }
 
   return (
     <div className="app">

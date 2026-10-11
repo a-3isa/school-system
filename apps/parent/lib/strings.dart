@@ -107,9 +107,21 @@ class S {
   String get notNow => _('Not now', 'لاحقًا');
 
   // tabs
-  String get tabDay => _('At school', 'في المدرسة');
+  String get tabDay => _('Today', 'اليوم');
+  String get tabMessages => _('Messages', 'الرسائل');
+  String get tabSchool => _('School', 'المدرسة');
   String get tabNotifs => _('Notifications', 'الإشعارات');
-  String get tabAccount => _('Account', 'حسابي');
+  String get tabAccount => _('Account', 'الحساب');
+
+  // messages and school hubs
+  String get messagesSoon => _('Messages from the school will appear here.', 'ستظهر هنا رسائل المدرسة.');
+  String get schoolNothingYet => _('Nothing here yet.', 'لا يوجد شيء هنا بعد.');
+  String get tileGrades => _('Grades', 'الدرجات');
+  String get tileBehaviour => _('Behaviour', 'السلوك');
+  String get tileClubs => _('Clubs', 'الأندية');
+  String get tileTrips => _('Trips', 'الرحلات');
+  String get tileCalendar => _('Calendar', 'التقويم');
+  String get tileMeetings => _('Meetings', 'المقابلات');
 
   // child's day
   String arrived([String? gender]) => _('Arrived safely at school', switch (gender) { 'FEMALE' => 'وصلت المدرسة بالسلامة', 'MALE' => 'وصل المدرسة بالسلامة', _ => 'الوصول إلى المدرسة بالسلامة' });

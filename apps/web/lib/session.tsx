@@ -10,7 +10,7 @@ export interface Me {
   /** MR, MS, MRS or DR for staff. */
   honorific?: string | null;
   email: string | null;
-  role: 'OWNER' | 'SCHOOL_ADMIN' | 'TEACHER' | 'TRANSPORT' | 'NURSE' | 'CANTEEN' | 'ACCOUNTANT' | 'PARENT';
+  role: 'OWNER' | 'SCHOOL_ADMIN' | 'TEACHER' | 'TRANSPORT' | 'NURSE' | 'CANTEEN' | 'ACCOUNTANT' | 'SOCIAL_WORKER' | 'PARENT';
   schoolId: string | null;
   schoolName: string | null;
   schoolNameAr?: string | null;
@@ -20,6 +20,13 @@ export interface Me {
   /** The school subscribes to automatic attendance: straps, gateways and tracking. */
   straps: boolean;
   modules: string[];
+  /** Each enabled module's feature switches, e.g. features.messaging.chat. */
+  features: Record<string, Record<string, boolean>>;
+}
+
+/** Does this school have the module, and (if given) the feature inside it? */
+export function has(me: Pick<Me, 'modules' | 'features'>, module: string, feature?: string): boolean {
+  return me.modules.includes(module) && (!feature || !!me.features?.[module]?.[feature]);
 }
 
 const SessionContext = createContext<{ me: Me; refresh: () => Promise<void>; logout: () => void } | null>(null);

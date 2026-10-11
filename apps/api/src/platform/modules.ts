@@ -6,7 +6,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit';
 import { AuthUser, CurrentUser, Roles, SchoolId } from '../auth/auth.decorators';
 import { hashPassword } from '../auth/auth';
-import { isModuleKey, MODULE_KEYS, ModuleKey, MODULES, PLAN_MODULES, SUBSCRIPTION_FEATURES, toggleModule } from './registry';
+import { isModuleKey, isSubscriptionFeature, MODULE_KEYS, ModuleKey, MODULES, PLAN_FEATURES, PLAN_MODULES, planFeatures, toggleModule } from './registry';
 
 class AdminDto {
   @IsString() name: string;
@@ -62,14 +62,23 @@ export class ModulesService {
     return rows.map((r) => r.key).filter(isModuleKey);
   }
 
-  /** Writes a full set of enabled modules for a school. */
-  async apply(schoolId: string, enabled: ModuleKey[], tx: Prisma.TransactionClient = this.prisma) {
+  /**
+   * Writes a full set of enabled modules for a school. With a plan, the plan's
+   * subscription features (e.g. chat for Complete) are set too; everything else
+   * a school has chosen stays as it is.
+   */
+  async apply(schoolId: string, enabled: ModuleKey[], tx: Prisma.TransactionClient = this.prisma, plan?: Plan) {
     const on = new Set<ModuleKey>([...enabled, 'core']);
     for (const key of MODULE_KEYS) {
+      const presets = plan ? PLAN_FEATURES[plan][key] : undefined;
+      const saved = presets ? await tx.schoolModule.findUnique({ where: { schoolId_key: { schoolId, key } } }) : null;
       await tx.schoolModule.upsert({
         where: { schoolId_key: { schoolId, key } },
-        create: { schoolId, key, enabled: on.has(key), features: MODULES[key].features },
-        update: { enabled: on.has(key) },
+        create: { schoolId, key, enabled: on.has(key), features: plan ? planFeatures(plan, key) : MODULES[key].features },
+        update: {
+          enabled: on.has(key),
+          ...(presets ? { features: { ...MODULES[key].features, ...((saved?.features as Record<string, boolean> | null) ?? {}), ...presets } } : {}),
+        },
       });
     }
   }
@@ -89,8 +98,12 @@ export class ModulesService {
     const known = Object.keys(MODULES[key].features);
     const unknown = Object.keys(features).filter((f) => !known.includes(f));
     if (unknown.length) throw new BadRequestException(`Unknown feature: ${unknown.join(', ')}.`);
-    if (actor.role !== Role.OWNER && Object.keys(features).some((f) => SUBSCRIPTION_FEATURES[key]?.includes(f))) {
-      throw new ForbiddenException('Automatic attendance comes with the subscription. Ask the platform owner.');
+    if (actor.role !== Role.OWNER && Object.keys(features).some((f) => isSubscriptionFeature(key, f))) {
+      throw new ForbiddenException(
+        key === 'attendance'
+          ? 'Automatic attendance comes with the subscription. Ask the platform owner.'
+          : 'This comes with the subscription. Ask the platform owner.',
+      );
     }
     const row = await this.prisma.schoolModule.findUnique({ where: { schoolId_key: { schoolId, key } } });
     if (!row?.enabled && key !== 'core') throw new BadRequestException(`${MODULES[key].name} isn’t switched on.`);
@@ -115,7 +128,7 @@ export class ModulesService {
     await this.requireSchool(schoolId);
     await this.prisma.$transaction(async (tx) => {
       await tx.school.update({ where: { id: schoolId }, data: { plan } });
-      await this.apply(schoolId, PLAN_MODULES[plan], tx);
+      await this.apply(schoolId, PLAN_MODULES[plan], tx, plan);
     });
     await this.audit.log(actor, 'school.plan', 'school', schoolId, { plan }, schoolId);
     return this.list(schoolId);
@@ -175,7 +188,7 @@ export class OwnerController {
     const passwordHash = await hashPassword(dto.admin.password);
     const school = await this.prisma.$transaction(async (tx) => {
       const school = await tx.school.create({ data: { name: dto.name, nameAr: dto.nameAr, plan: dto.plan } });
-      await this.modules.apply(school.id, PLAN_MODULES[dto.plan], tx);
+      await this.modules.apply(school.id, PLAN_MODULES[dto.plan], tx, dto.plan);
       await tx.user.create({
         data: { schoolId: school.id, name: dto.admin.name, email, passwordHash, role: Role.SCHOOL_ADMIN },
       });

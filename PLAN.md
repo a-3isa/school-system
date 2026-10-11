@@ -345,6 +345,16 @@ Each phase ends with something a school can use and pay for. Nothing gets rebuil
 | S8 | School crest | Student Affairs uploads the school's crest (PNG, JPEG or WebP, up to 1 MB). Without one, a burgundy shield shows the school's initials |
 | S9 | Staff titles | Staff are addressed by title: Mr., Ms., Mrs., Dr. (مستر، مس، مدام، د.), set on Faculty & staff |
 | S10 | Admin role name | The school admin role is called **Student Affairs** (شؤون الطلبة) on screen |
+| T1 | Messaging per plan | Every plan has announcements and the emergency broadcast. Chat, polls and meetings are subscription features of Messaging, switched on for Complete only |
+| T2 | Where trips and events live | In the Activities module, as features `trips` and `events` (school-controlled) |
+| T3 | Who parents can chat with | The child's teachers (from the timetable), the class teacher and Student Affairs. A teacher sees only their own conversations. Office hours are shown to parents, not enforced |
+| T4 | Separated families in Phase 4 | A parent marked restricted for a child (G36) sees nothing about that child in any Phase 4 feature, and gets no messages about them |
+| T5 | Marks and report cards | Parents see marks and report cards only once published. A published report card is frozen as a snapshot |
+| T6 | Event photos | Photos only (JPEG, PNG, WebP), up to 2 MB each and 30 per event. Video later |
+| T7 | Emergency broadcast | Student Affairs only. It goes to every parent and stays pinned in the app until they acknowledge it. WhatsApp to bus supervisors waits for Transport |
+| T8 | Report cards | A printable A4 page on the dashboard (the browser prints it to PDF) and a native screen in the parent app; no PDF engine on the server |
+| T9 | Chat delivery | Live over WebSockets, with the app refreshing every 30 seconds if the connection drops |
+| T10 | Fees before Payments | Paid clubs and trips show their fee; staff mark them paid by hand until Phase 3 |
 
 ## 9. How to charge schools
 

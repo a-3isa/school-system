@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:parent_app/api.dart';
 import 'package:parent_app/main.dart';
+import 'package:parent_app/screens/home.dart';
 import 'package:parent_app/settings.dart';
 import 'package:parent_app/strings.dart';
 import 'package:parent_app/widgets.dart';
@@ -19,10 +20,10 @@ Future<void> start(WidgetTester tester, Map<String, Object> prefs, [http.Client?
 }
 
 /// A signed-in parent of Salma (4-A) on a school day.
-MockClient school({bool straps = false, bool consented = true, bool arrived = true, Map<String, Object?> today_ = const {}, List<String>? log}) {
+MockClient school({bool straps = false, bool consented = true, bool arrived = true, Map<String, Object?> today_ = const {}, Map<String, Object?> me_ = const {}, Map<String, Object> more = const {}, List<String>? log}) {
   final today = todayCairo();
   final routes = <String, Object>{
-    '/auth/me': {'id': 'u1', 'name': 'Dina Farouk', 'email': 'dina.farouk@gmail.com', 'phone': '+201005550192', 'phoneVerifiedAt': '2026-09-01T08:00:00.000Z', 'consentAt': consented ? '2026-09-01T08:00:00.000Z' : null, 'straps': straps, 'role': 'PARENT'},
+    '/auth/me': {'id': 'u1', 'name': 'Dina Farouk', 'email': 'dina.farouk@gmail.com', 'phone': '+201005550192', 'phoneVerifiedAt': '2026-09-01T08:00:00.000Z', 'consentAt': consented ? '2026-09-01T08:00:00.000Z' : null, 'straps': straps, 'role': 'PARENT', ...me_},
     '/parent/children': [
       {'id': 's1', 'firstName': 'Salma', 'lastName': 'Gamal', 'class': {'id': 'c1', 'name': '4-A'}},
     ],
@@ -50,6 +51,7 @@ MockClient school({bool straps = false, bool consented = true, bool arrived = tr
         'data': {'studentId': 's1', 'date': today, 'time': '07:42'}},
     ],
   };
+  routes.addAll(more);
   return MockClient((req) async {
     log?.add('${req.method} ${req.url.path.replaceFirst('/api', '')} ${req.body}');
     final body = routes[req.url.path.replaceFirst('/api', '')];
@@ -226,5 +228,85 @@ void main() {
     expect(cairoOffset(DateTime.utc(2026, 12, 15)), 2);
     expect(timeCairo('2026-09-30T04:42:00.000Z'), '07:42');
     expect(nowCairo(DateTime.utc(2026, 10, 1, 7, 11)), '10:11');
+  });
+
+  group('tabs by module', () {
+    Map<String, Object?> meWith(List<String> modules, [Map<String, Object?> features = const {}]) => {'modules': modules, 'features': features};
+
+    testWidgets('a school with only attendance shows Today, Notifications and Account', (tester) async {
+      clock = () => DateTime.utc(2026, 10, 1, 7);
+      addTearDown(() => clock = DateTime.now);
+      await start(tester, {'lang': 'en', 'token': 't'}, school(me_: meWith(['core', 'attendance'])));
+      expect(find.text('Today'), findsOneWidget);
+      expect(find.text('Notifications'), findsOneWidget);
+      expect(find.text('Account'), findsOneWidget);
+      expect(find.text('Messages'), findsNothing);
+      expect(find.text('School'), findsNothing);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('messaging and academics add Messages and School', (tester) async {
+      clock = () => DateTime.utc(2026, 10, 1, 7);
+      addTearDown(() => clock = DateTime.now);
+      await start(tester, {'lang': 'en', 'token': 't'}, school(me_: meWith(['core', 'attendance', 'messaging', 'academics'])));
+      for (final label in ['Today', 'Messages', 'School', 'Notifications', 'Account']) {
+        expect(find.text(label), findsOneWidget, reason: label);
+      }
+      await tester.tap(find.text('Messages'));
+      await tester.pumpAndSettle();
+      expect(find.text('Messages from the school will appear here.'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('the tabs speak Arabic', (tester) async {
+      clock = () => DateTime.utc(2026, 10, 1, 7);
+      addTearDown(() => clock = DateTime.now);
+      await start(tester, {'lang': 'ar', 'token': 't'}, school(me_: meWith(['core', 'messaging'])));
+      for (final label in ['اليوم', 'الرسائل', 'الإشعارات', 'الحساب']) {
+        expect(find.text(label), findsOneWidget, reason: label);
+      }
+      await tester.pumpWidget(const SizedBox());
+    });
+  });
+
+  group('HomeData', () {
+    Future<HomeData> loaded({Map<String, dynamic> me = const {}}) async {
+      SharedPreferences.setMockInitialValues({'lang': 'en', 'token': 't'});
+      final api = Api(await SharedPreferences.getInstance(), school(more: {
+        '/parent/children': [
+          {'id': 's1', 'firstName': 'Salma', 'class': {'name': '4-A'}},
+          {'id': 's2', 'firstName': 'Omar', 'class': {'name': '2-B'}},
+        ],
+      }));
+      final data = HomeData(api, me);
+      await data.load();
+      return data;
+    }
+
+    test('starts on the first child, and every tab sees a change of child', () async {
+      final data = await loaded();
+      expect(data.childId, 's1');
+      var told = 0;
+      data.addListener(() => told++);
+      data.selectChild('s2');
+      data.selectChild('s2'); // already chosen: nobody is told again
+      expect(data.childId, 's2');
+      expect(told, 1);
+      await data.load(); // a refresh keeps the choice
+      expect(data.childId, 's2');
+    });
+
+    test('knows the school’s modules and their features', () async {
+      final data = await loaded(me: {
+        'modules': ['core', 'messaging'],
+        'features': {'messaging': {'chat': true, 'polls': false}},
+      });
+      expect(data.has('messaging'), isTrue);
+      expect(data.has('messaging', 'chat'), isTrue);
+      expect(data.has('messaging', 'polls'), isFalse);
+      expect(data.has('messaging', 'meetings'), isFalse);
+      expect(data.has('academics'), isFalse);
+      expect((await loaded()).has('messaging'), isFalse);
+    });
   });
 }

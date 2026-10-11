@@ -1,4 +1,4 @@
-import { PLAN_MODULES, requiredBy, toggleModule } from './registry';
+import { MODULES, PLAN_FEATURES, PLAN_MODULES, isSubscriptionFeature, ModuleKey, planFeatures, requiredBy, toggleModule } from './registry';
 
 describe('module registry', () => {
   it('lists indirect dependencies', () => {
@@ -33,5 +33,23 @@ describe('module registry', () => {
     for (const mods of Object.values(PLAN_MODULES)) {
       for (const m of mods) for (const d of requiredBy(m)) expect(mods).toContain(d);
     }
+  });
+
+  it('only presets features the module has, and only subscription features', () => {
+    for (const presets of Object.values(PLAN_FEATURES)) {
+      for (const [key, features] of Object.entries(presets) as [ModuleKey, Record<string, boolean>][]) {
+        for (const feature of Object.keys(features)) {
+          expect(Object.keys(MODULES[key].features)).toContain(feature);
+          expect(isSubscriptionFeature(key, feature)).toBe(true);
+        }
+      }
+    }
+  });
+
+  it('gives chat, polls and meetings to the Complete plan only', () => {
+    expect(planFeatures('ESSENTIALS', 'messaging')).toEqual({ chat: false, polls: false, meetings: false });
+    expect(planFeatures('SMART', 'messaging').chat).toBe(false);
+    expect(planFeatures('COMPLETE', 'messaging')).toEqual({ chat: true, polls: true, meetings: true });
+    expect(planFeatures('ESSENTIALS', 'attendance')).toEqual(MODULES.attendance.features);
   });
 });

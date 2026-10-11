@@ -56,7 +56,9 @@ This describes every part that exists in the code today. Phase 1 is attendance. 
   - **Essentials:** core, attendance and messaging
   - **Smart:** adds transport, canteen and payments
   - **Complete:** everything
-- **Module switches:** turn any module on or off per school, and **automatic attendance (straps)** inside Attendance.
+  - Messaging comes in two sizes: **Essentials and Smart** get announcements and the emergency message; **Complete** adds parent–teacher chat, polls and meetings. Changing a school's plan sets these for it.
+- **Module switches:** turn any module on or off per school, and the features that come with the subscription: **automatic attendance (straps)** inside Attendance, and **chat, polls and meetings** inside Messaging. A school's own admin can't switch these; they see "In your subscription" or "Not in your subscription".
+  - Other features (for example, trips or merit points) are the school's own to switch in **School settings**.
   - Switching one on also switches on what it needs; for example, Transport needs Attendance.
   - Switching one off is refused while another module still needs it.
 - **Gateways:** register each gateway before it ships. You get:
@@ -121,7 +123,7 @@ Teachers and admins use **the same screen**:
   - **During the lesson, at a school with straps, while the room's gateway works:** what the strap says. In the room means Present; not heard in the room means Absent. A short line under the name says why ("In the room", "Not in the room · last heard Gate A, 07:42 · parents told 10:00", "No strap", "Strap not heard today"). The list updates every 15 seconds, and absent children come first.
   - **Otherwise:** Present. That covers a school without straps, a room whose gateway isn't working, and a past lesson nobody recorded.
 - **The teacher:**
-  - signs in on the classroom PC and lands on **My class now**, their only screen: the lesson in front of them, moving on by itself when the bell goes
+  - signs in on the classroom PC and lands on **My class now**: the lesson in front of them, moving on by itself when the bell goes (it is the first link in their menu; later features, like messages and the gradebook, add more)
   - at a school with straps, they open it only when a child forgot their strap: tap **Present**, then **Save**
   - at a school without straps, they tap the absent ones, then **Save**
   - can change today's lessons they teach
@@ -194,7 +196,7 @@ A parent can excuse an absence from the app, and the system asks for one when a 
 
 | Screen | Teacher | School admin | Owner |
 |---|:-:|:-:|:-:|
-| **My class now:** the lesson in front of them, the teacher's only screen (section 4) | ✓ | | |
+| **My class now:** the lesson in front of them, where a teacher lands (section 4). A teacher has a menu too, which shows only what is theirs. | ✓ | | |
 | **Today:** students enrolled and how many came in through the gate, present and absent per period, open exceptions, lessons today, and **Messages** to the school (e.g. a parent changed their mobile) | | ✓ | |
 | **Attendance register:** every lesson; opens the same attendance screen for any lesson, any day | | ✓ | |
 | **Exceptions:** things a person should look at, each resolved with a note:<ul><li>at school but not in the lesson</li><li>left a lesson</li><li>left early</li><li>gateway offline / room without a gateway</li><li>low battery</li></ul> | | ✓ | |
@@ -219,9 +221,12 @@ The server enforces this: a teacher asking for school-wide data (the student lis
    - **Create account** (first time): email code, then mobile with a WhatsApp code, then a password (section 1).
    - **Forgot password:** a code by email, then a new password.
 2. **Consent** once.
-3. **The child's day:** arrival time, **where the child is now** (the room or the gate where the strap was heard in the last minute, e.g. "In Math, Room 204 · heard 09:41"), and each lesson's status. With two children there is a switcher. Where the child is now shows only at schools with the straps subscription, only after the parent agreed on the consent screen, and only for today.
-4. **Notifications:** the list, marked read when opened.
-5. **Account:** name, email, mobile ("checked on WhatsApp"), **Change mobile**, and sign out.
+3. **The tabs.** Five at most, along the bottom of the app: **Today**, **Messages**, **School**, **Notifications** and **Account**.
+   - **Messages** shows only when the school has Messaging; **School** (grades, behaviour, clubs, trips, calendar, meetings) only when it has one of those. A school sees just the tabs it has.
+   - With more than one child, the child chosen on one tab stays chosen on the others.
+4. **The child's day (Today):** arrival time, **where the child is now** (the room or the gate where the strap was heard in the last minute, e.g. "In Math, Room 204 · heard 09:41"), and each lesson's status. With two children there is a switcher. Where the child is now shows only at schools with the straps subscription, only after the parent agreed on the consent screen, and only for today.
+5. **Notifications:** the list, marked read when opened.
+6. **Account:** name, email, mobile ("checked on WhatsApp"), **Change mobile**, and sign out.
 
 ## 9. Gateway firmware (ESP32)
 

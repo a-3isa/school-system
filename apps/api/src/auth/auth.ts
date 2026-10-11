@@ -7,6 +7,7 @@ import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications';
 import { AuditService } from '../audit/audit';
+import { isModuleKey, MODULES } from '../platform/registry';
 import { AuthUser, CurrentUser, Public, Roles } from './auth.decorators';
 import { EmailService } from './email';
 import { LoginThrottle } from './login-throttle';
@@ -325,10 +326,16 @@ export class AuthService {
     });
     const rows = auth.schoolId ? await this.prisma.schoolModule.findMany({ where: { schoolId: auth.schoolId, enabled: true } }) : [];
     const modules = rows.map((m) => m.key);
+    // Each enabled module's feature switches, so screens can hide what a school doesn't have.
+    const features: Record<string, Record<string, boolean>> = {};
+    for (const m of rows) {
+      const def = isModuleKey(m.key) ? MODULES[m.key].features : {};
+      features[m.key] = { ...def, ...((m.features as Record<string, boolean> | null) ?? {}) };
+    }
     // The school subscribes to automatic attendance: straps, gateways and tracking.
-    const straps = !!(rows.find((m) => m.key === 'attendance')?.features as Record<string, boolean> | undefined)?.automatic;
+    const straps = !!features.attendance?.automatic;
     const { school, ...rest } = user;
-    return { ...rest, schoolName: school?.name ?? null, schoolNameAr: school?.nameAr ?? null, schoolLogo: !!school?.logoMime, attendanceMode: school?.attendanceMode ?? null, straps, modules };
+    return { ...rest, schoolName: school?.name ?? null, schoolNameAr: school?.nameAr ?? null, schoolLogo: !!school?.logoMime, attendanceMode: school?.attendanceMode ?? null, straps, modules, features };
   }
 }
 

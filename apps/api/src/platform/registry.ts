@@ -40,11 +40,14 @@ export const MODULES: Record<ModuleKey, ModuleDefinition> = {
   transport: { key: 'transport', name: 'Transport', requires: ['core', 'attendance'], features: { liveMapForParents: true } },
   canteen: { key: 'canteen', name: 'Canteen & wallet', requires: ['core', 'payments'], features: { parentalControls: true } },
   payments: { key: 'payments', name: 'Payments & fees', requires: ['core'], features: { tuitionFees: false } },
-  activities: { key: 'activities', name: 'Activities & clubs', requires: ['core'], features: { paidActivities: false } },
+  // Trips with permission slips and the events calendar belong to activities.
+  activities: { key: 'activities', name: 'Activities & clubs', requires: ['core'], features: { paidActivities: false, trips: true, events: true } },
   academics: { key: 'academics', name: 'Academics', requires: ['core'], features: { reportCards: true } },
   homework: { key: 'homework', name: 'Homework', requires: ['core', 'academics'], features: {} },
-  behavior: { key: 'behavior', name: 'Behavior & notes', requires: ['core'], features: { clinic: true, merits: true } },
-  messaging: { key: 'messaging', name: 'Messaging', requires: ['core'], features: { chat: true, polls: true } },
+  behavior: { key: 'behavior', name: 'Behaviour & notes', requires: ['core'], features: { clinic: true, merits: true } },
+  // Announcements and the emergency broadcast are always part of messaging;
+  // chat, polls and meetings come with the full Messaging of the Complete plan.
+  messaging: { key: 'messaging', name: 'Messaging', requires: ['core'], features: { chat: true, polls: true, meetings: true } },
   admissions: { key: 'admissions', name: 'Admissions', requires: ['core', 'payments'], features: {} },
   reports: { key: 'reports', name: 'Reports & analytics', requires: ['core'], features: {} },
 };
@@ -58,6 +61,21 @@ export const PLAN_MODULES: Record<Plan, ModuleKey[]> = {
     'activities', 'academics', 'behavior', 'reports',
   ],
 };
+
+// Features each plan sets when a school signs up or changes plan. Only
+// subscription features belong here; anything else stays the school's choice.
+const FULL_MESSAGING = { chat: true, polls: true, meetings: true };
+const ANNOUNCEMENTS_ONLY = { chat: false, polls: false, meetings: false };
+export const PLAN_FEATURES: Record<Plan, Partial<Record<ModuleKey, Record<string, boolean>>>> = {
+  ESSENTIALS: { messaging: ANNOUNCEMENTS_ONLY },
+  SMART: { messaging: ANNOUNCEMENTS_ONLY },
+  COMPLETE: { messaging: FULL_MESSAGING },
+};
+
+/** A module's features as a school on `plan` starts with them. */
+export function planFeatures(plan: Plan, key: ModuleKey): Record<string, boolean> {
+  return { ...MODULES[key].features, ...PLAN_FEATURES[plan][key] };
+}
 
 export function isModuleKey(key: string): key is ModuleKey {
   return (MODULE_KEYS as readonly string[]).includes(key);
@@ -112,4 +130,11 @@ export function toggleModule(enabled: Iterable<ModuleKey>, key: ModuleKey, on: b
  * Features that come with the subscription: only the platform owner switches
  * them. Automatic attendance means the school has straps and gateways.
  */
-export const SUBSCRIPTION_FEATURES: Partial<Record<ModuleKey, string[]>> = { attendance: ['automatic'] };
+export const SUBSCRIPTION_FEATURES: Partial<Record<ModuleKey, string[]>> = {
+  attendance: ['automatic'],
+  messaging: ['chat', 'polls', 'meetings'],
+};
+
+export function isSubscriptionFeature(key: ModuleKey, feature: string): boolean {
+  return !!SUBSCRIPTION_FEATURES[key]?.includes(feature);
+}
