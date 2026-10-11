@@ -247,7 +247,7 @@ class _SubjectCardState extends State<_SubjectCard> {
           padding: const EdgeInsets.all(14),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [
-              Expanded(child: Text(sub['name'] as String, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600))),
+              Expanded(child: Text(s.subjectName(sub), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600))),
               Text(p == null ? '—' : s.pct(p), textDirection: TextDirection.ltr, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
               const SizedBox(width: 8),
               if (p != null) _BandChip((sub['band'] as Map?)?.cast<String, dynamic>()),
@@ -315,7 +315,7 @@ class _ExamRow extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('${exam['subject']} · ${s.assessmentKind(exam['kind'] as String)}', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+        Text('${s.subjectName(exam, name: 'subject', nameAr: 'subjectAr')} · ${s.assessmentKind(exam['kind'] as String)}', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
         const SizedBox(height: 2),
         Text(s.dayLine(exam['date'] as String), style: TextStyle(fontSize: 14, color: c.ink2)),
         Text('${ltr('${exam['startTime']}–${exam['endTime']}')}${room != null ? ' · $room' : ''}', style: TextStyle(fontSize: 14, color: c.ink2)),

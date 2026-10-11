@@ -83,7 +83,7 @@ export function pushBody(type: string, c: TextContext): string | null {
     case 'marks.published': {
       const [subject, title] = [str(d.subject), str(d.title)];
       if (!subject || !title) return null;
-      return ar ? `درجة جديدة لـ${name} في ${subject}: ${title}` : `New mark for ${name} in ${subject}: ${title}`;
+      return ar ? `درجة جديدة لـ${name} في ${str(d.subjectAr) || subject}: ${title}` : `New mark for ${name} in ${subject}: ${title}`;
     }
     case 'reportCard.published': {
       const term = Number(d.term);

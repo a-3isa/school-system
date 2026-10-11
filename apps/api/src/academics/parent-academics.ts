@@ -44,13 +44,13 @@ export class ParentAcademicsService {
 
     const marks = await this.prisma.mark.findMany({
       where: { studentId: child.id, assessment: { yearId: cur.yearId, term: useTerm, publishedAt: { not: null } } },
-      include: { assessment: { include: { subject: { select: { id: true, name: true } } } } },
+      include: { assessment: { include: { subject: { select: { id: true, name: true, nameAr: true } } } } },
       orderBy: { assessment: { date: 'asc' } },
     });
-    const bySubject = new Map<string, { id: string; name: string; items: MarkItem[]; assessments: unknown[] }>();
+    const bySubject = new Map<string, { id: string; name: string; nameAr: string | null; items: MarkItem[]; assessments: unknown[] }>();
     for (const m of marks) {
       const a = m.assessment;
-      const s = bySubject.get(a.subjectId) ?? { id: a.subjectId, name: a.subject.name, items: [], assessments: [] };
+      const s = bySubject.get(a.subjectId) ?? { id: a.subjectId, name: a.subject.name, nameAr: a.subject.nameAr, items: [], assessments: [] };
       s.items.push({ score: numberOf(m.score), max: a.maxScore, weight: a.weight, absent: m.absent, excused: m.excused });
       s.assessments.push({ id: a.id, title: a.title, kind: a.kind, date: isoDate(a.date), score: numberOf(m.score), maxScore: a.maxScore, absent: m.absent, excused: m.excused, comment: m.comment });
       bySubject.set(a.subjectId, s);
@@ -59,7 +59,7 @@ export class ParentAcademicsService {
       .sort((a, b) => a.name.localeCompare(b.name))
       .map((s) => {
         const pct = subjectPercent(s.items);
-        return { subjectId: s.id, name: s.name, ...shown(pct, bands), exact: pct, assessments: s.assessments };
+        return { subjectId: s.id, name: s.name, nameAr: s.nameAr, ...shown(pct, bands), exact: pct, assessments: s.assessments };
       });
     const avg = mean(subjects.map((s) => s.exact));
     const overall: { percent: number | null; band: unknown; gpa?: number | null } = shown(avg, bands);
@@ -88,10 +88,10 @@ export class ParentAcademicsService {
     const today = await this.schoolToday(child.schoolId);
     const rows = await this.prisma.assessment.findMany({
       where: { schoolId: child.schoolId, classId: child.classId, kind: { in: EXAM_KINDS }, date: { gte: dbDate(today) } },
-      select: { id: true, title: true, kind: true, date: true, startTime: true, endTime: true, subject: { select: { name: true } }, room: { select: { name: true } } },
+      select: { id: true, title: true, kind: true, date: true, startTime: true, endTime: true, subject: { select: { name: true, nameAr: true } }, room: { select: { name: true } } },
       orderBy: [{ date: 'asc' }, { startTime: 'asc' }],
     });
-    return rows.map((r) => ({ id: r.id, subject: r.subject.name, title: r.title, kind: r.kind, date: isoDate(r.date), startTime: r.startTime, endTime: r.endTime, room: r.room?.name ?? null }));
+    return rows.map((r) => ({ id: r.id, subject: r.subject.name, subjectAr: r.subject.nameAr, title: r.title, kind: r.kind, date: isoDate(r.date), startTime: r.startTime, endTime: r.endTime, room: r.room?.name ?? null }));
   }
 
   async reportCards(user: AuthUser, childId: string) {

@@ -358,6 +358,7 @@ Each phase ends with something a school can use and pay for. Nothing gets rebuil
 | T11 | Behaviour notes | Teachers write praise and concerns for students they teach or lead; only Student Affairs and the social worker record incidents. Praise and concerns are shared with parents unless the writer unticks it; an incident is kept back until shared. A writer can change their own note for 24 hours, then only Student Affairs can |
 | T12 | What counts towards a percentage | A percentage is the weighted average of the marks, leaving out excused absences and counting an unexcused one as zero. Parents and report cards count published assessments only; the teacher's gradebook counts everything marked |
 | T13 | Grade bands | Every school system has default bands (national, British, American); Student Affairs can replace them for each system. A published report card keeps the bands it was published with |
+| T14 | Who teaches a subject | The teacher on a subject's lessons in a class's timetable is its one teacher, read by marks, attendance and chat. Student Affairs sets it once per class and subject, which updates all of its lessons, and a subject can have an Arabic name. Choosing teachers before the lessons exist (a curriculum for each year group) is not built |
 
 ## 9. How to charge schools
 

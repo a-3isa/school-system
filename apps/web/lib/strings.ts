@@ -77,6 +77,14 @@ export const en = {
     slots: (n: number, booked: number) => `${booked} of ${n} booked`, chooseTeacher: 'Choose the teacher',
     confirmRemove: 'Remove these times? Anyone who booked will be told.',
   },
+  subj: {
+    nameEn: 'Name in English', nameAr: 'Name in Arabic (optional)', edit: 'Edit', save: 'Save', saved: 'Subject saved.', deleted: 'Subject deleted.',
+    deleteConfirm: (name: string) => `Delete the subject “${name}”?`,
+    teachersTitle: 'Teachers of this class', teachersSub: 'Choose who teaches each subject in this class. It applies to all of that subject’s lessons, and they can then mark it.',
+    noTeacher: 'No teacher yet', noTeacherNote: 'Nobody but Student Affairs can mark this subject yet.', several: 'Several teachers',
+    lessonsN: (n: number) => (n === 1 ? '1 lesson a week' : `${n} lessons a week`), assigned: (subject: string, teacher: string) => `${teacher} now teaches ${subject}.`, unassigned: (subject: string) => `${subject} has no teacher now.`,
+    noLessons: 'Add this class’s lessons to the timetable first, then choose a teacher for each subject.',
+  },
   acad: {
     // gradebook
     gradebookSub: 'Enter marks for a class and subject, term by term',
@@ -516,6 +524,14 @@ export const ar: Dict = {
     none: 'لا توجد مواعيد مقابلات بعد', noneSub: 'أضيفوا مواعيد ليتمكن أولياء الأمور من حجزها من التطبيق.',
     slots: (n, booked) => `محجوز ${booked} من ${n}`, chooseTeacher: 'اختاروا المعلم',
     confirmRemove: 'إزالة هذه المواعيد؟ سيُبلَّغ كل من حجز فيها.',
+  },
+  subj: {
+    nameEn: 'الاسم بالإنجليزية', nameAr: 'الاسم بالعربية (اختياري)', edit: 'تعديل', save: 'حفظ', saved: 'تم حفظ المادة.', deleted: 'تم حذف المادة.',
+    deleteConfirm: (name) => `حذف المادة «${name}»؟`,
+    teachersTitle: 'معلمو هذا الفصل', teachersSub: 'اختاروا من يدرّس كل مادة في هذا الفصل. ينطبق ذلك على جميع حصص المادة، ويتمكن المعلم بعدها من رصد درجاتها.',
+    noTeacher: 'لم يُحدَّد معلم بعد', noTeacherNote: 'لا يستطيع رصد درجات هذه المادة الآن سوى شؤون الطلبة.', several: 'عدة معلمين',
+    lessonsN: (n) => arN(n, 'حصة واحدة أسبوعيًا', 'حصتان أسبوعيًا', 'حصص أسبوعيًا', 'حصة أسبوعيًا'), assigned: (subject, teacher) => `${teacher} يدرّس ${subject} الآن.`, unassigned: (subject) => `لا يوجد معلم لمادة ${subject} الآن.`,
+    noLessons: 'أضيفوا حصص هذا الفصل إلى الجدول الدراسي أولًا، ثم اختاروا معلمًا لكل مادة.',
   },
   acad: {
     // gradebook

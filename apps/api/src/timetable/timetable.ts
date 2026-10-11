@@ -1,6 +1,6 @@
-import { BadRequestException, Body, ConflictException, Controller, Delete, Get, Injectable, Module, NotFoundException, Param, Post, Query } from '@nestjs/common';
+import { BadRequestException, Body, ConflictException, Controller, Delete, Get, Injectable, Module, NotFoundException, Param, Post, Put, Query } from '@nestjs/common';
 import { Prisma, Role } from '@prisma/client';
-import { IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
+import { IsInt, IsOptional, IsString, Max, Min, ValidateIf } from 'class-validator';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit';
 import { AuthUser, CurrentUser, Roles, SchoolId, STAFF } from '../auth/auth.decorators';
@@ -16,11 +16,20 @@ export class TimetableEntryDto {
   @IsOptional() @IsString() teacherId?: string;
 }
 
+/** Who teaches a subject in a class: set once for all of its lessons. `null` takes the teacher off them. */
+export class AssignTeacherDto {
+  @IsString() classId: string;
+  @IsString() subjectId: string;
+  @ValidateIf((d) => d.teacherId !== null) @IsString() teacherId: string | null;
+}
+
+const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
 const entryInclude = {
   class: { select: { id: true, name: true } },
   period: true,
   room: { select: { id: true, name: true, kind: true } },
-  subject: { select: { id: true, name: true } },
+  subject: { select: { id: true, name: true, nameAr: true } },
   teacher: { select: { id: true, name: true, honorific: true } },
 } satisfies Prisma.TimetableEntryInclude;
 
@@ -77,6 +86,37 @@ export class TimetableService {
     return entry;
   }
 
+  /**
+   * The teacher of a subject in a class, in one step: every lesson of that subject in that class gets
+   * the teacher, so marks, attendance and parent chat all see the same person. A teacher can't be in
+   * two classes at once, so a clash with another of their lessons is refused and nothing changes.
+   */
+  async assignTeacher(user: AuthUser, schoolId: string, dto: AssignTeacherDto) {
+    const [cls, subject] = await Promise.all([
+      this.prisma.class.findFirst({ where: { id: dto.classId, schoolId }, select: { id: true, name: true } }),
+      this.prisma.subject.findFirst({ where: { id: dto.subjectId, schoolId }, select: { id: true, name: true } }),
+    ]);
+    if (!cls) throw new BadRequestException('Class not found in this school.');
+    if (!subject) throw new BadRequestException('Subject not found in this school.');
+    const lessons = await this.prisma.timetableEntry.findMany({ where: { schoolId, classId: dto.classId, subjectId: dto.subjectId }, select: { id: true, dayOfWeek: true, periodId: true } });
+    if (!lessons.length) throw new BadRequestException('This subject has no lessons in this class yet. Add it to the timetable first.');
+
+    let teacher: { id: string; name: string; honorific: string | null } | null = null;
+    if (dto.teacherId) {
+      teacher = await this.prisma.user.findFirst({ where: { id: dto.teacherId, schoolId, role: Role.TEACHER, active: true }, select: { id: true, name: true, honorific: true } });
+      if (!teacher) throw new BadRequestException('Teacher not found in this school.');
+      const busy = await this.prisma.timetableEntry.findFirst({
+        where: { schoolId, teacherId: teacher.id, id: { notIn: lessons.map((l) => l.id) }, OR: lessons.map((l) => ({ dayOfWeek: l.dayOfWeek, periodId: l.periodId })) },
+        include: { class: { select: { name: true } }, period: { select: { number: true } } },
+      });
+      if (busy) throw new ConflictException(`${teacher.name} already teaches ${busy.class.name} on ${DAY_NAMES[busy.dayOfWeek]} in period ${busy.period.number}.`);
+    }
+
+    await this.prisma.timetableEntry.updateMany({ where: { id: { in: lessons.map((l) => l.id) } }, data: { teacherId: dto.teacherId } });
+    await this.audit.log(user, 'timetable.assign', 'timetable', undefined, { classId: dto.classId, subjectId: dto.subjectId, teacherId: dto.teacherId, lessons: lessons.length });
+    return { lessons: lessons.length, teacher };
+  }
+
   async remove(user: AuthUser, schoolId: string, id: string) {
     const { count } = await this.prisma.timetableEntry.deleteMany({ where: { id, schoolId } });
     if (!count) throw new NotFoundException('Lesson not found.');
@@ -128,6 +168,12 @@ export class TimetableController {
   @Post()
   create(@CurrentUser() user: AuthUser, @SchoolId() schoolId: string, @Body() dto: TimetableEntryDto) {
     return this.timetable.create(user, schoolId, dto);
+  }
+
+  @Roles(Role.SCHOOL_ADMIN)
+  @Put('assign')
+  assign(@CurrentUser() user: AuthUser, @SchoolId() schoolId: string, @Body() dto: AssignTeacherDto) {
+    return this.timetable.assignTeacher(user, schoolId, dto);
   }
 
   @Roles(Role.SCHOOL_ADMIN)

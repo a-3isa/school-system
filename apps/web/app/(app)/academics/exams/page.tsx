@@ -6,7 +6,7 @@ import { Empty, ErrorNote, PageHead, Section, Tag } from '@/components/ui';
 
 /** Midterms and finals for the school year, by day: when, which class, which subject, which room. */
 export default function ExamsPage() {
-  const { t, x, day, lang } = useI18n();
+  const { t, x, day, lang, subject } = useI18n();
   const grades = useApi<any[]>('/grades');
   const [gradeId, setGradeId] = useState('');
   const exams = useApi<any[]>(`/academics/exams${gradeId ? `?gradeId=${gradeId}` : ''}`);
@@ -43,7 +43,7 @@ export default function ExamsPage() {
                   <tr key={e.id}>
                     <td className="num"><bdi dir="ltr">{e.startTime}–{e.endTime}</bdi></td>
                     <td>{x(e.class.name)}</td>
-                    <td>{x(e.subject.name)}</td>
+                    <td>{x(subject(e.subject))}</td>
                     <td>{x(e.title)} <Tag tone={e.kind === 'FINAL' ? 'A' : 'L'}>{t.acad.kind[e.kind]}</Tag></td>
                     <td>{e.room ? x(e.room.name) : <span className="muted">—</span>}</td>
                   </tr>

@@ -99,7 +99,7 @@ export interface ReportSnapshot {
   class: { name: string; gradeName: string; system: string | null };
   year: { name: string };
   term: 1 | 2;
-  subjects: { subjectId: string; name: string; percent: number | null; band: Band | null; comment: string | null; teacher: string | null }[];
+  subjects: { subjectId: string; name: string; nameAr: string | null; percent: number | null; band: Band | null; comment: string | null; teacher: string | null }[];
   overall: { percent: number | null; band: Band | null; gpa?: number | null };
   attendance: { present: number; late: number; absent: number; excused: number; onTrip: number; days: number };
   classTeacherComment: string | null;

@@ -765,7 +765,7 @@ void main() {
           'term': 1,
           'subjects': [
             {
-              'subjectId': 'm', 'name': 'Math', 'percent': 67.5, 'band': good,
+              'subjectId': 'm', 'name': 'Math', 'nameAr': 'الرياضيات', 'percent': 67.5, 'band': good,
               'assessments': [
                 {'id': 'a1', 'title': 'Unit 1 quiz', 'kind': 'QUIZ', 'date': '2026-10-01', 'score': 18, 'maxScore': 20, 'absent': false, 'excused': false, 'comment': 'Well done'},
                 {'id': 'a2', 'title': 'Unit 1 project', 'kind': 'PROJECT', 'date': '2026-10-02', 'score': null, 'maxScore': 100, 'absent': true, 'excused': true, 'comment': null},
@@ -786,7 +786,7 @@ void main() {
           'year': {'name': '2026/2027'},
           'term': 1,
           'subjects': [
-            {'subjectId': 'm', 'name': 'Math', 'percent': 84.6, 'band': veryGood, 'comment': 'A confident start to the year.', 'teacher': 'Ms. Hana Nabil'},
+            {'subjectId': 'm', 'name': 'Math', 'nameAr': 'الرياضيات', 'percent': 84.6, 'band': veryGood, 'comment': 'A confident start to the year.', 'teacher': 'Ms. Hana Nabil'},
             {'subjectId': 'e', 'name': 'English', 'percent': null, 'band': null, 'comment': null, 'teacher': null},
           ],
           'overall': {'percent': 84.6, 'band': veryGood},
@@ -810,7 +810,7 @@ void main() {
               ? [{'date': '2026-10-01', 'percent': 90}, {'date': '2026-10-02', 'percent': 45}]
               : [{'date': '2026-10-03', 'percent': 90}],
           '/parent/children/s1/exams': [
-            {'id': 'x1', 'subject': 'Math', 'title': 'Maths midterm', 'kind': 'MIDTERM', 'date': '2026-10-18', 'startTime': '09:00', 'endTime': '10:30', 'room': 'Room 204'},
+            {'id': 'x1', 'subject': 'Math', 'subjectAr': 'الرياضيات', 'title': 'Maths midterm', 'kind': 'MIDTERM', 'date': '2026-10-18', 'startTime': '09:00', 'endTime': '10:30', 'room': 'Room 204'},
           ],
           '/parent/children/s1/report-cards': [
             {'id': 'rc1', 'year': '2026/2027', 'term': 1, 'publishedAt': '2026-10-11T18:00:00.000Z', 'overall': {'percent': 84.6, 'band': veryGood}},
@@ -895,13 +895,17 @@ void main() {
       expect(find.text('ممتاز'), findsOneWidget);
       expect(find.text('الامتحانات القادمة'), findsOneWidget);
       expect(find.text('الشهادات'), findsOneWidget);
+      expect(find.text('الرياضيات'), findsOneWidget); // the subject in Arabic, not «Math»
+      expect(find.text('Math'), findsNothing);
+      expect(find.text('الرياضيات · امتحان منتصف الفصل'), findsOneWidget);
       await tester.tap(find.text(S.ar.reportCardFor(1, '2026/2027')));
       await tester.pumpAndSettle();
       expect(find.text('شهادة الفصل الدراسي'), findsOneWidget);
       expect(find.text('مدرسة وادي النيل للغات'), findsOneWidget);
       expect(find.text('ليلى حسين'), findsOneWidget);
       expect(find.text('جيد جدًا'), findsWidgets);
-      expect(find.text('مس Hana Nabil'), findsOneWidget); // under Math
+      expect(find.text('الرياضيات'), findsOneWidget); // the subject's Arabic name on the card
+      expect(find.text('مس Hana Nabil'), findsOneWidget); // under it
       expect(find.text('A confident start to the year.'), findsOneWidget);
       expect(find.textContaining('الحضور: 20 يومًا، الغياب: يومان'), findsOneWidget);
       expect(find.text('رائد الفصل: مس Hana Nabil'), findsOneWidget);
@@ -944,6 +948,8 @@ void main() {
       expect(S.en.notification('reportCard.published', 'Salma', {'term': 2}, 'x'), 'Salma’s report card for term 2 is ready');
       expect(S.ar.notification('reportCard.published', 'سلمى', {'term': 1}, 'x'), 'صدرت شهادة سلمى عن الفصل الدراسي الأول');
       expect(S.ar.notification('reportCard.published', 'سلمى', {'term': 2}, 'x'), 'صدرت شهادة سلمى عن الفصل الدراسي الثاني');
+      expect(S.ar.notification('marks.published', 'سلمى', {'subject': 'Math', 'subjectAr': 'الرياضيات', 'title': 'اختبار'}, 'x'), 'درجة جديدة لـسلمى في الرياضيات: اختبار');
+      expect(S.ar.notification('marks.published', 'سلمى', {'subject': 'Math', 'subjectAr': null, 'title': 'اختبار'}, 'x'), 'درجة جديدة لـسلمى في Math: اختبار'); // no Arabic name yet
       expect(S.en.notification('marks.published', 'Salma', {}, 'English title'), 'English title'); // no subject: the server’s words
     });
 

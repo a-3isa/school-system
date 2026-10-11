@@ -6,6 +6,7 @@ import { useAction, useApi } from '@/lib/hooks';
 import { useI18n } from '@/lib/i18n';
 import { Dict } from '@/lib/strings';
 import { byStage, useGradeName } from '@/components/ClassPicker';
+import { SubjectsEditor } from '@/components/SubjectsEditor';
 import { Empty, ErrorNote, Field, PageHead, Section, toast } from '@/components/ui';
 
 const ROOM_KINDS = ['CLASSROOM', 'LAB', 'LIBRARY', 'SPORTS', 'OTHER'] as const;
@@ -53,7 +54,6 @@ export default function SetupPage() {
   const grades = useApi<any[]>('/grades');
   const classes = useApi<any[]>('/classes');
   const rooms = useApi<any[]>('/rooms');
-  const subjects = useApi<any[]>('/subjects');
   const periods = useApi<any[]>('/periods');
   const years = useApi<any[]>('/school/years');
   const holidays = useApi<any[]>('/school/holidays');
@@ -64,7 +64,6 @@ export default function SetupPage() {
   const [grade, setGrade] = useState({ name: '', nameAr: '', stage: 'OTHER', order: 20 });
   const [cls, setCls] = useState({ gradeId: '', section: '1', name: '', system: '', gender: 'MIXED', stream: '', capacity: '', homeroomTeacherId: '' });
   const [room, setRoom] = useState({ name: '', kind: 'CLASSROOM' });
-  const [subject, setSubject] = useState('');
   const [period, setPeriod] = useState({ number: 1, startTime: '08:00', endTime: '08:45' });
   const [year, setYear] = useState({ name: '2026/2027', startsOn: '2026-09-13', endsOn: '2027-06-30', term2StartsOn: '2027-02-07', breakFrom: '2027-01-24', breakTo: '2027-02-04' });
   const [holiday, setHoliday] = useState({ name: '', fromDate: '', toDate: '' });
@@ -279,13 +278,7 @@ export default function SetupPage() {
           <input className="input num" type="time" required aria-label={t.setup.ends} value={period.endTime} onChange={(e) => setPeriod({ ...period, endTime: e.target.value })} />
         </Editor>
 
-        <Editor
-          title={t.setup.subjects}
-          rows={(subjects.data ?? []).map((s) => ({ key: s.id, a: s.name }))}
-          onAdd={run(() => post('/subjects', { name: subject }), () => { setSubject(''); void subjects.reload(); })}
-        >
-          <input className="input" required aria-label={t.setup.newSubject} placeholder={t.setup.newSubject} value={subject} onChange={(e) => setSubject(e.target.value)} />
-        </Editor>
+        <SubjectsEditor />
       </div>
     </>
   );

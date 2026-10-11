@@ -177,7 +177,7 @@ class S {
       'announcement.emergency' => _('Urgent from the school: ${data['title']}', 'عاجل من المدرسة: ${data['title']}'),
       'poll.new' => _('The school asks your opinion: ${data['question']}', 'تودّ المدرسة معرفة رأيكم: ${data['question']}'),
       'message.new' => _('New message from ${data['from']} about $name', 'رسالة جديدة من ${data['from']} بشأن $name'),
-      'marks.published' when data['subject'] != null && data['title'] != null => _('New mark for $name in ${data['subject']}: ${data['title']}', 'درجة جديدة لـ$name في ${data['subject']}: ${data['title']}'),
+      'marks.published' when data['subject'] != null && data['title'] != null => _('New mark for $name in ${data['subject']}: ${data['title']}', 'درجة جديدة لـ$name في ${(data['subjectAr'] as String?)?.isNotEmpty == true ? data['subjectAr'] : data['subject']}: ${data['title']}'),
       'reportCard.published' when data['term'] == 1 || data['term'] == 2 => _('$name’s report card for term ${data['term']} is ready', 'صدرت شهادة $name عن الفصل الدراسي ${data['term'] == 1 ? 'الأول' : 'الثاني'}'),
       'behaviour.note' => switch (data['kind']) {
           'PRAISE' => _('Well done! A note of praise for $name', 'أحسنتم! ثناء من المدرسة على $name'),
@@ -361,6 +361,12 @@ class S {
   }
   /// A band's name in this language.
   String bandName(Map<String, dynamic>? band) => band == null ? '—' : (isAr ? band['labelAr'] : band['label']) as String;
+  /// A subject's name in this language: the Arabic one when the school gave it, else the English one.
+  String subjectName(Map<String, dynamic> m, {String name = 'name', String nameAr = 'nameAr'}) {
+    final ar = m[nameAr] as String?;
+    return isAr && ar != null && ar.isNotEmpty ? ar : m[name] as String;
+  }
+
   /// "Ms. Hana Nabil" → «مس Hana Nabil» in Arabic.
   String titledName(String? name) {
     if (name == null || !isAr) return name ?? '';

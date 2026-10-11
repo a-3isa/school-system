@@ -13,7 +13,7 @@ import { ErrorNote, Note, PageHead, Section, Tag, toast } from '@/components/ui'
 export default function ReportCardPage() {
   const { id } = useParams<{ id: string }>();
   const { me } = useSession();
-  const { t, x, lang } = useI18n();
+  const { t, x, lang, subject } = useI18n();
   const card = useApi<any>(`/academics/report-cards/${id}`);
   const act = useAction();
   const [texts, setTexts] = useState<Record<string, string>>({});
@@ -88,7 +88,7 @@ export default function ReportCardPage() {
         </div>
         <Section title={t.acad.subjectComment}>
           <div className="panel pad stack" style={{ gap: 16 }}>
-            {s.subjects.map((sub: any) => box(`s:${sub.subjectId}`, x(sub.name), d.canEdit.subjects.includes(sub.subjectId)))}
+            {s.subjects.map((sub: any) => box(`s:${sub.subjectId}`, x(subject(sub)), d.canEdit.subjects.includes(sub.subjectId)))}
             {box('ct', t.acad.classTeacherComment, d.canEdit.classTeacher)}
             {box('pr', t.acad.principalComment, d.canEdit.principal)}
           </div>

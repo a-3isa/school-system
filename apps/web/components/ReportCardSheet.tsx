@@ -11,7 +11,7 @@ export interface Snapshot {
   class: { name: string; gradeName: string; system: string | null };
   year: { name: string };
   term: 1 | 2;
-  subjects: { subjectId: string; name: string; percent: number | null; band: Band | null; comment: string | null; teacher: string | null }[];
+  subjects: { subjectId: string; name: string; nameAr: string | null; percent: number | null; band: Band | null; comment: string | null; teacher: string | null }[];
   overall: { percent: number | null; band: Band | null; gpa?: number | null };
   attendance: { present: number; late: number; absent: number; excused: number; onTrip: number; days: number };
   classTeacherComment: string | null;
@@ -31,7 +31,7 @@ function titled(name: string | null, lang: 'en' | 'ar'): string {
 
 /** The report card laid out on an A4 page: the same for the screen preview and for printing. */
 export function ReportCardSheet({ s, draft }: { s: Snapshot; draft?: boolean }) {
-  const { t, x, lang, day } = useI18n();
+  const { t, x, lang, day, subject } = useI18n();
   const { me } = useSession();
   const schoolName = lang === 'ar' && s.school.nameAr ? s.school.nameAr : s.school.name;
   const studentName = lang === 'ar' && s.student.nameAr ? s.student.nameAr : s.student.name;
@@ -68,7 +68,7 @@ export function ReportCardSheet({ s, draft }: { s: Snapshot; draft?: boolean }) 
           {s.subjects.map((sub) => (
             <tr key={sub.subjectId}>
               <td>
-                <b>{x(sub.name)}</b>
+                <b>{x(subject(sub))}</b>
                 {sub.teacher && <div className="small muted">{x(titled(sub.teacher, lang))}</div>}
               </td>
               <td className="num">{percent(sub.percent)}</td>

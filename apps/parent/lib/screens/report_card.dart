@@ -109,7 +109,7 @@ class _ReportCardScreenState extends State<ReportCardScreen> {
               decoration: BoxDecoration(border: i == 0 ? null : Border(top: BorderSide(color: c.line))),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Row(children: [
-                  Expanded(child: Text(sub['name'] as String, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600))),
+                  Expanded(child: Text(s.subjectName(sub), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600))),
                   if (sub['percent'] != null) ...[
                     Text(s.pct(sub['percent'] as num), textDirection: TextDirection.ltr, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
                     const SizedBox(width: 8),

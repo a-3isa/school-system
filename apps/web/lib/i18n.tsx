@@ -149,6 +149,8 @@ interface I18n {
   day: (date: string, opts?: Intl.DateTimeFormatOptions) => string;
   /** A member of staff as they are addressed: "Ms. Hana Nabil" / «مس Hana Nabil». */
   staff: (u: { name: string; honorific?: string | null } | null | undefined) => string;
+  /** A subject's name in this language: the Arabic one when the school has given it, else the English one. */
+  subject: (s: { name: string; nameAr?: string | null } | null | undefined) => string;
 }
 
 /** How staff are addressed, in each language. */
@@ -190,6 +192,7 @@ export function LangProvider({ children }: { children: ReactNode }) {
       t: DICTS[lang],
       setLang,
       x: lang === 'ar' ? (s: string) => isolateLatin(serverTextAr(s)) : (s: string) => s,
+      subject: (s) => (!s ? '' : lang === 'ar' && s.nameAr ? s.nameAr : s.name),
       staff: (u) => {
         if (!u) return '';
         const title = u.honorific ? HONORIFICS[lang][u.honorific as keyof (typeof HONORIFICS)['en']] : undefined;

@@ -1,14 +1,14 @@
 'use client';
 import { Fragment, useEffect, useState } from 'react';
-import { del, post, todayCairo } from '@/lib/api';
+import { del, post, put, todayCairo } from '@/lib/api';
 import { useAction, useApi } from '@/lib/hooks';
 import { useI18n } from '@/lib/i18n';
 import { useSession } from '@/lib/session';
-import { Empty, ErrorNote, PageHead, Tabs } from '@/components/ui';
+import { Empty, ErrorNote, PageHead, Section, Tabs, Tag, toast } from '@/components/ui';
 
 export default function TimetablePage() {
   const { me } = useSession();
-  const { t, x, staff } = useI18n();
+  const { t, x, staff, subject } = useI18n();
   const isAdmin = me.role === 'SCHOOL_ADMIN';
   // A teacher sees their own week across all their classes.
   const isTeacher = me.role === 'TEACHER';
@@ -33,6 +33,25 @@ export default function TimetablePage() {
   const today = new Date(`${todayCairo()}T00:00:00Z`).getUTCDay();
   const sortedPeriods = [...(periods.data ?? [])].sort((a, b) => a.number - b.number);
   const at = (d: number, p: string) => entries.data?.find((e) => e.dayOfWeek === d && e.periodId === p);
+
+  /** The subjects this class has lessons in, with how many lessons and who teaches them (one teacher, none, or several). */
+  const subjectRows = [...new Map((entries.data ?? []).map((e) => [e.subject.id, e.subject])).values()]
+    .map((s) => {
+      const lessons = (entries.data ?? []).filter((e) => e.subject.id === s.id);
+      const ids = new Set(lessons.map((e) => e.teacherId ?? ''));
+      return { subject: s, lessons: lessons.length, teacherId: ids.size === 1 ? [...ids][0] : '__several' };
+    })
+    .sort((a, b) => a.subject.name.localeCompare(b.subject.name));
+  const assignedTo = (subjectId: string) => subjectRows.find((r) => r.subject.id === subjectId)?.teacherId || '';
+
+  async function assign(row: (typeof subjectRows)[number], teacherId: string) {
+    if (teacherId === '__several') return;
+    const who = teachers.data?.find((tc) => tc.id === teacherId);
+    if (await act.run(async () => { await put('/timetable/assign', { classId, subjectId: row.subject.id, teacherId: teacherId || null }); })) {
+      toast(who ? t.subj.assigned(subject(row.subject), staff(who)) : t.subj.unassigned(subject(row.subject)));
+      await entries.reload();
+    }
+  }
 
   function startPick(key: string) {
     setPicking(key);
@@ -72,7 +91,7 @@ export default function TimetablePage() {
                     <div key={d} className={`c${d === today ? ' today' : ''}`}>
                       {e ? (
                         <div className="lessoncell">
-                          <b>{x(isTeacher ? `${e.class?.name} · ${e.subject.name}` : e.subject.name)}</b>
+                          <b>{x(isTeacher ? `${e.class?.name} · ${subject(e.subject)}` : subject(e.subject))}</b>
                           <span>{e.room.name}</span>
                           {!isTeacher && e.teacher && <span>{staff(e.teacher)}</span>}
                           {isAdmin && (
@@ -81,9 +100,9 @@ export default function TimetablePage() {
                         </div>
                       ) : isAdmin && picking === key ? (
                         <form className="pickcell" onSubmit={(ev) => { ev.preventDefault(); void add(d, p.id); }}>
-                          <select required autoFocus aria-label={t.tt.subject} value={pick.subjectId} onChange={(ev) => setPick({ ...pick, subjectId: ev.target.value })}>
+                          <select required autoFocus aria-label={t.tt.subject} value={pick.subjectId} onChange={(ev) => setPick({ ...pick, subjectId: ev.target.value, teacherId: pick.teacherId || assignedTo(ev.target.value) })}>
                             <option value="">{t.tt.subject}</option>
-                            {subjects.data?.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                            {subjects.data?.map((s) => <option key={s.id} value={s.id}>{subject(s)}</option>)}
                           </select>
                           <select required aria-label={t.tt.room} value={pick.roomId} onChange={(ev) => setPick({ ...pick, roomId: ev.target.value })}>
                             <option value="">{t.tt.room}</option>
@@ -112,6 +131,30 @@ export default function TimetablePage() {
           <Empty>{t.tt.addPeriodsFirst}</Empty>
         )}
       </div>
+      {isAdmin && classId && (
+        <Section title={t.subj.teachersTitle} aside={t.subj.teachersSub}>
+          <div className="panel">
+            {subjectRows.length ? (
+              subjectRows.map((r) => (
+                <div key={r.subject.id} className="settings-row">
+                  <span>
+                    <b>{x(subject(r.subject))}</b>
+                    <span>{t.subj.lessonsN(r.lessons)}</span>
+                    {r.teacherId === '' && <span style={{ alignSelf: 'flex-start' }} title={t.subj.noTeacherNote}><Tag tone="L">! {t.subj.noTeacher}</Tag></span>}
+                  </span>
+                  <select className="input" aria-label={`${subject(r.subject)}: ${t.tt.teacher}`} value={r.teacherId} disabled={act.busy} onChange={(ev) => void assign(r, ev.target.value)} style={{ maxWidth: 260 }}>
+                    <option value="">{t.subj.noTeacher}</option>
+                    {r.teacherId === '__several' && <option value="__several" disabled>{t.subj.several}</option>}
+                    {teachers.data?.map((tc) => <option key={tc.id} value={tc.id}>{staff(tc)}</option>)}
+                  </select>
+                </div>
+              ))
+            ) : (
+              <Empty>{t.subj.noLessons}</Empty>
+            )}
+          </div>
+        </Section>
+      )}
     </>
   );
 }

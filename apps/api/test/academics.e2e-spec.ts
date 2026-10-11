@@ -66,7 +66,7 @@ describe('Academics (e2e)', () => {
 
   describe('the gradebook picker', () => {
     it('lists the pairs a teacher teaches, and the class teacher’s other subjects read-only', async () => {
-      expect((await t1.get('/api/academics/teaching').expect(200)).body).toEqual([{ classId: id.classA, className: '4-A', subjectId: id.math, subjectName: 'Math', canMark: true }]);
+      expect((await t1.get('/api/academics/teaching').expect(200)).body).toEqual([{ classId: id.classA, className: '4-A', subjectId: id.math, subjectName: 'Math', subjectNameAr: null, canMark: true }]);
       const homeroom = (await t2.get('/api/academics/teaching').expect(200)).body;
       expect(homeroom.map((p: any) => [p.subjectName, p.canMark])).toEqual([['English', true], ['Math', false]]);
       expect((await admin.get('/api/academics/teaching').expect(200)).body).toHaveLength(3);
@@ -155,7 +155,7 @@ describe('Academics (e2e)', () => {
       expect((await t1.post(`/api/academics/assessments/${id.a1}/publish`).expect(201)).body).toEqual({ published: true, told: 1 }); // Layla’s mother is restricted
       const [n] = await told(id.p1u, 'marks.published');
       expect(n.title).toBe('New mark for Ali in Math: Unit 1 quiz');
-      expect(n.data).toEqual(expect.objectContaining({ studentId: id.Ali, assessmentId: id.a1, subject: 'Math', title: 'Unit 1 quiz' }));
+      expect(n.data).toEqual(expect.objectContaining({ studentId: id.Ali, assessmentId: id.a1, subject: 'Math', subjectAr: null, title: 'Unit 1 quiz' }));
       expect(await told(id.p3u, 'marks.published')).toHaveLength(0);
       expect((await t1.post(`/api/academics/assessments/${id.a1}/publish`).expect(201)).body).toEqual({ published: true, told: 0 });
       expect(await told(id.p1u, 'marks.published')).toHaveLength(1);
@@ -341,6 +341,16 @@ describe('Academics (e2e)', () => {
       expect(s.attendance.days).toBeGreaterThan(0);
       expect(s).toEqual(expect.objectContaining({ classTeacher: 'Ms. Sherif', classTeacherComment: 'A kind and helpful boy.', principalComment: 'Keep it up, Ali.', principalName: 'Dr. Amal Fawzy' }));
       expect(s.school).toEqual({ name: 'Academics School', nameAr: null });
+    });
+
+    it('carries a subject’s Arabic name to the picker, the card, the grades and the exams', async () => {
+      await admin.patch(`/api/subjects/${id.math}`, { nameAr: 'الرياضيات' }).expect(200);
+      expect((await t1.get('/api/academics/teaching').expect(200)).body[0]).toEqual(expect.objectContaining({ subjectName: 'Math', subjectNameAr: 'الرياضيات' }));
+      const s = (await t1.get(`/api/academics/report-cards/${id.cardAli}`).expect(200)).body.snapshot;
+      expect(s.subjects.map((x: any) => [x.name, x.nameAr])).toEqual([['English', null], ['Math', 'الرياضيات']]);
+      expect((await grades(p1, id.Ali)).subjects[0]).toEqual(expect.objectContaining({ name: 'Math', nameAr: 'الرياضيات' }));
+      expect((await p1.get(`/api/parent/children/${id.Ali}/exams`).expect(200)).body.map((e: any) => [e.subject, e.subjectAr])).toEqual([['Math', 'الرياضيات'], ['English', null]]);
+      expect((await admin.get('/api/academics/exams?from=2098-05-01&to=2098-05-31').expect(200)).body[0].subject).toEqual(expect.objectContaining({ name: 'Math', nameAr: 'الرياضيات' }));
     });
 
     it('is published by Student Affairs, which freezes it and tells the parents', async () => {

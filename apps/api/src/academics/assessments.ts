@@ -57,7 +57,7 @@ export class SaveMarksDto {
 const listSelect = {
   id: true, kind: true, title: true, date: true, term: true, yearId: true, maxScore: true, weight: true, startTime: true, endTime: true, publishedAt: true, createdById: true,
   class: { select: { id: true, name: true } },
-  subject: { select: { id: true, name: true } },
+  subject: { select: { id: true, name: true, nameAr: true } },
   room: { select: { id: true, name: true } },
   _count: { select: { marks: true } },
 } satisfies Prisma.AssessmentSelect;
@@ -76,14 +76,16 @@ export class AssessmentsService {
   ) {}
 
   private async load(schoolId: string, id: string) {
-    const a = await this.prisma.assessment.findFirst({ where: { id, schoolId }, include: { class: { select: { id: true, name: true, system: true } }, subject: { select: { id: true, name: true } } } });
+    const a = await this.prisma.assessment.findFirst({ where: { id, schoolId }, include: { class: { select: { id: true, name: true, system: true } }, subject: { select: { id: true, name: true, nameAr: true } } } });
     if (!a) throw new NotFoundException('Assessment not found.');
     return a;
   }
 
-  /** Whoever may write the marks of the pair, or created the assessment. */
-  private async assertMayChange(user: AuthUser, schoolId: string, a: { classId: string; subjectId: string; createdById: string | null }) {
-    if (a.createdById === user.id && user.role === Role.TEACHER) return;
+  /**
+   * Whoever teaches the subject in the class now. Writing an assessment doesn't keep the right: when a
+   * subject changes teacher, the new teacher takes over its assessments and marks.
+   */
+  private async assertMayChange(user: AuthUser, schoolId: string, a: { classId: string; subjectId: string }) {
     await this.access.assertMayWrite(user, schoolId, a.classId, a.subjectId);
   }
 
@@ -91,7 +93,7 @@ export class AssessmentsService {
 
   /** The class and subject pairs the caller can open in the gradebook; `canMark` says whether they may enter marks. */
   async teaching(user: AuthUser, schoolId: string) {
-    const include = { class: { select: { name: true } }, subject: { select: { name: true } } };
+    const include = { class: { select: { name: true } }, subject: { select: { name: true, nameAr: true } } };
     const mine = new Set<string>();
     let rows;
     if (user.role === Role.SCHOOL_ADMIN) {
@@ -104,10 +106,10 @@ export class AssessmentsService {
       });
       for (const r of rows) if (r.teacherId === user.id) mine.add(`${r.classId}:${r.subjectId}`);
     }
-    const seen = new Map<string, { classId: string; className: string; subjectId: string; subjectName: string; canMark: boolean }>();
+    const seen = new Map<string, { classId: string; className: string; subjectId: string; subjectName: string; subjectNameAr: string | null; canMark: boolean }>();
     for (const r of rows) {
       const key = `${r.classId}:${r.subjectId}`;
-      if (!seen.has(key)) seen.set(key, { classId: r.classId, className: r.class.name, subjectId: r.subjectId, subjectName: r.subject.name, canMark: user.role === Role.SCHOOL_ADMIN || mine.has(key) });
+      if (!seen.has(key)) seen.set(key, { classId: r.classId, className: r.class.name, subjectId: r.subjectId, subjectName: r.subject.name, subjectNameAr: r.subject.nameAr, canMark: user.role === Role.SCHOOL_ADMIN || mine.has(key) });
     }
     return [...seen.values()].sort((a, b) => a.className.localeCompare(b.className, 'en', { numeric: true }) || a.subjectName.localeCompare(b.subjectName));
   }
@@ -276,7 +278,7 @@ export class AssessmentsService {
       guardians.map((g) => ({
         schoolId, userId: g.userId, type: 'marks.published',
         title: `New mark for ${g.student.firstName} in ${a.subject.name}: ${a.title}`, body: `${a.subject.name}: ${a.title}`,
-        data: { studentId: g.student.id, assessmentId: id, subject: a.subject.name, title: a.title },
+        data: { studentId: g.student.id, assessmentId: id, subject: a.subject.name, subjectAr: a.subject.nameAr, title: a.title },
       })),
     );
     await this.audit.log(user, 'assessment.publish', 'assessment', id, { told });
@@ -340,7 +342,7 @@ export class AssessmentsService {
     }
     const rows = await this.prisma.assessment.findMany({
       where: { schoolId, kind: { in: EXAM_KINDS }, ...bounds, ...(q.classId ? { classId: q.classId } : {}), ...(q.gradeId ? { class: { gradeId: q.gradeId } } : {}) },
-      select: { id: true, kind: true, title: true, date: true, startTime: true, endTime: true, class: { select: { id: true, name: true, grade: { select: { id: true, name: true } } } }, subject: { select: { id: true, name: true } }, room: { select: { id: true, name: true } } },
+      select: { id: true, kind: true, title: true, date: true, startTime: true, endTime: true, class: { select: { id: true, name: true, grade: { select: { id: true, name: true } } } }, subject: { select: { id: true, name: true, nameAr: true } }, room: { select: { id: true, name: true } } },
       orderBy: [{ date: 'asc' }, { startTime: 'asc' }, { class: { name: 'asc' } }],
       take: 500,
     });

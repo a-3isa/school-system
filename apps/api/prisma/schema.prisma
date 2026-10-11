@@ -256,9 +256,11 @@ model Room {
 }
 
 model Subject {
-  id       String @id @default(cuid())
+  id       String  @id @default(cuid())
   schoolId String
   name     String
+  // The name in Arabic, shown on Arabic screens and report cards.
+  nameAr   String?
 
   school      School           @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   timetable   TimetableEntry[]

@@ -53,6 +53,8 @@ describe('pushBody', () => {
     const mark = { subject: 'Math', title: 'Unit 3 quiz' };
     expect(pushBody('marks.published', ctx({ data: mark }))).toBe('New mark for Salma in Math: Unit 3 quiz');
     expect(pushBody('marks.published', ctx({ lang: 'ar', name: 'سلمى', data: { subject: 'الرياضيات', title: 'اختبار الوحدة الثالثة' } }))).toBe('درجة جديدة لـسلمى في الرياضيات: اختبار الوحدة الثالثة');
+    expect(pushBody('marks.published', ctx({ lang: 'ar', name: 'سلمى', data: { subject: 'Math', subjectAr: 'الرياضيات', title: 'اختبار' } }))).toBe('درجة جديدة لـسلمى في الرياضيات: اختبار'); // the Arabic subject name when there is one
+    expect(pushBody('marks.published', ctx({ lang: 'ar', name: 'سلمى', data: { subject: 'Math', subjectAr: null, title: 'اختبار' } }))).toBe('درجة جديدة لـسلمى في Math: اختبار');
     expect(pushBody('marks.published', ctx({ data: { subject: 'Math' } }))).toBeNull();
     expect(pushBody('reportCard.published', ctx({ data: { term: 1 } }))).toBe('Salma’s report card for term 1 is ready');
     expect(pushBody('reportCard.published', ctx({ lang: 'ar', name: 'سلمى', data: { term: 1 } }))).toBe('صدرت شهادة سلمى عن الفصل الدراسي الأول');

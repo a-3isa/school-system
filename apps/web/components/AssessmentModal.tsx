@@ -14,13 +14,13 @@ export const DEFAULT_WEIGHT: Record<AssessmentKind, number> = { CLASSWORK: 1, QU
 
 /** Adding an assessment for a class and subject, or changing one. Exams also take a time and a room. */
 export function AssessmentModal({ pair, assessment, onClose, onSaved }: {
-  pair: { classId: string; className: string; subjectId: string; subjectName: string };
+  pair: { classId: string; className: string; subjectId: string; subjectName: string; subjectNameAr?: string | null };
   /** An existing assessment from the gradebook; its kind stays as it is. */
   assessment?: any;
   onClose: () => void;
   onSaved: () => void | Promise<void>;
 }) {
-  const { t, x } = useI18n();
+  const { t, x, subject } = useI18n();
   const act = useAction();
   const rooms = useApi<any[]>('/rooms');
   const [kind, setKind] = useState<AssessmentKind>(assessment?.kind ?? 'QUIZ');
@@ -62,7 +62,7 @@ export function AssessmentModal({ pair, assessment, onClose, onSaved }: {
     >
       <div className="form" style={{ gridTemplateColumns: 'minmax(0, 1fr)' }}>
         <ErrorNote error={act.error && x(act.error)} />
-        <p className="muted" style={{ margin: 0 }}>{x(`${pair.className} · ${pair.subjectName}`)}</p>
+        <p className="muted" style={{ margin: 0 }}>{x(`${pair.className} · ${subject({ name: pair.subjectName, nameAr: pair.subjectNameAr })}`)}</p>
         {!assessment && (
           <div className="field">
             {t.beh.kindLabel}

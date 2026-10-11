@@ -21,7 +21,7 @@ const NEXT: Record<Cell['state'], Cell['state']> = { '': 'ABS', ABS: 'EXC', EXC:
 
 export default function GradebookPage() {
   const { me } = useSession();
-  const { t, x, dir } = useI18n();
+  const { t, x, dir, subject } = useI18n();
   const pairs = useApi<any[]>('/academics/teaching');
   const [pairKey, setPairKey] = useState('');
   const [termSel, setTermSel] = useState<'1' | '2' | null>(null);
@@ -99,7 +99,7 @@ export default function GradebookPage() {
   const chooser = (
     <>
       <select className="input" aria-label={t.acad.pick} value={pair ? `${pair.classId}:${pair.subjectId}` : ''} onChange={(e) => setPairKey(e.target.value)} style={{ maxWidth: 280 }}>
-        {list.map((p) => <option key={`${p.classId}:${p.subjectId}`} value={`${p.classId}:${p.subjectId}`}>{x(`${p.className} · ${p.subjectName}`)}</option>)}
+        {list.map((p) => <option key={`${p.classId}:${p.subjectId}`} value={`${p.classId}:${p.subjectId}`}>{x(`${p.className} · ${subject({ name: p.subjectName, nameAr: p.subjectNameAr })}`)}</option>)}
       </select>
       <Tabs label={t.acad.pick} value={term} onChange={(v) => setTermSel(v)} items={[['1', t.acad.term(1)], ['2', t.acad.term(2)]]} />
       {canMark && <button type="button" className="btn primary" onClick={() => setModal({})}>{t.acad.newAssessment}</button>}
