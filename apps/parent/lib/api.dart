@@ -60,6 +60,18 @@ class Api {
 
   Future<dynamic> get(String path) => _send('GET', path);
   Future<dynamic> post(String path, [Object? body]) => _send('POST', path, body ?? {});
+  Future<dynamic> put(String path, [Object? body]) => _send('PUT', path, body ?? {});
+  Future<dynamic> patch(String path, [Object? body]) => _send('PATCH', path, body ?? {});
+  Future<dynamic> delete(String path) => _send('DELETE', path);
+
+  /// Sends a form with an optional file (a photo or PDF) in the part called `file`.
+  Future<dynamic> upload(String path, Map<String, String> fields, {String? fileName, Uint8List? fileBytes, String method = 'POST'}) async {
+    final req = http.MultipartRequest(method, Uri.parse('$apiUrl$path'))
+      ..headers['authorization'] = 'Bearer $token'
+      ..fields.addAll(fields);
+    if (fileBytes != null) req.files.add(http.MultipartFile.fromBytes('file', fileBytes, filename: fileName ?? 'file'));
+    return _decode(await http.Response.fromStream(await _client.send(req)));
+  }
 
   Future<void> _keep(Map<String, dynamic> res) async {
     if (res['user']['role'] != 'PARENT') throw WrongRole();
@@ -139,11 +151,12 @@ class Api {
 
   /// Sends an excuse for whole days, with an optional photo or PDF.
   Future<void> sendExcuse(String childId, {required String from, required String to, required String reason, String? note, String? fileName, Uint8List? fileBytes}) async {
-    final req = http.MultipartRequest('POST', Uri.parse('$apiUrl/parent/children/$childId/excuses'))
-      ..headers['authorization'] = 'Bearer $token'
-      ..fields.addAll({'fromDate': from, 'toDate': to, 'reason': reason, if (note != null && note.trim().isNotEmpty) 'note': note.trim()});
-    if (fileBytes != null) req.files.add(http.MultipartFile.fromBytes('file', fileBytes, filename: fileName ?? 'excuse'));
-    await _decode(await http.Response.fromStream(await _client.send(req)));
+    await upload(
+      '/parent/children/$childId/excuses',
+      {'fromDate': from, 'toDate': to, 'reason': reason, if (note != null && note.trim().isNotEmpty) 'note': note.trim()},
+      fileName: fileName ?? 'excuse',
+      fileBytes: fileBytes,
+    );
   }
 }
 

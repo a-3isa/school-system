@@ -21,7 +21,10 @@ class DayTab extends StatefulWidget {
 }
 
 class _DayTabState extends State<DayTab> {
-  String? _childId;
+  /// The selected child is shared with the other tabs, so it lives in [HomeData].
+  String? get _childId => widget.data.childId;
+  /// The child the day on screen belongs to.
+  String? _dayFor;
   Map<String, dynamic>? _day;
   String? _error;
   DateTime? _loadedAt;
@@ -42,12 +45,14 @@ class _DayTabState extends State<DayTab> {
     super.dispose();
   }
 
+  /// The child changed (picked here or in another tab, or the list just loaded): show their day.
   void _childrenChanged() {
-    final kids = widget.data.children;
-    if (_childId == null && kids.isNotEmpty) {
-      _childId = kids.first['id'] as String;
-      _load();
-    }
+    final id = _childId;
+    if (id == null || id == _dayFor) return;
+    _dayFor = id;
+    _day = null;
+    if (mounted) setState(() {});
+    _load();
   }
 
   Future<void> _load() async {
@@ -66,14 +71,7 @@ class _DayTabState extends State<DayTab> {
     }
   }
 
-  void _pick(String id) {
-    if (id == _childId) return;
-    setState(() {
-      _childId = id;
-      _day = null;
-    });
-    _load();
-  }
+  void _pick(String id) => widget.data.selectChild(id);
 
   @override
   Widget build(BuildContext context) {
@@ -108,7 +106,7 @@ class _DayTabState extends State<DayTab> {
           const SizedBox(height: 14),
           if (data.error != null && kids.isEmpty) ErrorBox(s.offline),
           if (kids.isEmpty && data.error == null) Padding(padding: const EdgeInsets.only(top: 24), child: Text(s.noChildren, style: TextStyle(color: c.ink2, fontSize: 15, height: 1.5))),
-          if (kids.length > 1) ...[_ChildSwitch(kids: kids, selected: _childId, onPick: _pick), const SizedBox(height: 14)],
+          if (kids.length > 1) ...[ChildSwitch(kids: kids, selected: _childId, onPick: _pick), const SizedBox(height: 14)],
           if (kids.length == 1) ...[
             Text('${kids.first['firstName']}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
             if (kids.first['class']?['name'] != null) Text(ltr(kids.first['class']['name'] as String), style: TextStyle(fontSize: 13, color: c.ink2)),
@@ -160,21 +158,21 @@ class _DayTabState extends State<DayTab> {
       final status = excuse['status'] as String;
       final why = (excuse['decisionNote'] as String?)?.trim();
       notice = switch (status) {
-        'APPROVED' => _Notice(title: s.excuseAccepted, fg: c.pFg, bg: c.pBg),
-        'REJECTED' => _Notice(title: s.excuseRejected(why == null || why.isEmpty ? null : why), fg: c.aFg, bg: c.aBg, actions: [FilledButton(onPressed: writeExcuse, child: Text(s.sendNewExcuse))]),
-        _ => _Notice(title: s.excusePending(name), fg: c.eFg, bg: c.eBg),
+        'APPROVED' => Notice(title: s.excuseAccepted, fg: c.pFg, bg: c.pBg),
+        'REJECTED' => Notice(title: s.excuseRejected(why == null || why.isEmpty ? null : why), fg: c.aFg, bg: c.aBg, actions: [FilledButton(onPressed: writeExcuse, child: Text(s.sendNewExcuse))]),
+        _ => Notice(title: s.excusePending(name), fg: c.eFg, bg: c.eBg),
       };
     } else if (check != null) {
       notice = switch (answer) {
-        null => _Notice(
+        null => Notice(
             title: s.didntCome(name, gender),
             text: '${s.doYouKnow} ${s.asked15}',
             fg: c.lFg,
             bg: c.lBg,
             actions: [FilledButton(onPressed: () => reply(true), child: Text(s.yesIKnow)), OutlinedButton(onPressed: () => reply(false), child: Text(s.noIDont))],
           ),
-        'KNOWS' => _Notice(title: s.pleaseExcuse, fg: c.lFg, bg: c.lBg, actions: [FilledButton(onPressed: writeExcuse, child: Text(s.sendExcuse))]),
-        _ => _Notice(title: s.schoolWillCall, fg: c.aFg, bg: c.aBg),
+        'KNOWS' => Notice(title: s.pleaseExcuse, fg: c.lFg, bg: c.lBg, actions: [FilledButton(onPressed: writeExcuse, child: Text(s.sendExcuse))]),
+        _ => Notice(title: s.schoolWillCall, fg: c.aFg, bg: c.aBg),
       };
     }
     return [
@@ -241,33 +239,6 @@ class _DayTabState extends State<DayTab> {
   }
 }
 
-/// A coloured message in the child's day, with buttons when the parent has something to do.
-class _Notice extends StatelessWidget {
-  const _Notice({required this.title, this.text, required this.fg, required this.bg, this.actions = const []});
-  final String title;
-  final String? text;
-  final Color fg;
-  final Color bg;
-  final List<Widget> actions;
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      container: true,
-      liveRegion: true,
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(10)),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: fg, height: 1.4)),
-          if (text != null) ...[const SizedBox(height: 4), Text(text!, style: TextStyle(fontSize: 14, color: fg, height: 1.45))],
-          if (actions.isNotEmpty) ...[const SizedBox(height: 12), Wrap(spacing: 10, runSpacing: 8, children: actions)],
-        ]),
-      ),
-    );
-  }
-}
-
 class _LessonRow extends StatelessWidget {
   const _LessonRow({required this.lesson, required this.now, required this.current, required this.inRoom});
   final Map<String, dynamic> lesson;
@@ -315,48 +286,6 @@ class _LessonRow extends StatelessWidget {
         ),
         const SizedBox(width: 12),
         pill,
-      ]),
-    );
-  }
-}
-
-/// Two children side by side; the chosen one is raised.
-class _ChildSwitch extends StatelessWidget {
-  const _ChildSwitch({required this.kids, required this.selected, required this.onPick});
-  final List<Map<String, dynamic>> kids;
-  final String? selected;
-  final ValueChanged<String> onPick;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.c;
-    return Container(
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(color: c.sunk, borderRadius: BorderRadius.circular(10)),
-      child: Row(children: [
-        for (final k in kids)
-          Expanded(
-            child: Semantics(
-              selected: k['id'] == selected,
-              button: true,
-              child: GestureDetector(
-                onTap: () => onPick(k['id'] as String),
-                child: Container(
-                  constraints: const BoxConstraints(minHeight: 48),
-                  margin: const EdgeInsets.symmetric(horizontal: 2),
-                  decoration: k['id'] == selected
-                      ? BoxDecoration(color: c.surface, borderRadius: BorderRadius.circular(7), border: Border.all(color: c.line))
-                      : null,
-                  alignment: Alignment.center,
-                  child: Column(mainAxisSize: MainAxisSize.min, children: [
-                    Text(k['firstName'] as String,
-                        style: TextStyle(fontSize: 15, fontWeight: k['id'] == selected ? FontWeight.w600 : FontWeight.w500, color: k['id'] == selected ? c.ink : c.ink2)),
-                    if (k['class']?['name'] != null) Text(ltr(k['class']['name'] as String), style: TextStyle(fontSize: 11, color: c.ink2)),
-                  ]),
-                ),
-              ),
-            ),
-          ),
       ]),
     );
   }

@@ -14,12 +14,22 @@ export const en = {
   days: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
   nav: {
     overview: 'Overview', attendance: 'Attendance', people: 'People', setup: 'School setup', platform: 'Platform',
+    teaching: 'Teaching', myClass: 'My class', academics: 'Academics', messages: 'Messages', behaviour: 'Behaviour', activities: 'Activities',
     today: 'Today', take: 'Attendance register', exceptions: 'Follow-ups', excuses: 'Excuses', where: 'On campus now',
     students: 'Students', parents: 'Parents', classes: 'Classes', import: 'Import from Excel', staff: 'Faculty & staff',
     timetable: 'Timetable', structure: 'School structure & year', devices: 'Smart band readers', modules: 'School settings', audit: 'Activity log',
     schools: 'Schools', gateways: 'Readers',
   },
   shell: { signOut: 'Sign out', withStraps: 'Smart bands', withoutStraps: 'Manual register' },
+  audience: {
+    label: 'Who is it for?', SCHOOL: 'Whole school', GRADES: 'Year groups', CLASSES: 'Classes', ACTIVITY: 'A club',
+    pickGrades: 'Choose the year groups', pickClasses: 'Choose the classes', pickClub: 'Choose the club',
+    summary: (kind: string, n: number) =>
+      kind === 'GRADES' ? (n === 1 ? '1 year group' : `${n} year groups`)
+        : kind === 'CLASSES' ? (n === 1 ? '1 class' : `${n} classes`)
+          : kind === 'ACTIVITY' ? (n === 1 ? '1 club' : `${n} clubs`)
+            : 'Whole school',
+  },
   att: {
     period: (n: number) => `Period ${n}`,
     saveN: (n: number) => `Save register (${n})`, saved: 'Saved', savedToast: (n: number) => (n === 1 ? 'Saved 1 change' : `Saved ${n} changes`),
@@ -230,6 +240,7 @@ export const en = {
       excelImport: 'Excel import', automatic: 'Automatic attendance (smart bands)', leaveEarlyAlerts: 'Messages when a student leaves early',
       liveMapForParents: 'Live bus map for parents', parentalControls: 'Parental controls', tuitionFees: 'Tuition fees',
       paidActivities: 'Paid activities', reportCards: 'Report cards', clinic: 'Clinic visits', merits: 'Merit points', chat: 'Parent–teacher chat', polls: 'Polls',
+      meetings: 'Parent–teacher meetings', trips: 'Trips and permission slips', events: 'Events calendar',
     } as Record<string, string>,
   },
   audit: {
@@ -303,12 +314,22 @@ export const ar: Dict = {
   days: ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'],
   nav: {
     overview: 'نظرة عامة', attendance: 'الحضور', people: 'المجتمع المدرسي', setup: 'تهيئة المدرسة', platform: 'المنصة',
+    teaching: 'التدريس', myClass: 'فصلي', academics: 'الشؤون الأكاديمية', messages: 'الرسائل', behaviour: 'السلوك', activities: 'الأنشطة',
     today: 'اليوم', take: 'كشف الحضور', exceptions: 'المتابعات', excuses: 'الأعذار', where: 'داخل المدرسة الآن',
     students: 'الطلاب', parents: 'أولياء الأمور', classes: 'الفصول', import: 'استيراد من Excel', staff: 'هيئة التدريس والعاملون',
     timetable: 'الجدول', structure: 'هيكل المدرسة والعام الدراسي', devices: 'أجهزة قراءة الأساور', modules: 'إعدادات المدرسة', audit: 'سجل النشاط',
     schools: 'المدارس', gateways: 'أجهزة القراءة',
   },
   shell: { signOut: 'تسجيل الخروج', withStraps: 'الأساور الذكية', withoutStraps: 'كشف يدوي' },
+  audience: {
+    label: 'إلى من؟', SCHOOL: 'المدرسة كلها', GRADES: 'صفوف دراسية', CLASSES: 'فصول', ACTIVITY: 'نادٍ',
+    pickGrades: 'اختاروا الصفوف الدراسية', pickClasses: 'اختاروا الفصول', pickClub: 'اختاروا النادي',
+    summary: (kind, n) =>
+      kind === 'GRADES' ? arN(n, 'صف دراسي واحد', 'صفّان دراسيان', 'صفوف دراسية', 'صفًا دراسيًا', 'صف دراسي')
+        : kind === 'CLASSES' ? arN(n, 'فصل واحد', 'فصلان', 'فصول', 'فصلًا', 'فصل')
+          : kind === 'ACTIVITY' ? arN(n, 'نادٍ واحد', 'ناديان', 'أندية', 'ناديًا', 'نادٍ')
+            : 'المدرسة كلها',
+  },
   att: {
     period: (n) => `الحصة ${n}`,
     saveN: (n) => `حفظ الكشف (${n})`, saved: 'محفوظ', savedToast: (n) => (n === 1 ? 'تم حفظ تغيير واحد' : `تم حفظ ${n} تغييرات`),
@@ -519,6 +540,7 @@ export const ar: Dict = {
       excelImport: 'الاستيراد من Excel', automatic: 'الحضور التلقائي (الأساور الذكية)', leaveEarlyAlerts: 'رسائل عند انصراف الطالب مبكرًا',
       liveMapForParents: 'تتبع الحافلة لأولياء الأمور', parentalControls: 'رقابة أولياء الأمور', tuitionFees: 'المصروفات الدراسية',
       paidActivities: 'الأنشطة المدفوعة', reportCards: 'الشهادات', clinic: 'زيارات العيادة', merits: 'نقاط التميز', chat: 'التواصل بين أولياء الأمور والمعلمين', polls: 'استطلاعات الرأي',
+      meetings: 'مقابلات أولياء الأمور', trips: 'الرحلات وموافقات أولياء الأمور', events: 'تقويم الفعاليات',
     },
   },
   audit: {

@@ -63,7 +63,11 @@ export class AccessGuard implements CanActivate {
         where: { schoolId_key: { schoolId: user.schoolId, key: needed.module } },
       });
       if (!mod?.enabled || !(mod.features as Record<string, boolean> | null)?.[needed.feature]) {
-        throw new ForbiddenException('Smart bands and readers (automatic attendance) aren’t part of this school’s subscription.');
+        throw new ForbiddenException(
+          needed.module === 'attendance' && needed.feature === 'automatic'
+            ? 'Smart bands and readers (automatic attendance) aren’t part of this school’s subscription.'
+            : 'This isn’t part of this school’s subscription.',
+        );
       }
     }
     return true;

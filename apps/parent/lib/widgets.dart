@@ -483,3 +483,111 @@ class Crest extends StatelessWidget {
     );
   }
 }
+
+/// A coloured message with buttons when the parent has something to do.
+class Notice extends StatelessWidget {
+  const Notice({super.key, required this.title, this.text, required this.fg, required this.bg, this.actions = const []});
+  final String title;
+  final String? text;
+  final Color fg;
+  final Color bg;
+  final List<Widget> actions;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      container: true,
+      liveRegion: true,
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(10)),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: fg, height: 1.4)),
+          if (text != null) ...[const SizedBox(height: 4), Text(text!, style: TextStyle(fontSize: 14, color: fg, height: 1.45))],
+          if (actions.isNotEmpty) ...[const SizedBox(height: 12), Wrap(spacing: 10, runSpacing: 8, children: actions)],
+        ]),
+      ),
+    );
+  }
+}
+
+/// A card: white surface, hairline border, no shadow.
+class Panel extends StatelessWidget {
+  const Panel({super.key, required this.child, this.padding = const EdgeInsets.all(14)});
+  final Widget child;
+  final EdgeInsetsGeometry padding;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c;
+    return Container(
+      padding: padding,
+      decoration: BoxDecoration(color: c.surface, borderRadius: BorderRadius.circular(Brand.panel), border: Border.all(color: c.line)),
+      child: child,
+    );
+  }
+}
+
+/// What a list says when it has nothing in it yet.
+class EmptyState extends StatelessWidget {
+  const EmptyState({super.key, required this.icon, required this.title, this.body});
+  final IconData icon;
+  final String title;
+  final String? body;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c;
+    return Padding(
+      padding: const EdgeInsets.all(32),
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Icon(icon, size: 36, color: c.ink3),
+        const SizedBox(height: 12),
+        Text(title, textAlign: TextAlign.center, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+        if (body != null) ...[const SizedBox(height: 6), Text(body!, textAlign: TextAlign.center, style: TextStyle(fontSize: 14, color: c.ink2, height: 1.5))],
+      ]),
+    );
+  }
+}
+
+/// Two children side by side; the chosen one is raised.
+class ChildSwitch extends StatelessWidget {
+  const ChildSwitch({super.key, required this.kids, required this.selected, required this.onPick});
+  final List<Map<String, dynamic>> kids;
+  final String? selected;
+  final ValueChanged<String> onPick;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c;
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(color: c.sunk, borderRadius: BorderRadius.circular(10)),
+      child: Row(children: [
+        for (final k in kids)
+          Expanded(
+            child: Semantics(
+              selected: k['id'] == selected,
+              button: true,
+              child: GestureDetector(
+                onTap: () => onPick(k['id'] as String),
+                child: Container(
+                  constraints: const BoxConstraints(minHeight: 48),
+                  margin: const EdgeInsets.symmetric(horizontal: 2),
+                  decoration: k['id'] == selected
+                      ? BoxDecoration(color: c.surface, borderRadius: BorderRadius.circular(7), border: Border.all(color: c.line))
+                      : null,
+                  alignment: Alignment.center,
+                  child: Column(mainAxisSize: MainAxisSize.min, children: [
+                    Text(k['firstName'] as String,
+                        style: TextStyle(fontSize: 15, fontWeight: k['id'] == selected ? FontWeight.w600 : FontWeight.w500, color: k['id'] == selected ? c.ink : c.ink2)),
+                    if (k['class']?['name'] != null) Text(ltr(k['class']['name'] as String), style: TextStyle(fontSize: 11, color: c.ink2)),
+                  ]),
+                ),
+              ),
+            ),
+          ),
+      ]),
+    );
+  }
+}
