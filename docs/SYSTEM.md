@@ -190,6 +190,17 @@ Parents read all of this in the app's **Messages** tab. Announcements and the em
 - **Meetings.** A teacher offers times on a school day (a window cut into slots of 10 to 30 minutes, with a place). A parent books one slot with one of their child's teachers, with a note; one meeting per teacher per day. Two parents tapping the same time at once: one gets it, the other is asked to choose another. A parent can cancel until **2 hours before**; the teacher can cancel at any time, and removing a whole window tells everyone who booked.
 - **Who is told:** new announcements, polls and cancelled meetings by app notification. Chat messages only when the person isn't connected.
 
+### Behaviour notes (Behaviour module)
+
+Teachers and Student Affairs write short notes about a student; parents read them in the app's **School** tab, under **Behaviour**.
+
+- **Three kinds, each with a shape and a word:** praise ★, a note to follow up !, and an incident ⚠. Each has a fixed list of categories (kindness, effort, homework, punctuality and so on; incidents: fighting, bullying, damage, safety, other).
+- **Who writes what.** A teacher writes praise and concerns, only about students in the classes they teach or lead. Student Affairs and the social worker write about any student, and are the only ones who record **incidents**, with a severity (minor, moderate, serious), a place and what the school did.
+- **What parents see.** Praise and concerns are shared with the parents by default (the writer can untick it). An incident is **kept back** until Student Affairs shares it. Parents see the note, who wrote it and when; the severity and the school's action only on incidents. Each shared note sends the parents one notification; opening the screen marks the notes as read, and Student Affairs sees which notes the parents have read. A parent restricted for a child sees nothing about that child (T4).
+- **Merit points** (a feature the owner switches on, in the subscription). Praise carries +1 to +5, a concern −1 to −5, an incident −10 to 0. The student's page and the parent's screen show the total for the current school year. Without the feature, points can't be set and nobody sees them.
+- **Changing a note.** The writer can edit or withdraw their own note for **24 hours**; after that, Student Affairs does it. Notes can be dated up to 30 days back, never in the future. Every edit and withdrawal goes in the activity log.
+- **Where it shows on the dashboard.** **Behaviour notes** in the menu (the feed, with kind, class and date filters); a **Behaviour** section on each student's page (this year's totals and the last 10 notes); and a ★ button on every row of the attendance register to write a note about that child in a click.
+
 ## 6. How the straps decide (schools with straps)
 
 - **Gateways:** they only listen and report. Every few seconds each gateway sends what it heard to the server: each strap, how loud, when, and its battery. Gateways decide nothing.
@@ -220,6 +231,7 @@ Parents read all of this in the app's **Messages** tab. Announcements and the em
 | **Parents:** search by name, email, mobile or child; each parent's page (details, sign-up and tracking consent, their children with class; link another child) | | ✓ | |
 | **Classes:** each class's page (grade, homeroom teacher, students with their parents). Student, parent and class pages link to each other. | | ✓ | |
 | **Import from Excel:** template, check, import | | ✓ | |
+| **Behaviour notes:** the feed, writing a note, a student's behaviour section (a teacher sees and edits only their own classes and notes; incidents are Student Affairs only) | ✓ | ✓ | |
 | **Staff:** accounts | | ✓ | |
 | **Timetable** (whole school), **School structure & year** | | ✓ | |
 | **Smart band readers** (only with straps): gateways, straps, detection rules | | ✓ | |

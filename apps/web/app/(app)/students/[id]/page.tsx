@@ -5,8 +5,9 @@ import { useParams } from 'next/navigation';
 import { del, patch, post, timeCairo, todayCairo } from '@/lib/api';
 import { useAction, useApi } from '@/lib/hooks';
 import { useI18n } from '@/lib/i18n';
-import { useSession } from '@/lib/session';
+import { has, useSession } from '@/lib/session';
 import { Empty, ErrorNote, Pill, Section, StatusPill, Tag, toast } from '@/components/ui';
+import { StudentBehaviour } from '@/components/StudentBehaviour';
 import { ABSENCE_TONE, EXCUSE_TONE } from '@/components/Lessons';
 import { BLANK_PARENT, ParentFields, parentBody, RELATIONS } from '@/components/ParentFields';
 import { PaperPicker, REQUIRED_FILES, SavedThumb } from '@/components/StudentFiles';
@@ -19,6 +20,7 @@ export default function StudentPage() {
   const { me } = useSession();
   const { t, x, lang } = useI18n();
   const isAdmin = me.role === 'SCHOOL_ADMIN';
+  const canNote = has(me, 'behavior') && ['SCHOOL_ADMIN', 'TEACHER', 'SOCIAL_WORKER'].includes(me.role);
   const student = useApi(`/students/${id}`);
   const today = todayCairo();
   const history = useApi<any[]>(me.modules.includes('attendance') ? `/attendance/students/${id}?from=${shift(today, -13)}&to=${today}` : null);
@@ -185,6 +187,7 @@ export default function StudentPage() {
               </div>
             </Section>
           )}
+          {canNote && <StudentBehaviour student={{ id: s.id, name: latin }} />}
           {history.data && (
             <Section title={t.student.lastTwoWeeks}>
               <div className="panel scroll">

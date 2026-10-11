@@ -151,6 +151,7 @@ async function main() {
     console.log(`Gateway ${serial}: secret ${gw.secret}`);
   }
   await demoMessaging(owner, admin, school.id, hana.id);
+  await demoBehaviour(owner, admin, school.id);
   console.log(`Demo school ready (${school.id}). Sign in as admin@demo.school / demo-admin-1`);
   // Today so far, as if the gateways had been running since the morning.
   await playDay(api, owner, admin, secrets);
@@ -194,6 +195,26 @@ async function demoMessaging(owner: string, admin: string, schoolId: string, han
   do day.setUTCDate(day.getUTCDate() + 1);
   while (day.getUTCDay() > 4);
   await call(hana, 'POST', '/meetings/windows', { date: day.toISOString().slice(0, 10), fromTime: '14:00', toTime: '15:00', slotMinutes: 20, place: 'Room 204' });
+}
+
+/** Behaviour notes for the demo school: praise and a concern from the class teacher, and an incident kept back by Student Affairs. */
+async function demoBehaviour(owner: string, admin: string, schoolId: string) {
+  // Behaviour comes with the Complete plan; the owner switches it on for this demo (merit points are on with it).
+  await call(owner, 'PUT', `/owner/schools/${schoolId}/modules/behavior`, { enabled: true });
+  const hana = (await call(null, 'POST', '/auth/login', { login: 'hana@demo.school', password: 'demo-teacher-1' })).token;
+  const mine: any[] = await call(hana, 'GET', '/behaviour/students');
+  const layla = mine.find((s) => s.firstName === 'Layla') ?? mine[0];
+  const omar = mine.find((s) => s.firstName === 'Omar') ?? mine[1];
+
+  await call(hana, 'POST', '/behaviour', { studentId: layla.id, kind: 'PRAISE', category: 'KINDNESS', text: 'Layla helped a new classmate find her way around the school today. A lovely gesture.', points: 3 });
+  await call(hana, 'POST', '/behaviour', { studentId: layla.id, kind: 'PRAISE', category: 'EFFORT', text: 'Excellent effort in the multiplication quiz. She revised the tables of 7 and 8 at home.', points: 2 });
+  await call(hana, 'POST', '/behaviour', { studentId: omar.id, kind: 'PRAISE', category: 'PARTICIPATION', text: 'Omar answered every question in today’s Maths lesson and encouraged the others to join in.', points: 2 });
+  await call(hana, 'POST', '/behaviour', { studentId: omar.id, kind: 'CONCERN', category: 'HOMEWORK', text: 'Omar has not handed in his Arabic homework twice this week. Please remind him gently.', points: -1 });
+  // Only Student Affairs records incidents, and parents see one only after it is shared.
+  await call(admin, 'POST', '/behaviour', {
+    studentId: omar.id, kind: 'INCIDENT', category: 'DAMAGE', severity: 'MINOR', place: 'Playground',
+    text: 'A classroom window blind was damaged during break.', actionTaken: 'Spoke with Omar and agreed that he will tell a teacher at once next time.', points: -2,
+  });
 }
 
 main().catch((e) => {

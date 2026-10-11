@@ -175,6 +175,9 @@ class Api {
       post('/parent/children/$childId/meetings/$slotId/book', {if (note != null && note.trim().isNotEmpty) 'note': note.trim()});
   Future<void> cancelMeeting(String slotId) => post('/parent/meetings/$slotId/cancel');
 
+  Future<Map<String, dynamic>> behaviour(String childId) async => await get('/parent/children/$childId/behaviour') as Map<String, dynamic>;
+  Future<void> readBehaviourNote(String childId, String noteId) => post('/parent/children/$childId/behaviour/$noteId/read');
+
   /// A file or image the school sent, or null when it can't be fetched.
   Future<Uint8List?> bytes(String path) async {
     try {

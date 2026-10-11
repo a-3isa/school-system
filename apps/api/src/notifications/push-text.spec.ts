@@ -39,6 +39,16 @@ describe('pushBody', () => {
     expect(pushBody('message.new', ctx({ lang: 'ar', data: { from: 'Ms. Hana Nabil' } }))).toBe('رسالة جديدة من مس Hana Nabil بشأن Salma');
   });
 
+  it('words a note from school by its kind', () => {
+    expect(pushBody('behaviour.note', ctx({ data: { kind: 'PRAISE' } }))).toBe('Well done! A note of praise for Salma');
+    expect(pushBody('behaviour.note', ctx({ data: { kind: 'CONCERN' } }))).toBe('A note from school about Salma');
+    expect(pushBody('behaviour.note', ctx({ data: { kind: 'INCIDENT' } }))).toBe('Student Affairs has written to you about Salma');
+    expect(pushBody('behaviour.note', ctx({ lang: 'ar', name: 'سلمى', data: { kind: 'PRAISE' } }))).toBe('أحسنتم! ثناء من المدرسة على سلمى');
+    expect(pushBody('behaviour.note', ctx({ lang: 'ar', name: 'سلمى', data: { kind: 'CONCERN' } }))).toBe('ملاحظة من المدرسة بشأن سلمى');
+    expect(pushBody('behaviour.note', ctx({ lang: 'ar', name: 'سلمى', data: { kind: 'INCIDENT' } }))).toBe('تواصلت شؤون الطلبة معكم بشأن سلمى');
+    expect(pushBody('behaviour.note', ctx({ name: null, data: { kind: 'PRAISE' } }))).toBeNull();
+  });
+
   it('words a cancelled meeting with the day and the time', () => {
     const data = { teacher: 'Mr. Sherif Kamal', date: '2026-10-04', time: '14:00' };
     expect(pushBody('meeting.cancelled', ctx({ name: null, data }))).toBe('Your meeting with Mr. Sherif Kamal on Sunday 4 October at 14:00 was cancelled');

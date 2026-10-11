@@ -609,6 +609,141 @@ void main() {
     });
   });
 
+  group('behaviour', () {
+    late FakePush push;
+    setUp(() {
+      push = FakePush();
+      pushFactory = () => push;
+    });
+
+    const hana = {'name': 'Hana Nabil', 'honorific': 'MS'};
+    const at = '2026-10-01T07:30:00.000Z'; // 1 October, 10:30 in Cairo
+    Map<String, Object?> behaviourMe({bool merits = true}) => {
+          'modules': ['core', 'attendance', 'behavior'],
+          'features': {
+            'behavior': {'merits': merits},
+          },
+        };
+    Map<String, Object?> note(String id, String kind, String category, String text, {int? points, bool read = false, String? severity, String? action}) =>
+        {'id': id, 'kind': kind, 'category': category, 'text': text, 'points': points, 'severity': severity, 'actionTaken': action, 'occurredAt': at, 'author': hana, 'read': read};
+    Map<String, Object> routes({bool merits = true}) => {
+          '/parent/children': [
+            {'id': 's1', 'firstName': 'Salma', 'lastName': 'Gamal', 'gender': 'FEMALE', 'class': {'id': 'c1', 'name': '4-A'}},
+          ],
+          '/parent/children/s1/behaviour': {
+            'notes': [
+              note('b1', 'PRAISE', 'KINDNESS', 'Helped a classmate carry her books.', points: 2),
+              note('b2', 'CONCERN', 'HOMEWORK', 'Maths homework was not handed in.', points: -1, read: true),
+              note('b3', 'INCIDENT', 'BULLYING', 'Words were exchanged in the playground.', severity: 'MODERATE', action: 'We spoke with both children.'),
+            ],
+            'totals': {'praise': 1, 'concern': 2, if (merits) 'points': 1},
+          },
+          '/parent/children/s1/behaviour/b1/read': {'ok': true},
+          '/parent/children/s1/behaviour/b3/read': {'ok': true},
+        };
+
+    Future<void> openBehaviour(WidgetTester tester, String lang, {bool merits = true, List<String>? log}) async {
+      clock = () => DateTime.utc(2026, 10, 1, 7);
+      addTearDown(() => clock = DateTime.now);
+      tester.view.physicalSize = const Size(800, 1800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await start(tester, {'lang': lang, 'token': 't'}, school(me_: behaviourMe(merits: merits), more: routes(merits: merits), log: log));
+      await tester.tap(find.text(lang == 'ar' ? 'المدرسة' : 'School'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(lang == 'ar' ? 'السلوك' : 'Behaviour'));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('the timeline gives each kind a shape and a word, with the totals and merit points', (tester) async {
+      await openBehaviour(tester, 'en');
+      expect(find.text('★ Praise'), findsOneWidget);
+      expect(find.text('! Note'), findsOneWidget);
+      expect(find.text('⚠ From Student Affairs'), findsOneWidget);
+      expect(find.text('★ 1'), findsOneWidget); // praise total
+      expect(find.text('! 2'), findsOneWidget); // concerns and incidents together
+      expect(find.text('◆ +1'), findsOneWidget); // merit points
+      expect(find.text('+2'), findsOneWidget);
+      expect(find.text('−1'), findsOneWidget);
+      expect(find.text('Helped a classmate carry her books.'), findsOneWidget);
+      expect(find.text('Moderate'), findsOneWidget);
+      expect(find.text('What the school did: We spoke with both children.'), findsOneWidget);
+      expect(find.text('Ms. Hana Nabil · 1 October'), findsNWidgets(3));
+      expect(find.text('• New'), findsNWidgets(2)); // b1 and b3 were not yet read
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('a school that keeps no merit points shows none', (tester) async {
+      await openBehaviour(tester, 'en', merits: false);
+      expect(find.textContaining('◆'), findsNothing);
+      expect(find.text('Merit points'), findsNothing);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('opening the screen marks the unread notes as read, and only those', (tester) async {
+      final log = <String>[];
+      await openBehaviour(tester, 'en', log: log);
+      expect(log.where((l) => l.startsWith('POST /parent/children/s1/behaviour/b1/read')), hasLength(1));
+      expect(log.where((l) => l.startsWith('POST /parent/children/s1/behaviour/b3/read')), hasLength(1));
+      expect(log.where((l) => l.contains('/behaviour/b2/read')), isEmpty);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('reads well in Arabic', (tester) async {
+      await openBehaviour(tester, 'ar');
+      expect(find.text('★ ثناء'), findsOneWidget);
+      expect(find.text('⚠ من شؤون الطلبة'), findsOneWidget);
+      expect(find.text('للمتابعة'), findsOneWidget);
+      expect(find.text('نقاط التميز'), findsOneWidget);
+      expect(find.text('متوسطة'), findsOneWidget);
+      expect(find.text('ما اتخذته المدرسة: We spoke with both children.'), findsOneWidget);
+      expect(find.text('مس Hana Nabil · 1 أكتوبر'), findsNWidgets(3));
+      expect(find.text(S.ar.behaviourPointsN(2)), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('a tap on a push about a note opens the behaviour screen', (tester) async {
+      clock = () => DateTime.utc(2026, 10, 1, 7);
+      addTearDown(() => clock = DateTime.now);
+      tester.view.physicalSize = const Size(800, 1800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await start(tester, {'lang': 'en', 'token': 't'}, school(me_: behaviourMe(), more: routes()));
+      push.tap({'type': 'behaviour.note', 'studentId': 's1', 'kind': 'PRAISE'});
+      await tester.pumpAndSettle();
+      expect(find.text('This school year'), findsOneWidget);
+      expect(find.text('Helped a classmate carry her books.'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('a note in the notification list reads by kind and opens the screen', (tester) async {
+      clock = () => DateTime.utc(2026, 10, 1, 7);
+      addTearDown(() => clock = DateTime.now);
+      tester.view.physicalSize = const Size(800, 1800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final notes = [
+        {'id': 'n1', 'type': 'behaviour.note', 'title': 'English title', 'body': '…', 'readAt': null, 'createdAt': DateTime.now().toUtc().toIso8601String(), 'data': {'studentId': 's1', 'kind': 'PRAISE'}},
+      ];
+      await start(tester, {'lang': 'en', 'token': 't'}, school(me_: behaviourMe(), more: {...routes(), '/notifications': notes, '/notifications/n1/read': {'ok': true}}));
+      await tester.tap(find.text('Notifications'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Well done! A note of praise for Salma'));
+      await tester.pumpAndSettle();
+      expect(find.text('This school year'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    test('the notification sentence follows the kind of note, in both languages', () {
+      expect(S.en.notification('behaviour.note', 'Salma', {'kind': 'PRAISE'}, 'x', 'FEMALE'), 'Well done! A note of praise for Salma');
+      expect(S.en.notification('behaviour.note', 'Salma', {'kind': 'CONCERN'}, 'x'), 'A note from school about Salma');
+      expect(S.en.notification('behaviour.note', 'Salma', {'kind': 'INCIDENT'}, 'x'), 'Student Affairs has written to you about Salma');
+      expect(S.ar.notification('behaviour.note', 'سلمى', {'kind': 'PRAISE'}, 'x', 'FEMALE'), 'أحسنتم! ثناء من المدرسة على سلمى');
+      expect(S.ar.notification('behaviour.note', 'سلمى', {'kind': 'CONCERN'}, 'x'), 'ملاحظة من المدرسة بشأن سلمى');
+      expect(S.ar.notification('behaviour.note', 'سلمى', {'kind': 'INCIDENT'}, 'x'), 'تواصلت شؤون الطلبة معكم بشأن سلمى');
+    });
+  });
+
   group('push notifications', () {
     late FakePush push;
     setUp(() {
