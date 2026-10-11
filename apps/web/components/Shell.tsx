@@ -59,6 +59,14 @@ const SCHOOL_NAV: { group: NavKey; items: NavItem[] }[] = [
       { href: '/emergency', key: 'emergency', module: 'messaging', roles: ADMIN },
     ],
   },
+  {
+    group: 'academics',
+    items: [
+      { href: '/academics/gradebook', key: 'gradebook', module: 'academics', roles: WRITERS },
+      { href: '/academics/exams', key: 'exams', module: 'academics', roles: STAFF },
+      { href: '/academics/report-cards', key: 'reportCards', module: 'academics', feature: 'reportCards', roles: WRITERS },
+    ],
+  },
   { group: 'behaviour', items: [{ href: '/behaviour', key: 'behaviourNotes', module: 'behavior', roles: WRITERS }] },
   {
     group: 'people',

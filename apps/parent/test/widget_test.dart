@@ -744,6 +744,232 @@ void main() {
     });
   });
 
+  group('grades', () {
+    late FakePush push;
+    setUp(() {
+      push = FakePush();
+      pushFactory = () => push;
+    });
+
+    Map<String, Object?> academicsMe({bool reportCards = true}) => {
+          'modules': ['core', 'attendance', 'academics'],
+          'features': {
+            'academics': {'reportCards': reportCards},
+          },
+        };
+    const good = {'min': 65, 'label': 'Good', 'labelAr': 'جيد'};
+    const veryGood = {'min': 75, 'label': 'Very good', 'labelAr': 'جيد جدًا'};
+    const excellent = {'min': 85, 'label': 'Excellent', 'labelAr': 'ممتاز'};
+    Map<String, Object?> termOne() => {
+          'year': {'id': 'y1', 'name': '2026/2027'},
+          'term': 1,
+          'subjects': [
+            {
+              'subjectId': 'm', 'name': 'Math', 'nameAr': 'الرياضيات', 'percent': 67.5, 'band': good,
+              'assessments': [
+                {'id': 'a1', 'title': 'Unit 1 quiz', 'kind': 'QUIZ', 'date': '2026-10-01', 'score': 18, 'maxScore': 20, 'absent': false, 'excused': false, 'comment': 'Well done'},
+                {'id': 'a2', 'title': 'Unit 1 project', 'kind': 'PROJECT', 'date': '2026-10-02', 'score': null, 'maxScore': 100, 'absent': true, 'excused': true, 'comment': null},
+              ],
+            },
+            {
+              'subjectId': 's', 'name': 'Science', 'percent': 90, 'band': excellent,
+              'assessments': [
+                {'id': 'a3', 'title': 'Water cycle quiz', 'kind': 'QUIZ', 'date': '2026-10-03', 'score': 18, 'maxScore': 20, 'absent': false, 'excused': false, 'comment': null},
+              ],
+            },
+          ],
+          'overall': {'percent': 78.8, 'band': veryGood},
+        };
+    Map<String, Object?> snapshot() => {
+          'student': {'id': 's1', 'name': 'Layla Hussein', 'nameAr': 'ليلى حسين', 'code': '2026-0001', 'gender': 'FEMALE'},
+          'class': {'name': '4/1', 'gradeName': 'Primary 4', 'system': null},
+          'year': {'name': '2026/2027'},
+          'term': 1,
+          'subjects': [
+            {'subjectId': 'm', 'name': 'Math', 'nameAr': 'الرياضيات', 'percent': 84.6, 'band': veryGood, 'comment': 'A confident start to the year.', 'teacher': 'Ms. Hana Nabil'},
+            {'subjectId': 'e', 'name': 'English', 'percent': null, 'band': null, 'comment': null, 'teacher': null},
+          ],
+          'overall': {'percent': 84.6, 'band': veryGood},
+          'attendance': {'present': 17, 'late': 1, 'absent': 2, 'excused': 0, 'onTrip': 0, 'days': 20},
+          'classTeacherComment': 'A kind and helpful member of the class.',
+          'classTeacher': 'Ms. Hana Nabil',
+          'principalComment': 'We are proud of your progress.',
+          'principalName': 'Dr. Amal Fawzy',
+          'school': {'name': 'Nile Valley Language School', 'nameAr': 'مدرسة وادي النيل للغات'},
+          'issuedAt': '2026-10-11T18:00:00.000Z',
+        };
+    Map<String, Object> routes({List<String>? terms}) => {
+          '/parent/children': [
+            {'id': 's1', 'firstName': 'Layla', 'lastName': 'Hussein', 'gender': 'FEMALE', 'class': {'id': 'c1', 'name': '4/1'}},
+          ],
+          '/parent/children/s1/grades': (http.Request r) {
+            terms?.add(r.url.queryParameters['term'] ?? '');
+            return r.url.queryParameters['term'] == '2' ? {'year': {'id': 'y1', 'name': '2026/2027'}, 'term': 2, 'subjects': [], 'overall': {'percent': null, 'band': null}} : termOne();
+          },
+          '/parent/children/s1/grades/trend': (http.Request r) => r.url.queryParameters['subjectId'] == 'm'
+              ? [{'date': '2026-10-01', 'percent': 90}, {'date': '2026-10-02', 'percent': 45}]
+              : [{'date': '2026-10-03', 'percent': 90}],
+          '/parent/children/s1/exams': [
+            {'id': 'x1', 'subject': 'Math', 'subjectAr': 'الرياضيات', 'title': 'Maths midterm', 'kind': 'MIDTERM', 'date': '2026-10-18', 'startTime': '09:00', 'endTime': '10:30', 'room': 'Room 204'},
+          ],
+          '/parent/children/s1/report-cards': [
+            {'id': 'rc1', 'year': '2026/2027', 'term': 1, 'publishedAt': '2026-10-11T18:00:00.000Z', 'overall': {'percent': 84.6, 'band': veryGood}},
+          ],
+          '/parent/children/s1/report-cards/rc1': {'id': 'rc1', 'term': 1, 'publishedAt': '2026-10-11T18:00:00.000Z', 'snapshot': snapshot()},
+        };
+
+    Future<void> openGrades(WidgetTester tester, String lang, {List<String>? terms, bool reportCards = true}) async {
+      clock = () => DateTime.utc(2026, 10, 11, 7);
+      addTearDown(() => clock = DateTime.now);
+      tester.view.physicalSize = const Size(800, 2400);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await start(tester, {'lang': lang, 'token': 't'}, school(me_: academicsMe(reportCards: reportCards), more: routes(terms: terms)));
+      await tester.tap(find.text(lang == 'ar' ? 'المدرسة' : 'School'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(lang == 'ar' ? 'الدرجات' : 'Grades'));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('shows the overall result and each subject with its percentage and band', (tester) async {
+      await openGrades(tester, 'en');
+      expect(find.text('Overall'), findsOneWidget);
+      expect(find.text('78.8%'), findsOneWidget);
+      expect(find.text('Very good'), findsOneWidget);
+      expect(find.text('67.5%'), findsOneWidget);
+      expect(find.text('Good'), findsOneWidget);
+      expect(find.text('90%'), findsOneWidget);
+      expect(find.text('Excellent'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('draws a progress line from two marks and says when there are fewer', (tester) async {
+      await openGrades(tester, 'en');
+      expect(find.byWidgetPredicate((w) => w is CustomPaint && w.painter.runtimeType.toString() == '_TrendPainter'), findsOneWidget); // Math has two marks
+      expect(find.text(S.en.noTrend), findsOneWidget); // Science has one
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('a subject opens to show each published mark, an excused absence and the teacher’s comment', (tester) async {
+      await openGrades(tester, 'en');
+      expect(find.text('Unit 1 quiz'), findsNothing);
+      await tester.tap(find.text('Math'));
+      await tester.pumpAndSettle();
+      expect(find.text('Unit 1 quiz'), findsOneWidget);
+      expect(find.text('18 / 20'), findsOneWidget);
+      expect(find.text('Well done'), findsOneWidget);
+      expect(find.text('Quiz · 1 October'), findsOneWidget);
+      expect(find.text('– Excused'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('switching the term asks for that term and says when nothing is published', (tester) async {
+      final terms = <String>[];
+      await openGrades(tester, 'en', terms: terms);
+      await tester.tap(find.text('Term 2'));
+      await tester.pumpAndSettle();
+      expect(terms.last, '2');
+      expect(find.text(S.en.noGrades), findsOneWidget);
+      expect(find.text('Math'), findsNothing);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('lists the exams coming up with the time in order', (tester) async {
+      await openGrades(tester, 'en');
+      expect(find.text('Upcoming exams'), findsOneWidget);
+      expect(find.text('Math · Midterm exam'), findsOneWidget);
+      expect(find.text('Sunday 18 October'), findsOneWidget);
+      expect(find.text('${ltr('09:00–10:30')} · Room 204'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('a school with report cards switched off shows none', (tester) async {
+      await openGrades(tester, 'en', reportCards: false);
+      expect(find.text('Report cards'), findsNothing);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('opens a report card in Arabic for a girl: crest name, her name, bands, comments and days', (tester) async {
+      await openGrades(tester, 'ar');
+      expect(find.text(S.ar.pct(78.8)), findsOneWidget);
+      expect(find.text('ممتاز'), findsOneWidget);
+      expect(find.text('الامتحانات القادمة'), findsOneWidget);
+      expect(find.text('الشهادات'), findsOneWidget);
+      expect(find.text('الرياضيات'), findsOneWidget); // the subject in Arabic, not «Math»
+      expect(find.text('Math'), findsNothing);
+      expect(find.text('الرياضيات · امتحان منتصف الفصل'), findsOneWidget);
+      await tester.tap(find.text(S.ar.reportCardFor(1, '2026/2027')));
+      await tester.pumpAndSettle();
+      expect(find.text('شهادة الفصل الدراسي'), findsOneWidget);
+      expect(find.text('مدرسة وادي النيل للغات'), findsOneWidget);
+      expect(find.text('ليلى حسين'), findsOneWidget);
+      expect(find.text('جيد جدًا'), findsWidgets);
+      expect(find.text('الرياضيات'), findsOneWidget); // the subject's Arabic name on the card
+      expect(find.text('مس Hana Nabil'), findsOneWidget); // under it
+      expect(find.text('A confident start to the year.'), findsOneWidget);
+      expect(find.textContaining('الحضور: 20 يومًا، الغياب: يومان'), findsOneWidget);
+      expect(find.text('رائد الفصل: مس Hana Nabil'), findsOneWidget);
+      expect(find.text('مدير المدرسة: د. Amal Fawzy'), findsOneWidget);
+      expect(find.text(S.ar.noMarkYet), findsOneWidget); // English has no mark yet
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('a tap on a push about a new mark opens the grades', (tester) async {
+      clock = () => DateTime.utc(2026, 10, 11, 7);
+      addTearDown(() => clock = DateTime.now);
+      tester.view.physicalSize = const Size(800, 2400);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await start(tester, {'lang': 'en', 'token': 't'}, school(me_: academicsMe(), more: routes()));
+      push.tap({'type': 'marks.published', 'studentId': 's1', 'subject': 'Math', 'title': 'Unit 1 quiz'});
+      await tester.pumpAndSettle();
+      expect(find.text(S.en.gradesSub), findsOneWidget);
+      expect(find.text('67.5%'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('a tap on a push about a report card opens the grades, where the card is listed', (tester) async {
+      clock = () => DateTime.utc(2026, 10, 11, 7);
+      addTearDown(() => clock = DateTime.now);
+      tester.view.physicalSize = const Size(800, 2400);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await start(tester, {'lang': 'en', 'token': 't'}, school(me_: academicsMe(), more: routes()));
+      push.tap({'type': 'reportCard.published', 'studentId': 's1', 'term': 1});
+      await tester.pumpAndSettle();
+      expect(find.text('Term 1 · 2026/2027'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    test('notifications about marks and report cards read well in both languages', () {
+      final mark = {'subject': 'Math', 'title': 'Unit 1 quiz'};
+      expect(S.en.notification('marks.published', 'Salma', mark, 'x'), 'New mark for Salma in Math: Unit 1 quiz');
+      expect(S.ar.notification('marks.published', 'سلمى', {'subject': 'الرياضيات', 'title': 'اختبار الوحدة'}, 'x'), 'درجة جديدة لـسلمى في الرياضيات: اختبار الوحدة');
+      expect(S.en.notification('reportCard.published', 'Salma', {'term': 2}, 'x'), 'Salma’s report card for term 2 is ready');
+      expect(S.ar.notification('reportCard.published', 'سلمى', {'term': 1}, 'x'), 'صدرت شهادة سلمى عن الفصل الدراسي الأول');
+      expect(S.ar.notification('reportCard.published', 'سلمى', {'term': 2}, 'x'), 'صدرت شهادة سلمى عن الفصل الدراسي الثاني');
+      expect(S.ar.notification('marks.published', 'سلمى', {'subject': 'Math', 'subjectAr': 'الرياضيات', 'title': 'اختبار'}, 'x'), 'درجة جديدة لـسلمى في الرياضيات: اختبار');
+      expect(S.ar.notification('marks.published', 'سلمى', {'subject': 'Math', 'subjectAr': null, 'title': 'اختبار'}, 'x'), 'درجة جديدة لـسلمى في Math: اختبار'); // no Arabic name yet
+      expect(S.en.notification('marks.published', 'Salma', {}, 'English title'), 'English title'); // no subject: the server’s words
+    });
+
+    test('numbers, scores and titles are formatted for each language', () {
+      expect(S.en.pct(90), '90%');
+      expect(S.en.pct(67.5), '67.5%');
+      expect(S.ar.pct(67.5), ltr('67.5%'));
+      expect(S.en.scoreOf(17.5, 20), '17.5 / 20');
+      expect(S.ar.scoreOf(18, 20), ltr('18 / 20'));
+      expect(S.ar.titledName('Ms. Hana Nabil'), 'مس Hana Nabil');
+      expect(S.ar.titledName('Hana Nabil'), 'Hana Nabil');
+      expect(S.en.titledName('Dr. Amal Fawzy'), 'Dr. Amal Fawzy');
+      expect(S.ar.attendanceLine(20, 0), 'الحضور: 20 يومًا، الغياب: 0 يوم');
+      expect(S.ar.attendanceLine(1, 2), 'الحضور: يوم واحد، الغياب: يومان');
+      expect(S.en.attendanceLine(1, 3), 'Attendance: 1 day, absent 3');
+      expect(S.ar.bandName({'label': 'Good', 'labelAr': 'جيد'}), 'جيد');
+      expect(S.en.bandName(null), '—');
+    });
+  });
+
   group('push notifications', () {
     late FakePush push;
     setUp(() {

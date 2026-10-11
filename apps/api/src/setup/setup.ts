@@ -3,7 +3,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
 import { sniff } from '../students/files';
 import { AttendanceMode, ClassGender, Role, RoomKind, SchoolSystem, SecondaryStream, Stage } from '@prisma/client';
-import { ArrayMaxSize, ArrayMinSize, IsArray, IsDateString, IsEnum, IsIn, IsInt, IsOptional, IsString, Matches, Max, Min, MinLength, ValidateIf } from 'class-validator';
+import { ArrayMaxSize, ArrayMinSize, IsArray, IsDateString, IsEnum, IsIn, IsInt, IsOptional, IsString, Matches, Max, MaxLength, Min, MinLength, ValidateIf } from 'class-validator';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit';
 import { AuthUser, CurrentUser, Roles, SchoolId, SCHOOL_WIDE, STAFF } from '../auth/auth.decorators';
@@ -21,6 +21,8 @@ export class SchoolSettingsDto {
   /** Office hours shown to parents in chat; messages can be sent at any time. */
   @IsOptional() @Matches(TIME_RE, { message: 'chatFrom must look like 08:00' }) chatFrom?: string;
   @IsOptional() @Matches(TIME_RE, { message: 'chatTo must look like 15:00' }) chatTo?: string;
+  /** Printed under the principal's comment on report cards; an empty value clears it. */
+  @IsOptional() @IsString() @MaxLength(100) principalName?: string;
   @IsOptional() @IsArray() @ArrayMinSize(1) @ArrayMaxSize(7) @IsInt({ each: true }) @Min(0, { each: true }) @Max(6, { each: true })
   schoolDays?: number[];
 }
@@ -105,7 +107,14 @@ export class RoomDto {
 }
 
 export class SubjectDto {
-  @IsString() @MinLength(1) name: string;
+  @IsString() @MinLength(1) @MaxLength(80) name: string;
+  @IsOptional() @IsString() @MaxLength(80) nameAr?: string;
+}
+
+export class UpdateSubjectDto {
+  @IsOptional() @IsString() @MinLength(1) @MaxLength(80) name?: string;
+  /** An empty value clears the Arabic name. */
+  @IsOptional() @IsString() @MaxLength(80) nameAr?: string;
 }
 
 export class PeriodDto {
@@ -143,7 +152,11 @@ export class SetupService {
     }
     const school = await this.prisma.school.update({
       where: { id: schoolId },
-      data: { ...dto, schoolDays: dto.schoolDays ? [...new Set(dto.schoolDays)].sort() : undefined },
+      data: {
+        ...dto,
+        schoolDays: dto.schoolDays ? [...new Set(dto.schoolDays)].sort() : undefined,
+        principalName: dto.principalName === undefined ? undefined : dto.principalName.trim() || null,
+      },
     });
     await this.audit.log(user, 'school.update', 'school', schoolId, { ...dto });
     return school;
@@ -481,9 +494,36 @@ export class SubjectsController {
   @Roles(Role.SCHOOL_ADMIN)
   @Post()
   async create(@CurrentUser() user: AuthUser, @SchoolId() schoolId: string, @Body() dto: SubjectDto) {
-    const subject = await this.prisma.subject.create({ data: { ...dto, schoolId } }).catch((e) => mapPrismaError(e, 'A subject with this name already exists.'));
+    const subject = await this.prisma.subject
+      .create({ data: { name: dto.name.trim(), nameAr: dto.nameAr?.trim() || null, schoolId } })
+      .catch((e) => mapPrismaError(e, 'A subject with this name already exists.'));
     await this.audit.log(user, 'subject.create', 'subject', subject.id, { ...dto });
     return subject;
+  }
+
+  /** Fixing a name or adding the Arabic one. Lessons and marks keep pointing at the same subject. */
+  @Roles(Role.SCHOOL_ADMIN)
+  @Patch(':id')
+  async update(@CurrentUser() user: AuthUser, @SchoolId() schoolId: string, @Param('id') id: string, @Body() dto: UpdateSubjectDto) {
+    if (!(await this.prisma.subject.findFirst({ where: { id, schoolId }, select: { id: true } }))) throw new NotFoundException('Subject not found.');
+    const subject = await this.prisma.subject
+      .update({ where: { id }, data: { ...(dto.name !== undefined ? { name: dto.name.trim() } : {}), ...(dto.nameAr !== undefined ? { nameAr: dto.nameAr.trim() || null } : {}) } })
+      .catch((e) => mapPrismaError(e, 'A subject with this name already exists.'));
+    await this.audit.log(user, 'subject.edit', 'subject', id, { ...dto });
+    return subject;
+  }
+
+  /** A subject can go only while nothing uses it: no lessons in the timetable and no marks. */
+  @Roles(Role.SCHOOL_ADMIN)
+  @Delete(':id')
+  async remove(@CurrentUser() user: AuthUser, @SchoolId() schoolId: string, @Param('id') id: string) {
+    const subject = await this.prisma.subject.findFirst({ where: { id, schoolId }, select: { id: true, name: true } });
+    if (!subject) throw new NotFoundException('Subject not found.');
+    const [lessons, assessments] = await Promise.all([this.prisma.timetableEntry.count({ where: { subjectId: id } }), this.prisma.assessment.count({ where: { subjectId: id } })]);
+    if (lessons || assessments) throw new BadRequestException('This subject is in the timetable or has marks, so it can’t be deleted.');
+    await this.prisma.subject.delete({ where: { id } });
+    await this.audit.log(user, 'subject.delete', 'subject', id, { name: subject.name });
+    return { ok: true };
   }
 }
 

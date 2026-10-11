@@ -125,12 +125,12 @@ Depends on **M9 Payments**.
 - Events calendar and gallery (photos/videos per event)
 
 ### M5 · Academics: Timetable, Grades & Exams **[Phase 4]**
-- Class timetable builder and teacher schedules
-- Gradebook: assessments, weights, term grades
-- Exam schedules and results
-- Report cards as PDF (Arabic/English), published to parents
-- Support for different grading systems (national, IGCSE, American) *(setting)*
-- Student progress charts
+- Class timetable builder and teacher schedules ✔ built
+- Gradebook: assessments, weights, term grades ✔ built
+- Exam schedules and results ✔ built
+- Report cards as PDF (Arabic/English), published to parents ✔ built (a printable page that saves as PDF; see T8)
+- Support for different grading systems (national, IGCSE, American) *(setting)* ✔ built (editable grade bands)
+- Student progress charts ✔ built (a progress line for each subject in the app)
 
 ### M6 · Homework & Learning **[Later]**
 - Homework assignments with attachments and due dates
@@ -259,7 +259,7 @@ Each phase ends with something a school can use and pay for. Nothing gets rebuil
 
 **Phase 4 · School life**
 - Activities & clubs, trips and permission slips, events
-- Academics: grades, exams, report cards (built on the Phase 1 timetable)
+- Academics: grades, exams, report cards (built on the Phase 1 timetable). **Built**
 - Behavior & notes, clinic visits. Notes, incidents and merit points are **built**; clinic visits are not
 - Messaging: parent–teacher chat, announcements, polls, meetings, emergency broadcast. **Built.** Announcements to a bus or a club follow with Transport and Activities; WhatsApp to bus supervisors with Transport
 
@@ -356,6 +356,9 @@ Each phase ends with something a school can use and pay for. Nothing gets rebuil
 | T9 | Chat delivery | Live over WebSockets, with the app refreshing every 30 seconds if the connection drops |
 | T10 | Fees before Payments | Paid clubs and trips show their fee; staff mark them paid by hand until Phase 3 |
 | T11 | Behaviour notes | Teachers write praise and concerns for students they teach or lead; only Student Affairs and the social worker record incidents. Praise and concerns are shared with parents unless the writer unticks it; an incident is kept back until shared. A writer can change their own note for 24 hours, then only Student Affairs can |
+| T12 | What counts towards a percentage | A percentage is the weighted average of the marks, leaving out excused absences and counting an unexcused one as zero. Parents and report cards count published assessments only; the teacher's gradebook counts everything marked |
+| T13 | Grade bands | Every school system has default bands (national, British, American); Student Affairs can replace them for each system. A published report card keeps the bands it was published with |
+| T14 | Who teaches a subject | The teacher on a subject's lessons in a class's timetable is its one teacher, read by marks, attendance and chat. Student Affairs sets it once per class and subject, which updates all of its lessons, and a subject can have an Arabic name. Choosing teachers before the lessons exist (a curriculum for each year group) is not built |
 
 ## 9. How to charge schools
 

@@ -5,6 +5,7 @@ import { Crest } from '@/components/Crest';
 import { useAction, useApi } from '@/lib/hooks';
 import { useI18n } from '@/lib/i18n';
 import { has, useSession } from '@/lib/session';
+import { BandsEditor } from '@/components/BandsEditor';
 import { ErrorNote, PageHead, Pill, Section, Switch, toast } from '@/components/ui';
 
 /** Saturday first, as Egyptian school weeks are read. */
@@ -20,10 +21,10 @@ export default function ModulesPage() {
   const modules = useApi<any[]>('/modules');
   const school = useApi('/school');
   const act = useAction();
-  const [settings, setSettings] = useState({ absenceNoticeTime: '08:15', chatFrom: '08:00', chatTo: '15:00', schoolDays: [0, 1, 2, 3, 4] as number[] });
+  const [settings, setSettings] = useState({ absenceNoticeTime: '08:15', chatFrom: '08:00', chatTo: '15:00', principalName: '', schoolDays: [0, 1, 2, 3, 4] as number[] });
 
   useEffect(() => {
-    if (school.data) setSettings({ absenceNoticeTime: school.data.absenceNoticeTime, chatFrom: school.data.chatFrom, chatTo: school.data.chatTo, schoolDays: school.data.schoolDays });
+    if (school.data) setSettings({ absenceNoticeTime: school.data.absenceNoticeTime, chatFrom: school.data.chatFrom, chatTo: school.data.chatTo, principalName: school.data.principalName ?? '', schoolDays: school.data.schoolDays });
   }, [school.data]);
 
   const setFeature = async (key: string, feature: string, on: boolean) => {
@@ -93,11 +94,18 @@ export default function ModulesPage() {
             </span>
           </div>
         )}
+        {has(me, 'academics', 'reportCards') && (
+          <div className="settings-row">
+            <span><b>{t.acad.principalName}</b><span>{t.acad.principalHelp}</span></span>
+            <input className="input" aria-label={t.acad.principalName} maxLength={100} style={{ width: 260 }} value={settings.principalName} onChange={(e) => setSettings({ ...settings, principalName: e.target.value })} />
+          </div>
+        )}
         <div className="settings-row">
           <span />
           <button className="btn primary" type="submit" disabled={act.busy}>{t.modules.saveSettings}</button>
         </div>
       </form>
+      {me.role === 'SCHOOL_ADMIN' && has(me, 'academics') && <BandsEditor />}
       {modules.data?.map((m) => {
         const features = Object.entries(m.features as Record<string, boolean>).filter(([f]) => !(m.key === 'attendance' && f === 'automatic'));
         return (

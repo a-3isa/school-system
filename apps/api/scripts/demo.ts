@@ -90,6 +90,7 @@ async function main() {
   await A('PATCH', `/staff/${me.id}`, { honorific: 'MS' });
   const hana = await A('POST', '/staff', { name: 'Hana Nabil', honorific: 'MS', role: 'TEACHER', email: 'hana@demo.school', password: 'demo-teacher-1' });
   const sherif = await A('POST', '/staff', { name: 'Sherif Kamal', honorific: 'MR', role: 'TEACHER', email: 'sherif@demo.school', password: 'demo-teacher-1' });
+  const mona = await A('POST', '/staff', { name: 'Mona Adel', honorific: 'MS', role: 'TEACHER', email: 'mona@demo.school', password: 'demo-teacher-1' });
   // An Egyptian primary school: Primary 1–6, two classes of Primary 4 (4/1 and 4/2) in the languages system.
   const grades: any[] = await A('POST', '/grades/egypt', { stages: ['PRIMARY'] });
   const g4 = grades.find((g) => g.name === 'Primary 4');
@@ -102,7 +103,8 @@ async function main() {
   const r205 = await A('POST', '/rooms', { name: 'Room 205' });
   const lab = await A('POST', '/rooms', { name: 'Science lab', kind: 'LAB' });
   const subjects: Record<string, any> = {};
-  for (const s of ['Math', 'Arabic', 'English', 'Science']) subjects[s] = await A('POST', '/subjects', { name: s });
+  const subjectAr: Record<string, string> = { Math: 'الرياضيات', Arabic: 'اللغة العربية', English: 'اللغة الإنجليزية', Science: 'العلوم' };
+  for (const s of ['Math', 'Arabic', 'English', 'Science']) subjects[s] = await A('POST', '/subjects', { name: s, nameAr: subjectAr[s] });
   const times = [['08:00', '08:45'], ['08:45', '09:30'], ['09:50', '10:35'], ['10:35', '11:20'], ['11:40', '12:25'], ['12:25', '13:10']];
   const periods: any[] = [];
   for (const [i, [startTime, endTime]] of times.entries()) periods.push(await A('POST', '/periods', { number: i + 1, startTime, endTime }));
@@ -117,6 +119,9 @@ async function main() {
       await A('POST', '/timetable', { classId: c4b.id, dayOfWeek: day, periodId: p.id, roomId: bInLab ? lab.id : r205.id, subjectId: subjects[b].id, teacherId: b === 'English' || b === 'Arabic' ? sherif.id : undefined });
     }
   }
+
+  // Who teaches what: a subject gets its teacher in a class in one step, for all of its lessons. Mona takes Arabic and English in 4/1.
+  for (const s of ['Arabic', 'English']) await A('PUT', '/timetable/assign', { classId: c4a.id, subjectId: subjects[s].id, teacherId: mona.id });
 
   for (let i = 0; i < 24; i++) {
     // Every student comes with a parent. Some brothers and sisters share a mother
@@ -152,6 +157,7 @@ async function main() {
   }
   await demoMessaging(owner, admin, school.id, hana.id);
   await demoBehaviour(owner, admin, school.id);
+  await demoAcademics(owner, admin, school.id);
   console.log(`Demo school ready (${school.id}). Sign in as admin@demo.school / demo-admin-1`);
   // Today so far, as if the gateways had been running since the morning.
   await playDay(api, owner, admin, secrets);
@@ -217,6 +223,76 @@ async function demoBehaviour(owner: string, admin: string, schoolId: string) {
   });
 }
 
+
+/**
+ * Marks for the demo school: Maths and Science for class 4/1 with three assessments each, marked and
+ * published; two midterm exams next week; and one published term-1 report card (Layla's).
+ */
+async function demoAcademics(owner: string, admin: string, schoolId: string) {
+  // Academics comes with the Complete plan; the owner switches it on for this demo.
+  await call(owner, 'PUT', `/owner/schools/${schoolId}/modules/academics`, { enabled: true });
+  const A = (m: string, p: string, b?: unknown) => call(admin, m, p, b);
+  const hana = (await call(null, 'POST', '/auth/login', { login: 'hana@demo.school', password: 'demo-teacher-1' })).token;
+  await A('PATCH', '/school', { principalName: 'Dr. Amal Fawzy' });
+
+  const subjects: any[] = await A('GET', '/subjects');
+  const rooms: any[] = await A('GET', '/rooms');
+  const classes: any[] = await A('GET', '/classes');
+  const c4a = classes.find((c) => c.name === '4/1');
+  const today = new Date();
+  const dateOf = (offsetDays: number) => {
+    const d = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + offsetDays));
+    return d.toISOString().slice(0, 10) < '2026-09-14' ? '2026-09-14' : d.toISOString().slice(0, 10); // never before the school year starts
+  };
+  const schoolDay = (offsetDays: number) => {
+    const d = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + offsetDays));
+    while (d.getUTCDay() > 4) d.setUTCDate(d.getUTCDate() + 1); // Friday and Saturday are the weekend
+    return d.toISOString().slice(0, 10);
+  };
+
+  const plan: [string, [string, string, number, number][]][] = [
+    ['Math', [['QUIZ', 'Multiplication quiz', 20, -21], ['HOMEWORK', 'Fractions worksheet', 10, -12], ['PROJECT', 'Shapes project', 50, -4]]],
+    ['Science', [['QUIZ', 'The water cycle quiz', 20, -19], ['CLASSWORK', 'Plants in our school garden', 10, -10], ['PROJECT', 'Solar system model', 50, -3]]],
+  ];
+  for (const [name, items] of plan) {
+    const subject = subjects.find((s) => s.name === name);
+    for (const [k, [kind, title, maxScore, offset]] of items.entries()) {
+      const a = await call(hana, 'POST', '/academics/assessments', { classId: c4a.id, subjectId: subject.id, kind, title, date: dateOf(offset), maxScore });
+      const students: any[] = await call(hana, 'GET', `/academics/assessments/${a.id}/marks`);
+      const marks = students.map((s, i) => {
+        if (i === 3 && k === 0) return { studentId: s.id, absent: true, excused: true }; // away with a note
+        if (i === 5 && k === 1) return { studentId: s.id, absent: true }; // simply absent
+        const share = 0.5 + ((i * 7 + k * 5 + (name === 'Science' ? 3 : 0)) % 45) / 100; // 50% to 94%
+        return { studentId: s.id, score: Math.round(maxScore * share * 2) / 2 };
+      });
+      await call(hana, 'PUT', `/academics/assessments/${a.id}/marks`, { marks });
+      await call(hana, 'POST', `/academics/assessments/${a.id}/publish`);
+    }
+  }
+
+  // Midterm exams next week.
+  const room204 = rooms.find((r) => r.name === 'Room 204');
+  const lab = rooms.find((r) => r.name === 'Science lab');
+  const sunday = schoolDay(7);
+  const next = new Date(`${sunday}T00:00:00Z`);
+  do next.setUTCDate(next.getUTCDate() + 1);
+  while (next.getUTCDay() > 4);
+  await call(hana, 'POST', '/academics/assessments', { classId: c4a.id, subjectId: subjects.find((s) => s.name === 'Math').id, kind: 'MIDTERM', title: 'Maths midterm', date: sunday, maxScore: 40, startTime: '09:00', endTime: '10:30', roomId: room204.id });
+  await call(hana, 'POST', '/academics/assessments', { classId: c4a.id, subjectId: subjects.find((s) => s.name === 'Science').id, kind: 'MIDTERM', title: 'Science midterm', date: next.toISOString().slice(0, 10), maxScore: 40, startTime: '09:00', endTime: '10:30', roomId: lab.id });
+
+  // Layla's report card for term 1, written and published.
+  const year = (await A('GET', '/school/years'))[0];
+  const body = { classId: c4a.id, yearId: year.id, term: 1 };
+  await call(hana, 'POST', '/academics/report-cards/generate', body);
+  const cards = (await call(hana, 'GET', `/academics/report-cards?classId=${c4a.id}&term=1&yearId=${year.id}`)).cards;
+  const card = cards.find((c: any) => c.name.startsWith('Layla')) ?? cards[0];
+  const comment = (token: string, b: object) => call(token, 'PATCH', `/academics/report-cards/${card.id}/comments`, b);
+  await comment(hana, { subjectId: subjects.find((s) => s.name === 'Math').id, comment: 'A confident start to the year. Practise the tables of 7 and 8 a little more.' });
+  await comment(hana, { subjectId: subjects.find((s) => s.name === 'Science').id, comment: 'Curious and careful in every experiment.' });
+  await comment(hana, { classTeacherComment: 'A kind and helpful member of the class. Well done!' });
+  await comment(admin, { principalComment: 'We are proud of your progress. Keep it up.' });
+  await A('POST', '/academics/report-cards/publish', { ids: [card.id] });
+}
 main().catch((e) => {
   console.error(e.message);
   process.exit(1);

@@ -46,7 +46,7 @@ export function pushBody(type: string, c: TextContext): string | null {
   const name = c.name ?? '';
   const d = c.data;
   const g = (boy: string, girl: string, neutral: string) => (c.gender === 'MALE' ? boy : c.gender === 'FEMALE' ? girl : neutral);
-  const about = ['attendance.arrived', 'attendance.absentCheck', 'attendance.absent', 'attendance.left', 'attendance.lessonAbsent', 'attendance.lessonPresent', 'excuse.approved', 'excuse.rejected', 'message.new', 'behaviour.note'];
+  const about = ['attendance.arrived', 'attendance.absentCheck', 'attendance.absent', 'attendance.left', 'attendance.lessonAbsent', 'attendance.lessonPresent', 'excuse.approved', 'excuse.rejected', 'message.new', 'behaviour.note', 'marks.published', 'reportCard.published'];
   if (about.includes(type) && !name) return null;
 
   switch (type) {
@@ -80,6 +80,16 @@ export function pushBody(type: string, c: TextContext): string | null {
       return ar
         ? d.kind === 'PRAISE' ? `أحسنتم! ثناء من المدرسة على ${name}` : d.kind === 'INCIDENT' ? `تواصلت شؤون الطلبة معكم بشأن ${name}` : `ملاحظة من المدرسة بشأن ${name}`
         : d.kind === 'PRAISE' ? `Well done! A note of praise for ${name}` : d.kind === 'INCIDENT' ? `Student Affairs has written to you about ${name}` : `A note from school about ${name}`;
+    case 'marks.published': {
+      const [subject, title] = [str(d.subject), str(d.title)];
+      if (!subject || !title) return null;
+      return ar ? `درجة جديدة لـ${name} في ${str(d.subjectAr) || subject}: ${title}` : `New mark for ${name} in ${subject}: ${title}`;
+    }
+    case 'reportCard.published': {
+      const term = Number(d.term);
+      if (term !== 1 && term !== 2) return null;
+      return ar ? `صدرت شهادة ${name} عن الفصل الدراسي ${term === 1 ? 'الأول' : 'الثاني'}` : `${name}’s report card for term ${term} is ready`;
+    }
     case 'announcement.new':
       return str(d.title) ? (ar ? `جديد من المدرسة: ${str(d.title)}` : `New from the school: ${str(d.title)}`) : null;
     case 'announcement.emergency':

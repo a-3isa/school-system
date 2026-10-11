@@ -133,6 +133,14 @@ model School {
   chatThreads    ChatThread[]
   meetingWindows MeetingWindow[]
   behaviourNotes BehaviourNote[]
+
+  assessments  Assessment[]
+  reportCards  ReportCard[]
+  // Grade bands per school system, overriding the defaults in src/academics/grades.ts.
+  // { "BRITISH": [{ "min": 90, "label": "A*", "labelAr": "A*" }, …] }
+  gradeBands   Json @default("{}")
+  // Shown under the principal's comment on report cards.
+  principalName String?
 }
 
 model SchoolModule {
@@ -227,6 +235,8 @@ model Class {
   timetable       TimetableEntry[]
   attendance      AttendanceRecord[]
   aways           ClassAway[]
+  assessments     Assessment[]
+  reportCards     ReportCard[]
 
   @@unique([schoolId, name])
 }
@@ -237,20 +247,24 @@ model Room {
   name     String
   kind     RoomKind @default(CLASSROOM)
 
-  school    School           @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  timetable TimetableEntry[]
-  gateways  Gateway[]
+  school      School           @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  timetable   TimetableEntry[]
+  gateways    Gateway[]
+  assessments Assessment[]
 
   @@unique([schoolId, name])
 }
 
 model Subject {
-  id       String @id @default(cuid())
+  id       String  @id @default(cuid())
   schoolId String
   name     String
+  // The name in Arabic, shown on Arabic screens and report cards.
+  nameAr   String?
 
-  school    School           @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  timetable TimetableEntry[]
+  school      School           @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  timetable   TimetableEntry[]
+  assessments Assessment[]
 
   @@unique([schoolId, name])
 }
@@ -339,6 +353,8 @@ model Student {
   chatThreads  ChatThread[]
   meetingSlots MeetingSlot[]
   behaviourNotes BehaviourNote[]
+  marks        Mark[]
+  reportCards  ReportCard[]
 
   @@unique([schoolId, code])
   @@unique([schoolId, nationalId])
@@ -376,7 +392,9 @@ model AcademicYear {
   breakFrom     DateTime? @db.Date
   breakTo       DateTime? @db.Date
 
-  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  school      School       @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  assessments Assessment[]
+  reportCards ReportCard[]
 
   @@unique([schoolId, name])
 }
@@ -990,4 +1008,97 @@ model BehaviourNoteRead {
   user User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([noteId, userId])
+}
+
+enum AssessmentKind {
+  CLASSWORK
+  QUIZ
+  HOMEWORK
+  PROJECT
+  MIDTERM
+  FINAL
+}
+
+enum ReportCardStatus {
+  DRAFT
+  PUBLISHED
+}
+
+// Anything that is marked: a quiz, a project, an exam. One class, one subject, one term.
+model Assessment {
+  id          String         @id @default(cuid())
+  schoolId    String
+  yearId      String
+  term        Int            // 1 or 2, from SchoolCalendar.termOf for `date`
+  classId     String
+  subjectId   String
+  kind        AssessmentKind
+  title       String
+  date        DateTime       @db.Date
+  // Exams only: when and where (HH:mm, school time zone).
+  startTime   String?
+  endTime     String?
+  roomId      String?
+  maxScore    Int
+  weight      Int            @default(1)
+  createdById String?
+  createdAt   DateTime       @default(now())
+  publishedAt DateTime?
+
+  school  School       @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  year    AcademicYear @relation(fields: [yearId], references: [id], onDelete: Cascade)
+  class   Class        @relation(fields: [classId], references: [id], onDelete: Cascade)
+  subject Subject      @relation(fields: [subjectId], references: [id], onDelete: Restrict)
+  room    Room?        @relation(fields: [roomId], references: [id], onDelete: SetNull)
+  marks   Mark[]
+
+  @@index([schoolId, classId, subjectId, term])
+  @@index([schoolId, date])
+}
+
+// One student's score on one assessment.
+model Mark {
+  assessmentId String
+  studentId    String
+  // Up to 2 decimals; null when absent.
+  score        Decimal?  @db.Decimal(6, 2)
+  absent       Boolean   @default(false)
+  excused      Boolean   @default(false)
+  comment      String?
+  updatedById  String?
+  updatedAt    DateTime  @updatedAt
+
+  assessment Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  student    Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@id([assessmentId, studentId])
+  @@index([studentId])
+}
+
+// A student's report for one term. Publishing freezes `snapshot`.
+model ReportCard {
+  id                  String           @id @default(cuid())
+  schoolId            String
+  studentId           String
+  yearId              String
+  term                Int
+  classId             String
+  status              ReportCardStatus @default(DRAFT)
+  // { subjectId: "comment" } written by each subject's teacher.
+  subjectComments     Json             @default("{}")
+  classTeacherComment String?
+  principalComment    String?
+  // Frozen at publish: see ReportSnapshot in src/academics/grades.ts.
+  snapshot            Json?
+  publishedAt         DateTime?
+  publishedById       String?
+  updatedAt           DateTime         @updatedAt
+
+  school  School       @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  year    AcademicYear @relation(fields: [yearId], references: [id], onDelete: Cascade)
+  class   Class        @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, yearId, term])
+  @@index([schoolId, classId, term])
 }

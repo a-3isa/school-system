@@ -175,6 +175,13 @@ class Api {
       post('/parent/children/$childId/meetings/$slotId/book', {if (note != null && note.trim().isNotEmpty) 'note': note.trim()});
   Future<void> cancelMeeting(String slotId) => post('/parent/meetings/$slotId/cancel');
 
+  Future<Map<String, dynamic>> grades(String childId, [int? term]) async => await get('/parent/children/$childId/grades${term == null ? '' : '?term=$term'}') as Map<String, dynamic>;
+  Future<List<Map<String, dynamic>>> gradeTrend(String childId, String subjectId) async =>
+      ((await get('/parent/children/$childId/grades/trend?subjectId=$subjectId')) as List).cast<Map<String, dynamic>>();
+  Future<List<Map<String, dynamic>>> exams(String childId) async => ((await get('/parent/children/$childId/exams')) as List).cast<Map<String, dynamic>>();
+  Future<List<Map<String, dynamic>>> reportCards(String childId) async => ((await get('/parent/children/$childId/report-cards')) as List).cast<Map<String, dynamic>>();
+  Future<Map<String, dynamic>> reportCard(String childId, String id) async => await get('/parent/children/$childId/report-cards/$id') as Map<String, dynamic>;
+
   Future<Map<String, dynamic>> behaviour(String childId) async => await get('/parent/children/$childId/behaviour') as Map<String, dynamic>;
   Future<void> readBehaviourNote(String childId, String noteId) => post('/parent/children/$childId/behaviour/$noteId/read');
 
