@@ -14,9 +14,10 @@ import { NotificationsModule } from './notifications/notifications';
 import { AttendanceModule } from './attendance/attendance';
 import { AudienceModule } from './common/audience';
 import { MessagingModule } from './messaging/messaging.module';
+import { BehaviourModule } from './behaviour/behaviour';
 
 @Module({
-  imports: [PrismaModule, CalendarModule, AudienceModule, AuthModule, AuditModule, PlatformModule, SetupModule, TimetableModule, UsersModule, StudentsModule, NotificationsModule, AttendanceModule, MessagingModule],
+  imports: [PrismaModule, CalendarModule, AudienceModule, AuthModule, AuditModule, PlatformModule, SetupModule, TimetableModule, UsersModule, StudentsModule, NotificationsModule, AttendanceModule, MessagingModule, BehaviourModule],
   providers: [{ provide: APP_GUARD, useClass: AccessGuard }],
 })
 export class AppModule {}

@@ -132,6 +132,7 @@ model School {
   polls          Poll[]
   chatThreads    ChatThread[]
   meetingWindows MeetingWindow[]
+  behaviourNotes BehaviourNote[]
 }
 
 model SchoolModule {
@@ -174,6 +175,8 @@ model User {
   excusesSent Excuse[] @relation("ExcuseSubmitter")
   notifications Notification[]
   deviceTokens DeviceToken[]
+  behaviourWritten BehaviourNote[]     @relation("BehaviourAuthor")
+  behaviourReads   BehaviourNoteRead[]
 
   announcementsWritten Announcement[]     @relation("AnnouncementAuthor")
   announcementReads    AnnouncementRead[]
@@ -335,6 +338,7 @@ model Student {
   files      StudentFile[]
   chatThreads  ChatThread[]
   meetingSlots MeetingSlot[]
+  behaviourNotes BehaviourNote[]
 
   @@unique([schoolId, code])
   @@unique([schoolId, nationalId])
@@ -928,4 +932,62 @@ model MeetingSlot {
 
   @@index([windowId, startsAt])
   @@index([bookedById])
+}
+
+// ---- Behaviour ----------------------------------------------------------------
+
+enum BehaviourKind {
+  PRAISE
+  CONCERN
+  INCIDENT
+}
+
+enum IncidentSeverity {
+  MINOR
+  MODERATE
+  SERIOUS
+}
+
+// A teacher's or Student Affairs' note about a student: praise, a concern, or an incident.
+model BehaviourNote {
+  id               String            @id @default(cuid())
+  schoolId         String
+  studentId        String
+  authorId         String?
+  kind             BehaviourKind
+  // A short tag from the fixed list in src/behaviour/categories.ts, e.g. KINDNESS or HOMEWORK.
+  category         String
+  text             String
+  // Merit points (+ for praise, - for a concern); null when merits are off or for no points.
+  points           Int?
+  visibleToParents Boolean           @default(true)
+  // Incidents only.
+  severity         IncidentSeverity?
+  actionTaken      String?
+  place            String?
+  occurredAt       DateTime
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  // Set when the note is withdrawn; withdrawn notes disappear from parents and from the totals.
+  withdrawnAt      DateTime?
+
+  school  School              @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student Student             @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  author  User?               @relation("BehaviourAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  reads   BehaviourNoteRead[]
+
+  @@index([schoolId, occurredAt])
+  @@index([studentId, occurredAt])
+}
+
+// A parent opened a note.
+model BehaviourNoteRead {
+  noteId String
+  userId String
+  readAt DateTime @default(now())
+
+  note BehaviourNote @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  user User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([noteId, userId])
 }
