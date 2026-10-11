@@ -11,6 +11,7 @@ import '../theme.dart';
 import 'account.dart';
 import 'day.dart';
 import 'excuse.dart';
+import 'behaviour.dart';
 import 'meetings.dart';
 import 'messages.dart';
 import 'notifications.dart';
@@ -180,6 +181,10 @@ class _HomeScreenState extends State<HomeScreen> {
       return go('messages');
     }
     if (type == 'poll.new' && _data.has('messaging')) return go('messages');
+    if (type == 'behaviour.note' && _data.has('behavior')) {
+      await nav.push(MaterialPageRoute(builder: (_) => BehaviourScreen(api: widget.api, data: _data)));
+      return;
+    }
     if (type == 'meeting.cancelled' && _data.has('messaging', 'meetings')) {
       await nav.push(MaterialPageRoute(builder: (_) => MeetingsScreen(api: widget.api, data: _data)));
       return;

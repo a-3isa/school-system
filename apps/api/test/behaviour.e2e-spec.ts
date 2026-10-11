@@ -253,6 +253,14 @@ describe('Behaviour (e2e)', () => {
       await t1.get(`/api/behaviour/summary?classId=${id.classB}`).expect(403);
       expect((await admin.get(`/api/behaviour/summary?classId=${id.classB}`).expect(200)).body.map((s: any) => s.name)).toEqual(['Salma Test']);
     });
+
+    it('can be narrowed to one student for their page, and a teacher gets nothing for a student they do not teach', async () => {
+      const one = (await t1.get(`/api/behaviour/summary?studentId=${id.Ali}`).expect(200)).body;
+      expect(one).toHaveLength(1);
+      expect(one[0]).toMatchObject({ studentId: id.Ali, name: 'Ali Test', incident: 2, points: 3 - 2 - 10 });
+      expect((await t1.get(`/api/behaviour/summary?studentId=${id.Salma}`).expect(200)).body).toEqual([]);
+      expect((await admin.get(`/api/behaviour/summary?studentId=${id.Salma}`).expect(200)).body).toHaveLength(1);
+    });
   });
 
   describe('the module switch', () => {

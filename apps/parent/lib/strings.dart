@@ -177,6 +177,11 @@ class S {
       'announcement.emergency' => _('Urgent from the school: ${data['title']}', 'عاجل من المدرسة: ${data['title']}'),
       'poll.new' => _('The school asks your opinion: ${data['question']}', 'تودّ المدرسة معرفة رأيكم: ${data['question']}'),
       'message.new' => _('New message from ${data['from']} about $name', 'رسالة جديدة من ${data['from']} بشأن $name'),
+      'behaviour.note' => switch (data['kind']) {
+          'PRAISE' => _('Well done! A note of praise for $name', 'أحسنتم! ثناء من المدرسة على $name'),
+          'INCIDENT' => _('Student Affairs has written to you about $name', 'تواصلت شؤون الطلبة معكم بشأن $name'),
+          _ => _('A note from school about $name', 'ملاحظة من المدرسة بشأن $name'),
+        },
       'meeting.cancelled' when data['teacher'] != null && data['date'] != null && data['time'] != null => _(
           'Your meeting with ${data['teacher']} on ${dayLine(data['date'] as String)} at ${data['time']} was cancelled',
           'أُلغي موعد مقابلتكم مع ${data['teacher']} يوم ${dayLine(data['date'] as String)} الساعة ${_ltr(data['time'] as String)}'),
@@ -251,6 +256,50 @@ class S {
   String get cancelMeeting => _('Cancel meeting', 'إلغاء المقابلة');
   String get meetingCancelled => _('Your meeting was cancelled.', 'تم إلغاء المقابلة.');
   String meetingAt(String time, String place) => _('$time · $place', '${_ltr(time)} · $place');
+
+  // behaviour
+  String get behaviourTitle => _('Behaviour', 'السلوك');
+  String get behaviourPraise => _('Praise', 'ثناء');
+  String get behaviourConcerns => _('To follow up', 'للمتابعة');
+  String get behaviourPoints => _('Merit points', 'نقاط التميز');
+  String get behaviourThisYear => _('This school year', 'العام الدراسي الحالي');
+  String get noBehaviour => _('No notes yet. Notes from teachers will appear here.', 'لا توجد ملاحظات بعد. ستظهر هنا ملاحظات المعلمين.');
+  String behaviourKind(String kind) => switch (kind) {
+        'PRAISE' => _('Praise', 'ثناء'),
+        'INCIDENT' => _('From Student Affairs', 'من شؤون الطلبة'),
+        _ => _('Note', 'ملاحظة'),
+      };
+  String behaviourCategory(String category) => switch (category) {
+        'KINDNESS' => _('Kindness', 'اللطف'),
+        'EFFORT' => _('Effort', 'الاجتهاد'),
+        'ACHIEVEMENT' => _('Achievement', 'التفوق'),
+        'PARTICIPATION' => _('Participation', 'المشاركة'),
+        'LEADERSHIP' => _('Leadership', 'القيادة'),
+        'HELPING' => _('Helping others', 'مساعدة الآخرين'),
+        'HOMEWORK' => _('Homework', 'الواجبات'),
+        'PUNCTUALITY' => _('Punctuality', 'الالتزام بالمواعيد'),
+        'DISRUPTION' => _('Class conduct', 'الانضباط في الفصل'),
+        'UNIFORM' => _('Uniform', 'الزي المدرسي'),
+        'EQUIPMENT' => _('Equipment', 'الأدوات'),
+        'RESPECT' => _('Respect', 'الاحترام'),
+        'FIGHT' => _('Fighting', 'شجار'),
+        'BULLYING' => _('Bullying', 'تنمر'),
+        'DAMAGE' => _('Damage', 'إتلاف'),
+        'SAFETY' => _('Safety', 'السلامة'),
+        _ => _('Other', 'أخرى'),
+      };
+  String behaviourSeverity(String severity) => switch (severity) {
+        'SERIOUS' => _('Serious', 'جسيمة'),
+        'MODERATE' => _('Moderate', 'متوسطة'),
+        _ => _('Minor', 'بسيطة'),
+      };
+  String get behaviourNew => _('New', 'جديد');
+  String get behaviourAction => _('What the school did', 'ما اتخذته المدرسة');
+  /// "+3" / "−2": merit points of one note, always Latin digits.
+  String behaviourPointsN(int n) {
+    final v = '${n > 0 ? '+' : n < 0 ? '−' : ''}${n.abs()}';
+    return isAr ? _ltr(v) : v;
+  }
 
   // account
   String get name => _('Name', 'الاسم');

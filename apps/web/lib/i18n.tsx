@@ -72,8 +72,22 @@ const SERVER_AR: [RegExp, (...m: string[]) => string][] = [
       ['Meeting time not found.', 'لم يتم العثور على موعد المقابلة.'],
       ['This time isn’t booked.', 'هذا الموعد غير محجوز.'],
       ['Office hours must end after they start.', 'يجب أن تنتهي ساعات الاستقبال بعد بدايتها.'],
+      // Behaviour
+      ['You can write notes only for students you teach.', 'يمكنكم كتابة ملاحظات عن الطلاب الذين تدرّسونهم فقط.'],
+      ['Incidents are recorded by Student Affairs.', 'تسجّل شؤون الطلبة الوقائع.'],
+      ['Merit points are switched off for this school.', 'نقاط التميز غير مفعّلة في هذه المدرسة.'],
+      ['Choose a category that fits this kind of note.', 'اختاروا تصنيفًا يناسب نوع الملاحظة.'],
+      ['Choose how serious the incident is.', 'اختاروا درجة جسامة الواقعة.'],
+      ['Only incidents have a severity, an action taken and a place.', 'الجسامة والإجراء المتخذ والمكان خاصة بالوقائع فقط.'],
+      ['A note can’t be dated in the future.', 'لا يمكن تأريخ الملاحظة بتاريخ مستقبلي.'],
+      ['Note not found.', 'لم يتم العثور على الملاحظة.'],
+      ['Only the author or Student Affairs can change this note.', 'يمكن لكاتب الملاحظة أو لشؤون الطلبة فقط تعديلها.'],
+      ['You can see only the classes you teach.', 'يمكنكم الاطلاع على الفصول التي تدرّسونها فقط.'],
     ] as [string, string][]
   ).map(([en, ar]): [RegExp, () => string] => [new RegExp(`^${en.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`), () => ar]),
+  [/^Points for (praise|concern|incident) notes must be between (-?\d+) and (-?\d+)\.$/, (_, _k, a, b) => `يجب أن تكون النقاط بين ${a} و${b}.`],
+  [/^A note can be dated up to (\d+) days back\.$/, (_, n) => `يمكن تأريخ الملاحظة حتى ${n} يومًا إلى الوراء.`],
+  [/^You can change your own notes for (\d+) hours\. After that, please ask Student Affairs\.$/, (_, n) => `يمكنكم تعديل ملاحظاتكم خلال ${n} ساعة، وبعد ذلك يُرجى الرجوع إلى شؤون الطلبة.`],
 ];
 export function serverTextAr(s: string): string {
   for (const [re, f] of SERVER_AR) {

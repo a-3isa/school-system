@@ -205,13 +205,13 @@ export class BehaviourService {
   }
 
   /** Per student: how many notes of each kind and the merit points, this school year. */
-  async summary(user: AuthUser, schoolId: string, classId?: string, now = new Date()) {
+  async summary(user: AuthUser, schoolId: string, classId?: string, studentId?: string, now = new Date()) {
     const school = await this.prisma.school.findUniqueOrThrow({ where: { id: schoolId } });
     const scope = await this.studentScope(user, schoolId);
     if (classId && scope && !scope.has(classId)) throw new ForbiddenException('You can see only the classes you teach.');
     const classIds = classId ? [classId] : scope ? [...scope] : undefined;
     const students = await this.prisma.student.findMany({
-      where: { schoolId, active: true, ...(classIds ? { classId: { in: classIds } } : {}) },
+      where: { schoolId, active: true, ...(studentId ? { id: studentId } : {}), ...(classIds ? { classId: { in: classIds } } : {}) },
       select: { id: true, firstName: true, lastName: true, class: { select: { name: true } } },
       orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
     });
@@ -295,8 +295,8 @@ export class BehaviourController {
   }
 
   @Get('summary')
-  summary(@CurrentUser() user: AuthUser, @SchoolId() schoolId: string, @Query('classId') classId?: string) {
-    return this.behaviour.summary(user, schoolId, classId);
+  summary(@CurrentUser() user: AuthUser, @SchoolId() schoolId: string, @Query('classId') classId?: string, @Query('studentId') studentId?: string) {
+    return this.behaviour.summary(user, schoolId, classId, studentId);
   }
 
   @Get()

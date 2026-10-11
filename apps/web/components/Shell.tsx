@@ -36,7 +36,7 @@ export const STAFF = [...SCHOOL_WIDE, 'TEACHER'];
 const WRITERS = ['SCHOOL_ADMIN', 'SOCIAL_WORKER', 'TEACHER'];
 const CHATTERS = ['SCHOOL_ADMIN', 'TEACHER'];
 
-// Later features add their own items here (academics, behaviour, activities).
+// Later features add their own items here (academics, activities).
 const SCHOOL_NAV: { group: NavKey; items: NavItem[] }[] = [
   { group: 'teaching', items: [{ href: '/class', key: 'myClass', roles: ['TEACHER'] }] },
   { group: 'overview', items: [{ href: '/today', key: 'today', roles: SCHOOL_WIDE }] },
@@ -59,6 +59,7 @@ const SCHOOL_NAV: { group: NavKey; items: NavItem[] }[] = [
       { href: '/emergency', key: 'emergency', module: 'messaging', roles: ADMIN },
     ],
   },
+  { group: 'behaviour', items: [{ href: '/behaviour', key: 'behaviourNotes', module: 'behavior', roles: WRITERS }] },
   {
     group: 'people',
     items: [

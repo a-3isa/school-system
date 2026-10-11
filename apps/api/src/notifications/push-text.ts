@@ -78,7 +78,7 @@ export function pushBody(type: string, c: TextContext): string | null {
       return ar ? `لم تقبل المدرسة عذر ${name}` : `The school did not accept ${name}’s excuse`;
     case 'behaviour.note':
       return ar
-        ? d.kind === 'PRAISE' ? `أحسنت! ثناء من المدرسة على ${name}` : d.kind === 'INCIDENT' ? `تواصلت شؤون الطلبة معكم بشأن ${name}` : `ملاحظة من المدرسة بشأن ${name}`
+        ? d.kind === 'PRAISE' ? `أحسنتم! ثناء من المدرسة على ${name}` : d.kind === 'INCIDENT' ? `تواصلت شؤون الطلبة معكم بشأن ${name}` : `ملاحظة من المدرسة بشأن ${name}`
         : d.kind === 'PRAISE' ? `Well done! A note of praise for ${name}` : d.kind === 'INCIDENT' ? `Student Affairs has written to you about ${name}` : `A note from school about ${name}`;
     case 'announcement.new':
       return str(d.title) ? (ar ? `جديد من المدرسة: ${str(d.title)}` : `New from the school: ${str(d.title)}`) : null;

@@ -4,6 +4,8 @@ import { useMemo, useRef, useState } from 'react';
 import { minutes, nowCairo, put, timeCairo, todayCairo } from '@/lib/api';
 import { useAction, useApi, useEvery } from '@/lib/hooks';
 import { useI18n } from '@/lib/i18n';
+import { has, useSession } from '@/lib/session';
+import { NoteModal } from './BehaviourNote';
 import { ABSENCE_TONE, EXCUSE_TONE } from './Lessons';
 import { ErrorNote, LiveStamp, Note, Status, STATUS_GLYPH, Tag, toast } from './ui';
 
@@ -24,6 +26,9 @@ export function AttendanceList({ classId, periodId, date, crumb }: { classId: st
   const isToday = date === todayCairo();
   const periods = useApi<any[]>(isToday ? '/periods' : null);
   const save = useAction();
+  const { me } = useSession();
+  const canNote = has(me, 'behavior') && ['SCHOOL_ADMIN', 'TEACHER', 'SOCIAL_WORKER'].includes(me.role);
+  const [noting, setNoting] = useState<{ id: string; name: string } | null>(null);
   const [chosen, setChosen] = useState<Record<string, Status>>({});
   /** The row order shown last; kept once the teacher has tapped anyone, so nothing jumps under their finger. */
   const order = useRef<string[]>([]);
@@ -176,10 +181,16 @@ export function AttendanceList({ classId, periodId, date, crumb }: { classId: st
                   </button>
                 ))}
               </div>
+              {canNote && (
+                <button type="button" className="btn small" aria-label={`${t.beh.addNote}: ${s.name}`} title={t.beh.addNote} onClick={() => setNoting({ id: s.id, name: s.name })}>
+                  <span aria-hidden="true">★</span>
+                </button>
+              )}
             </li>
           );
         })}
       </ul>
+      {noting && <NoteModal student={noting} onClose={() => setNoting(null)} onSaved={() => { setNoting(null); toast(t.beh.saved); }} />}
     </>
   );
 }

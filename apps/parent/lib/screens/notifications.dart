@@ -81,6 +81,7 @@ class _Row extends StatelessWidget {
       'announcement.emergency' || 'meeting.cancelled' => ('!', c.aFg, c.aBg),
       'announcement.new' || 'message.new' => ('✉', c.eFg, c.eBg),
       'poll.new' => ('?', c.lFg, c.lBg),
+      'behaviour.note' => switch (info['kind']) { 'PRAISE' => ('★', c.pFg, c.pBg), 'INCIDENT' => ('⚠', c.aFg, c.aBg), _ => ('!', c.lFg, c.lBg) },
       _ => ('i', c.eFg, c.eBg),
     };
     final text = child == null && !S.schoolNotificationTypes.contains(type)

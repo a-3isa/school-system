@@ -43,7 +43,7 @@ describe('pushBody', () => {
     expect(pushBody('behaviour.note', ctx({ data: { kind: 'PRAISE' } }))).toBe('Well done! A note of praise for Salma');
     expect(pushBody('behaviour.note', ctx({ data: { kind: 'CONCERN' } }))).toBe('A note from school about Salma');
     expect(pushBody('behaviour.note', ctx({ data: { kind: 'INCIDENT' } }))).toBe('Student Affairs has written to you about Salma');
-    expect(pushBody('behaviour.note', ctx({ lang: 'ar', name: 'سلمى', data: { kind: 'PRAISE' } }))).toBe('أحسنت! ثناء من المدرسة على سلمى');
+    expect(pushBody('behaviour.note', ctx({ lang: 'ar', name: 'سلمى', data: { kind: 'PRAISE' } }))).toBe('أحسنتم! ثناء من المدرسة على سلمى');
     expect(pushBody('behaviour.note', ctx({ lang: 'ar', name: 'سلمى', data: { kind: 'CONCERN' } }))).toBe('ملاحظة من المدرسة بشأن سلمى');
     expect(pushBody('behaviour.note', ctx({ lang: 'ar', name: 'سلمى', data: { kind: 'INCIDENT' } }))).toBe('تواصلت شؤون الطلبة معكم بشأن سلمى');
     expect(pushBody('behaviour.note', ctx({ name: null, data: { kind: 'PRAISE' } }))).toBeNull();

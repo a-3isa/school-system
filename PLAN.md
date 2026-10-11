@@ -140,10 +140,10 @@ Depends on **M9 Payments**.
 - Links to online classes (Zoom / Google Meet)
 
 ### M7 · Behavior & Teacher Notes **[Phase 4]**
-- Teacher notes to parents (positive and concerns)
-- Behavior points / merits *(feature toggle)*
-- Incident reports
-- Clinic visits: nurse log, parent notified *(feature toggle)*
+- Teacher notes to parents (positive and concerns) ✔ built
+- Behavior points / merits *(feature toggle)* ✔ built
+- Incident reports ✔ built (Student Affairs only; kept back from parents until shared)
+- Clinic visits: nurse log, parent notified *(feature toggle)* · not built yet
 
 ### M8 · Communication & Messaging **[Phase 4]**
 - Parent ↔ teacher chat, with configurable office hours
@@ -260,7 +260,7 @@ Each phase ends with something a school can use and pay for. Nothing gets rebuil
 **Phase 4 · School life**
 - Activities & clubs, trips and permission slips, events
 - Academics: grades, exams, report cards (built on the Phase 1 timetable)
-- Behavior & notes, clinic visits
+- Behavior & notes, clinic visits. Notes, incidents and merit points are **built**; clinic visits are not
 - Messaging: parent–teacher chat, announcements, polls, meetings, emergency broadcast. **Built.** Announcements to a bus or a club follow with Transport and Activities; WhatsApp to bus supervisors with Transport
 
 **Phase 5 · Business & add-ons**
@@ -355,6 +355,7 @@ Each phase ends with something a school can use and pay for. Nothing gets rebuil
 | T8 | Report cards | A printable A4 page on the dashboard (the browser prints it to PDF) and a native screen in the parent app; no PDF engine on the server |
 | T9 | Chat delivery | Live over WebSockets, with the app refreshing every 30 seconds if the connection drops |
 | T10 | Fees before Payments | Paid clubs and trips show their fee; staff mark them paid by hand until Phase 3 |
+| T11 | Behaviour notes | Teachers write praise and concerns for students they teach or lead; only Student Affairs and the social worker record incidents. Praise and concerns are shared with parents unless the writer unticks it; an incident is kept back until shared. A writer can change their own note for 24 hours, then only Student Affairs can |
 
 ## 9. How to charge schools
 
