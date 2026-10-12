@@ -164,6 +164,7 @@ async function main() {
   await demoMessaging(owner, admin, school.id, hana.id);
   await demoBehaviour(owner, admin, school.id);
   await demoAcademics(owner, admin, school.id);
+  await demoActivities(owner, admin, school.id, hana.id);
   console.log(`Demo school ready (${school.id}). Sign in as admin@demo.school / demo-admin-1`);
   // Today so far, as if the gateways had been running since the morning.
   await playDay(api, owner, admin, secrets);
@@ -298,6 +299,82 @@ async function demoAcademics(owner: string, admin: string, schoolId: string) {
   await comment(hana, { classTeacherComment: 'A kind and helpful member of the class. Well done!' });
   await comment(admin, { principalComment: 'We are proud of your progress. Keep it up.' });
   await A('POST', '/academics/report-cards/publish', { ids: [card.id] });
+}
+
+/**
+ * Clubs, a trip and events for the demo school: three clubs (Chess is full and has a waiting list, Art has a fee that is
+ * partly paid), one trip next week for class 4/1 that is open for permission with two answers, a past event with
+ * three photos and an upcoming one.
+ */
+async function demoActivities(owner: string, admin: string, schoolId: string, hanaId: string) {
+  await call(owner, 'PUT', `/owner/schools/${schoolId}/modules/activities`, { enabled: true });
+  await call(owner, 'PATCH', `/owner/schools/${schoolId}/modules/activities/features`, { features: { paidActivities: true } });
+  const A = (m: string, p: string, b?: unknown) => call(admin, m, p, b);
+  const classes: any[] = await A('GET', '/classes');
+  const rooms: any[] = await A('GET', '/rooms');
+  const c4a = classes.find((c) => c.name === '4/1');
+  const today = new Date();
+  const schoolDay = (offsetDays: number) => {
+    const d = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + offsetDays));
+    while (d.getUTCDay() > 4) d.setUTCDate(d.getUTCDate() + 1); // Friday and Saturday are the weekend
+    return d.toISOString().slice(0, 10);
+  };
+  const parent = async (n: number) => {
+    const token = (await call(null, 'POST', '/auth/login', { login: `parent${n}@demo.school`, password: 'demo-parent-1' })).token;
+    return { token, kids: (await call(token, 'GET', '/parent/children')) as any[] };
+  };
+
+  const chess = await A('POST', '/activities', { name: 'Chess club', nameAr: 'نادي الشطرنج', description: 'Openings, tactics and friendly matches.', supervisorId: hanaId, days: [0, 2], startTime: '14:30', endTime: '15:30', roomId: rooms.find((r) => r.name === 'Room 205')?.id, capacity: 2 });
+  const art = await A('POST', '/activities', { name: 'Art workshop', nameAr: 'ورشة الفن', description: 'Drawing and painting, with all materials provided.', days: [1], startTime: '14:30', endTime: '15:30', capacity: 15, fee: 350 });
+  await A('POST', '/activities', { name: 'Football', nameAr: 'كرة القدم', days: [3], startTime: '14:00', endTime: '15:00', capacity: 20 });
+
+  // Chess takes two places, so the third family is on the waiting list; one Art place is paid for.
+  const joined: { token: string; kid: any }[] = [];
+  for (const n of [1, 2, 3]) {
+    const p = await parent(n);
+    const kid = p.kids[0];
+    await call(p.token, 'POST', `/parent/children/${kid.id}/activities/${chess.id}/join`);
+    joined.push({ token: p.token, kid });
+  }
+  await call(joined[0].token, 'POST', `/parent/children/${joined[0].kid.id}/activities/${art.id}/join`);
+  await call(joined[1].token, 'POST', `/parent/children/${joined[1].kid.id}/activities/${art.id}/join`);
+  await A('POST', `/activities/${art.id}/students/${joined[0].kid.id}/paid`, { paid: true });
+
+  // A trip next week for 4/1, open for permission: one family has agreed and one has declined.
+  const date = schoolDay(7);
+  const answerBy = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + 4, 15, 0)).toISOString(); // 18:00 in Cairo
+  const trip = await A('POST', '/trips', {
+    title: 'Visit to the Egyptian Museum', destination: 'Tahrir, Cairo', description: 'Students bring a packed lunch and wear the school PE kit.',
+    date, departTime: '08:30', returnTime: '13:00', fromPeriod: 1, toPeriod: 4, fee: 150, consentBy: answerBy, leaderId: hanaId, classIds: [c4a.id],
+  });
+  await A('POST', `/trips/${trip.id}/open`);
+  let answered = 0;
+  for (let n = 1; n <= 8 && answered < 2; n++) {
+    const p = await parent(n);
+    const kid = p.kids.find((k: any) => k.class?.id === c4a.id);
+    if (!kid) continue;
+    await call(p.token, 'POST', `/parent/children/${kid.id}/trips/${trip.id}/consent`, answered === 0
+      ? { decision: 'GIVEN', signedName: `Parent of ${kid.firstName}`, note: 'Please remind them to take a hat.' }
+      : { decision: 'DECLINED', signedName: `Parent of ${kid.firstName}` });
+    answered++;
+  }
+
+  // Events: a picnic last week with photos, and sports day next week.
+  const at = (offsetDays: number, hour: number) => new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + offsetDays, hour)).toISOString();
+  const picnic = await A('POST', '/events', { title: 'Welcome picnic', description: 'Families and teachers met in the school garden.', place: 'School garden', startsAt: at(-10, 7), endsAt: at(-10, 10), audience: { kind: 'SCHOOL' } });
+  const photo = async (eventId: string, rgb: [number, number, number], caption: string) => {
+    const form = new FormData();
+    form.append('caption', caption);
+    form.append('file', new Blob([new Uint8Array(squarePng(160, rgb))], { type: 'image/png' }), 'photo.png');
+    const res = await fetch(`${api}/events/${eventId}/photos`, { method: 'POST', headers: { authorization: `Bearer ${admin}` }, body: form });
+    if (!res.ok) throw new Error(`photo: ${res.status}`);
+  };
+  await photo(picnic.id, [226, 160, 90], 'Lunch in the garden');
+  await photo(picnic.id, [90, 160, 120], 'The relay race');
+  await photo(picnic.id, [90, 120, 200], 'Group photo');
+  await A('POST', `/events/${picnic.id}/publish`);
+  const sports = await A('POST', '/events', { title: 'Sports day', description: 'Races, relays and a tug of war between the classes.', place: 'School yard', startsAt: at(10, 6), endsAt: at(10, 10), audience: { kind: 'SCHOOL' } });
+  await A('POST', `/events/${sports.id}/publish`);
 }
 main().catch((e) => {
   console.error(e.message);

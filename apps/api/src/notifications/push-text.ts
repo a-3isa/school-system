@@ -46,7 +46,7 @@ export function pushBody(type: string, c: TextContext): string | null {
   const name = c.name ?? '';
   const d = c.data;
   const g = (boy: string, girl: string, neutral: string) => (c.gender === 'MALE' ? boy : c.gender === 'FEMALE' ? girl : neutral);
-  const about = ['attendance.arrived', 'attendance.absentCheck', 'attendance.absent', 'attendance.left', 'attendance.lessonAbsent', 'attendance.lessonPresent', 'excuse.approved', 'excuse.rejected', 'message.new', 'behaviour.note', 'marks.published', 'reportCard.published'];
+  const about = ['attendance.arrived', 'attendance.absentCheck', 'attendance.absent', 'attendance.left', 'attendance.lessonAbsent', 'attendance.lessonPresent', 'excuse.approved', 'excuse.rejected', 'message.new', 'behaviour.note', 'marks.published', 'reportCard.published', 'activity.promoted', 'trip.consent', 'trip.reminder', 'trip.answered'];
   if (about.includes(type) && !name) return null;
 
   switch (type) {
@@ -107,6 +107,36 @@ export function pushBody(type: string, c: TextContext): string | null {
       return ar
         ? `أُلغي موعد مقابلتكم مع ${arabicTitled(teacher)} يوم ${dayLine(date, 'ar')} الساعة ${ltr(time)}`
         : `Your meeting with ${teacher} on ${dayLine(date, 'en')} at ${time} was cancelled`;
+    }
+    case 'activity.promoted': {
+      const club = (ar && str(d.nameAr)) || str(d.name);
+      if (!club) return null;
+      return ar ? `يسعدنا إبلاغكم بأنه أصبح لـ${name} مكان في ${club}` : `Good news: ${name} now has a place in ${club}`;
+    }
+    case 'trip.consent': {
+      const [title, date] = [str(d.title), str(d.date)];
+      if (!title || !date) return null;
+      return ar ? `مطلوب موافقتكم: رحلة ${title} يوم ${dayLine(date, 'ar')} لـ${name}` : `Permission needed: ${title} on ${dayLine(date, 'en')} for ${name}`;
+    }
+    case 'trip.reminder':
+      return ar ? `تذكير: يُرجى الرد على طلب الموافقة على رحلة ${name} قبل الغد` : `Reminder: please answer the permission slip for ${name} by tomorrow`;
+    case 'trip.answered': {
+      const by = str(d.by);
+      if (!by || (d.decision !== 'GIVEN' && d.decision !== 'DECLINED')) return null;
+      const yes = d.decision === 'GIVEN';
+      return ar ? `ردّ ${arabicTitled(by)} على طلب الموافقة على رحلة ${name}: ${yes ? 'موافق' : 'غير موافق'}` : `${by} answered the permission slip for ${name}: ${yes ? 'Yes' : 'No'}`;
+    }
+    case 'trip.changed':
+      return str(d.title) ? (ar ? `طرأ تعديل على رحلة ${str(d.title)}، يُرجى مراجعة التفاصيل` : `The trip ${str(d.title)} has changed. Please check the details`) : null;
+    case 'trip.cancelled': {
+      const [title, date] = [str(d.title), str(d.date)];
+      if (!title || !date) return null;
+      return ar ? `أُلغيت رحلة ${title} المقررة يوم ${dayLine(date, 'ar')}` : `The trip ${title} on ${dayLine(date, 'en')} has been cancelled`;
+    }
+    case 'event.new': {
+      const [title, date] = [str(d.title), str(d.date)];
+      if (!title || !date) return null;
+      return ar ? `فعالية مدرسية: ${title} يوم ${dayLine(date, 'ar')}` : `School event: ${title} on ${dayLine(date, 'en')}`;
     }
     default:
       return null;

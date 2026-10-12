@@ -112,6 +112,16 @@ export async function download(path: string, filename: string) {
 }
 
 /** The moment a date and time (HH:MM) on a Cairo clock fall on, as a Date. Cairo is UTC+3 in summer time and UTC+2 otherwise. */
+/** The Cairo date (YYYY-MM-DD) of a moment, for filling a date field from a saved time. */
+export function cairoDate(iso: string): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Cairo' }).format(new Date(iso));
+}
+
+/** The Cairo time (HH:mm, 24-hour) of a moment. */
+export function cairoHm(iso: string): string {
+  return new Intl.DateTimeFormat('en-GB', { timeZone: 'Africa/Cairo', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(iso));
+}
+
 export function cairoInstant(date: string, hm: string): Date {
   const at = (offset: number) => new Date(Date.parse(`${date}T${hm}:00Z`) - offset * 3600_000);
   const reads = (d: Date) => new Intl.DateTimeFormat('sv-SE', { timeZone: 'Africa/Cairo', dateStyle: 'short', timeStyle: 'short' }).format(d);

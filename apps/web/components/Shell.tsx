@@ -69,6 +69,14 @@ const SCHOOL_NAV: { group: NavKey; items: NavItem[] }[] = [
   },
   { group: 'behaviour', items: [{ href: '/behaviour', key: 'behaviourNotes', module: 'behavior', roles: WRITERS }] },
   {
+    group: 'activities',
+    items: [
+      { href: '/activities', key: 'clubs', module: 'activities', roles: STAFF },
+      { href: '/trips', key: 'trips', module: 'activities', feature: 'trips', roles: STAFF },
+      { href: '/events', key: 'events', module: 'activities', feature: 'events', roles: ADMIN },
+    ],
+  },
+  {
     group: 'people',
     items: [
       { href: '/students', key: 'students', roles: SCHOOL_WIDE },

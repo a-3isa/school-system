@@ -12,11 +12,14 @@ import 'account.dart';
 import 'day.dart';
 import 'excuse.dart';
 import 'behaviour.dart';
+import 'clubs.dart';
+import 'event.dart';
 import 'grades.dart';
 import 'meetings.dart';
 import 'messages.dart';
 import 'notifications.dart';
 import 'school.dart';
+import 'trips.dart';
 
 /// What every tab shares: the parent's children and their notifications,
 /// refreshed every minute while the app is open.
@@ -188,6 +191,18 @@ class _HomeScreenState extends State<HomeScreen> {
     }
     if (type == 'behaviour.note' && _data.has('behavior')) {
       await nav.push(MaterialPageRoute(builder: (_) => BehaviourScreen(api: widget.api, data: _data)));
+      return;
+    }
+    if (type == 'activity.promoted' && _data.has('activities')) {
+      await nav.push(MaterialPageRoute(builder: (_) => ClubsScreen(api: widget.api, data: _data)));
+      return;
+    }
+    if (type.startsWith('trip.') && _data.has('activities', 'trips')) {
+      await nav.push(MaterialPageRoute(builder: (_) => TripsScreen(api: widget.api, data: _data, openTripId: type == 'trip.cancelled' ? null : info['tripId'] as String?)));
+      return;
+    }
+    if (type == 'event.new' && info['eventId'] is String && _data.has('activities', 'events')) {
+      await nav.push(MaterialPageRoute(builder: (_) => EventScreen(api: widget.api, eventId: info['eventId'] as String)));
       return;
     }
     if (type == 'meeting.cancelled' && _data.has('messaging', 'meetings')) {

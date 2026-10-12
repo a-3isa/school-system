@@ -30,6 +30,28 @@ describe('pushBody', () => {
     expect(pushBody('excuse.approved', boy)).toBe('قبلت المدرسة عذر أحمد');
   });
 
+  it('words clubs, trips and events in both languages, and the child’s name where it is about the child', () => {
+    const club = { name: 'Chess', nameAr: 'الشطرنج' };
+    expect(pushBody('activity.promoted', ctx({ data: club }))).toBe('Good news: Salma now has a place in Chess');
+    expect(pushBody('activity.promoted', ctx({ lang: 'ar', name: 'سلمى', data: club }))).toBe('يسعدنا إبلاغكم بأنه أصبح لـسلمى مكان في الشطرنج');
+    expect(pushBody('activity.promoted', ctx({ lang: 'ar', name: 'سلمى', data: { name: 'Chess' } }))).toBe('يسعدنا إبلاغكم بأنه أصبح لـسلمى مكان في Chess');
+    const trip = { title: 'Pyramids', date: '2030-03-05' };
+    expect(pushBody('trip.consent', ctx({ data: trip }))).toBe('Permission needed: Pyramids on Tuesday 5 March for Salma');
+    expect(pushBody('trip.consent', ctx({ lang: 'ar', name: 'سلمى', data: trip }))).toBe('مطلوب موافقتكم: رحلة Pyramids يوم الثلاثاء 5 مارس لـسلمى');
+    expect(pushBody('trip.reminder', ctx())).toBe('Reminder: please answer the permission slip for Salma by tomorrow');
+    expect(pushBody('trip.reminder', ctx({ lang: 'ar', name: 'سلمى' }))).toBe('تذكير: يُرجى الرد على طلب الموافقة على رحلة سلمى قبل الغد');
+    expect(pushBody('trip.answered', ctx({ data: { by: 'Dina', decision: 'GIVEN' } }))).toBe('Dina answered the permission slip for Salma: Yes');
+    expect(pushBody('trip.answered', ctx({ lang: 'ar', name: 'سلمى', data: { by: 'Dina', decision: 'DECLINED' } }))).toBe('ردّ Dina على طلب الموافقة على رحلة سلمى: غير موافق');
+    expect(pushBody('trip.answered', ctx({ data: { by: 'Dina' } }))).toBeNull(); // no decision: the server’s words
+    expect(pushBody('trip.changed', ctx({ data: trip }))).toBe('The trip Pyramids has changed. Please check the details');
+    expect(pushBody('trip.changed', ctx({ lang: 'ar', data: trip }))).toBe('طرأ تعديل على رحلة Pyramids، يُرجى مراجعة التفاصيل');
+    expect(pushBody('trip.cancelled', ctx({ data: trip }))).toBe('The trip Pyramids on Tuesday 5 March has been cancelled');
+    expect(pushBody('trip.cancelled', ctx({ lang: 'ar', data: trip }))).toBe('أُلغيت رحلة Pyramids المقررة يوم الثلاثاء 5 مارس');
+    expect(pushBody('event.new', ctx({ name: null, data: { title: 'Sports day', date: '2030-03-10' } }))).toBe('School event: Sports day on Sunday 10 March');
+    expect(pushBody('event.new', ctx({ lang: 'ar', name: null, data: { title: 'اليوم الرياضي', date: '2030-03-10' } }))).toBe('فعالية مدرسية: اليوم الرياضي يوم الأحد 10 مارس');
+    expect(pushBody('trip.consent', ctx({ name: null, data: trip }))).toBeNull(); // about a child, but no child
+  });
+
   it('words messages from the school in both languages', () => {
     expect(pushBody('announcement.new', ctx({ data: { title: 'Sports day' } }))).toBe('New from the school: Sports day');
     expect(pushBody('announcement.new', ctx({ lang: 'ar', data: { title: 'اليوم الرياضي' } }))).toBe('جديد من المدرسة: اليوم الرياضي');

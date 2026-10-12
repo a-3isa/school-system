@@ -44,9 +44,12 @@ export class AudienceService {
         if (found !== ids.length) throw new BadRequestException('Year group or class not found.');
         return;
       }
-      case 'ACTIVITY':
-        // Clubs arrive with the Activities module.
-        throw new BadRequestException('Clubs aren’t available yet.');
+      case 'ACTIVITY': {
+        if (!ids.length) throw new BadRequestException('Choose at least one club.');
+        const found = await this.prisma.activity.count({ where: { schoolId, id: { in: ids }, archivedAt: null } });
+        if (found !== ids.length) throw new BadRequestException('Club not found.');
+        return;
+      }
     }
   }
 
@@ -62,7 +65,7 @@ export class AudienceService {
       case 'CLASSES':
         return { ...base, classId: { in: ids } };
       case 'ACTIVITY':
-        throw new BadRequestException('Clubs aren’t available yet.');
+        return { ...base, activityEnrolments: { some: { activityId: { in: ids }, status: 'ENROLLED' } } };
     }
   }
 

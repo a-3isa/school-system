@@ -184,6 +184,15 @@ class S {
           'INCIDENT' => _('Student Affairs has written to you about $name', 'تواصلت شؤون الطلبة معكم بشأن $name'),
           _ => _('A note from school about $name', 'ملاحظة من المدرسة بشأن $name'),
         },
+      'activity.promoted' when data['name'] != null => _('Good news: $name now has a place in ${data['name']}', 'يسعدنا إبلاغكم بأنه أصبح لـ$name مكان في ${(data['nameAr'] as String?)?.isNotEmpty == true ? data['nameAr'] : data['name']}'),
+      'trip.consent' when data['title'] != null && data['date'] != null => _('Permission needed: ${data['title']} on ${dayLine(data['date'] as String)} for $name', 'مطلوب موافقتكم: رحلة ${data['title']} يوم ${dayLine(data['date'] as String)} لـ$name'),
+      'trip.reminder' => _('Reminder: please answer the permission slip for $name by tomorrow', 'تذكير: يُرجى الرد على طلب الموافقة على رحلة $name قبل الغد'),
+      'trip.answered' when data['by'] != null && (data['decision'] == 'GIVEN' || data['decision'] == 'DECLINED') => _(
+          '${data['by']} answered the permission slip for $name: ${data['decision'] == 'GIVEN' ? 'Yes' : 'No'}',
+          'ردّ ${data['by']} على طلب الموافقة على رحلة $name: ${data['decision'] == 'GIVEN' ? 'موافق' : 'غير موافق'}'),
+      'trip.changed' when data['title'] != null => _('The trip ${data['title']} has changed. Please check the details', 'طرأ تعديل على رحلة ${data['title']}، يُرجى مراجعة التفاصيل'),
+      'trip.cancelled' when data['title'] != null && data['date'] != null => _('The trip ${data['title']} on ${dayLine(data['date'] as String)} has been cancelled', 'أُلغيت رحلة ${data['title']} المقررة يوم ${dayLine(data['date'] as String)}'),
+      'event.new' when data['title'] != null && data['date'] != null => _('School event: ${data['title']} on ${dayLine(data['date'] as String)}', 'فعالية مدرسية: ${data['title']} يوم ${dayLine(data['date'] as String)}'),
       'meeting.cancelled' when data['teacher'] != null && data['date'] != null && data['time'] != null => _(
           'Your meeting with ${data['teacher']} on ${dayLine(data['date'] as String)} at ${data['time']} was cancelled',
           'أُلغي موعد مقابلتكم مع ${data['teacher']} يوم ${dayLine(data['date'] as String)} الساعة ${_ltr(data['time'] as String)}'),
@@ -192,7 +201,7 @@ class S {
   }
 
   /// Notifications that are about the school, not about one child, so they read the same without a child.
-  static const schoolNotificationTypes = {'announcement.new', 'announcement.emergency', 'poll.new', 'meeting.cancelled'};
+  static const schoolNotificationTypes = {'announcement.new', 'announcement.emergency', 'poll.new', 'meeting.cancelled', 'event.new'};
 
   // messaging
   String _ltr(String s) => '${String.fromCharCode(0x2066)}$s${String.fromCharCode(0x2069)}';
@@ -398,6 +407,119 @@ class S {
   String get doneA => _('Your mobile number is now', 'رقم هاتفكم الآن');
   String get doneC => _('Student Affairs has been notified.', 'وقد أُبلغت شؤون الطلبة بذلك.');
   String get done => _('Done', 'تم');
+
+  // clubs, trips and the calendar
+  /// A day of the week by number, 0 = Sunday: short in English, full in Arabic.
+  String weekdayShort(int d) {
+    const en = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const ar = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+    return (isAr ? ar : en)[d % 7];
+  }
+  String daysLine(List<dynamic> days) => ([...days.cast<int>()]..sort()).map(weekdayShort).join(isAr ? '، ' : ', ');
+  String clubName(Map<String, dynamic> c) => isAr && (c['nameAr'] as String?)?.isNotEmpty == true ? c['nameAr'] as String : c['name'] as String;
+
+  String get clubsTitle => _('Clubs & activities', 'الأندية والأنشطة');
+  String get clubsSub => _('Sign your child up for a club.', 'سجّلوا أبناءكم في الأندية.');
+  String get joinedClubs => _('Joined', 'المشترك فيها');
+  String openTo(String name) => _('Open to $name', 'المتاحة لـ$name');
+  String get noClubs => _('No clubs are open for sign-up yet.', 'لا توجد أندية مفتوحة للتسجيل بعد.');
+  String clubMeets(String days, String from, String to) => _('$days · $from–$to', '$days · ${_ltr('$from–$to')}');
+  String placesLeft(int n) => n <= 0
+      ? _('Full', 'مكتمل العدد')
+      : _('$n ${n == 1 ? 'place' : 'places'} left', n == 1 ? 'متبقٍ مكان واحد' : n == 2 ? 'متبقٍ مكانان' : 'متبقٍ ${_arCount(n, '', '', 'أماكن', 'مكانًا')}');
+  String feePerTerm(int n) => _('$n EGP per term', '${_ltr('$n')} جنيهًا للفصل الدراسي');
+  String get joinClub => _('Join', 'اشتراك');
+  String get joinWaitlist => _('Join the waiting list', 'الانضمام إلى قائمة الانتظار');
+  String get leaveClub => _('Leave', 'إلغاء الاشتراك');
+  String leaveClubAsk(String child, String club) => _('Take $child out of $club?', 'إلغاء اشتراك $child في $club؟');
+  String get yesLeave => _('Yes, leave', 'نعم، إلغاء الاشتراك');
+  String get keepClub => _('Keep', 'إبقاء');
+  String waitlistNumber(int n) => _('Waiting list: number $n', 'قائمة الانتظار: رقم $n');
+  String joinedClub(String child, String club) => _('$child has joined $club', 'تم اشتراك $child في $club');
+  String clubClash(String name) => _('This meets at the same time as $name.', 'يتزامن موعده مع $name.');
+  String get signupClosedClub => _('Sign-up is closed', 'التسجيل مغلق');
+  String get paidTag => _('Paid', 'تم الدفع');
+
+  String get noTrips => _('No trips at the moment.', 'لا توجد رحلات في الوقت الحالي.');
+  String get tripsSub => _('Permission slips and plans for school trips.', 'طلبات الموافقة وخطط الرحلات المدرسية.');
+  String get tripWhere => _('Where', 'الوجهة');
+  String get tripWhen => _('When', 'الموعد');
+  String tripTimes(String from, String to) => _('Leaves $from, back at $to', 'الانطلاق ${_ltr(from)}، والعودة ${_ltr(to)}');
+  String get tripFeeLabel => _('Fee', 'الرسوم');
+  String tripFeeEgp(int n) => _('$n EGP', '${_ltr('$n')} جنيهًا');
+  String get permissionSlip => _('Permission slip', 'طلب الموافقة');
+  String slipDeclaration(String child, [String? gender]) => _(
+        'I, the parent of $child, give permission for ${gender == 'MALE' ? 'him' : gender == 'FEMALE' ? 'her' : 'them'} to go on this trip.',
+        gender == 'MALE'
+            ? 'أوافق، بصفتي وليّ أمر $child، على مشاركته في هذه الرحلة.'
+            : gender == 'FEMALE'
+                ? 'أوافق، بصفتي وليّ أمر $child، على مشاركتها في هذه الرحلة.'
+                : 'أوافق، بصفتي وليّ أمر $child، على المشاركة في هذه الرحلة.',
+      );
+  String get signName => _('Type your full name to sign', 'اكتبوا الاسم الكامل للتوقيع');
+  String get slipNote => _('Anything the school should know? (optional)', 'هل من شيء تودّون إبلاغ المدرسة به؟ (اختياري)');
+  String get givePermission => _('I give permission', 'أوافق');
+  String get declinePermission => _('I don’t give permission', 'لا أوافق');
+  String get slipNeedsName => _('Please type your full name to sign.', 'يُرجى كتابة الاسم الكامل للتوقيع.');
+  String answeredGiven(String date, String time, String name) => _('You gave permission on $date at $time · signed $name', 'تمت الموافقة يوم $date الساعة ${_ltr(time)} · بتوقيع $name');
+  String answeredDeclined(String date, String time, String name) => _('You did not give permission (answered $date at $time) · signed $name', 'لم تتم الموافقة (الرد يوم $date الساعة ${_ltr(time)}) · بتوقيع $name');
+  String get changeAnswer => _('Change answer', 'تغيير الرد');
+  String answerBy(String date, String time) => _('Please answer by $date $time', 'يُرجى الرد قبل $date الساعة ${_ltr(time)}');
+  String get tripCancelledNote => _('This trip has been cancelled.', 'تم إلغاء هذه الرحلة.');
+  String get tripAnswersClosed => _('Answers are closed. Please contact the school if anything has changed.', 'أُغلق باب الرد. يُرجى التواصل مع المدرسة إذا طرأ أي تغيير.');
+  String get tripNeedsAnswer => _('Permission needed', 'مطلوب الرد');
+  String get tripAnsweredTag => _('Answered', 'تم الرد');
+
+  String get calendarTitle => _('Calendar', 'التقويم');
+  String get calendarSub => _('Events, trips, exams, clubs and holidays.', 'الفعاليات والرحلات والامتحانات والأندية والعطلات.');
+  String get allChildren => _('All children', 'كل الأبناء');
+  String monthYear(String date) {
+    final d = DateTime.parse(date);
+    const en = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    const ar = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+    return '${(isAr ? ar : en)[d.month - 1]} ${d.year}';
+  }
+  String get nothingPlanned => _('Nothing is planned this month.', 'لا شيء مُخطَّط لهذا الشهر.');
+  String get previousMonth => _('Previous month', 'الشهر السابق');
+  String get nextMonth => _('Next month', 'الشهر التالي');
+  String untilDate(String date) => _('until ${dayMonth(date)}', 'حتى ${dayMonth(date)}');
+  String get allDayLabel => _('All day', 'اليوم كله');
+  String calendarKind(String kind) => switch (kind) {
+        'EVENT' => _('Event', 'فعالية'),
+        'TRIP' => _('Trip', 'رحلة'),
+        'EXAM' => _('Exam', 'امتحان'),
+        'HOLIDAY' => _('Holiday', 'عطلة'),
+        'BREAK' => _('Break', 'إجازة'),
+        'CLUB' => _('Club', 'نادٍ'),
+        _ => kind,
+      };
+  String get eventPhotos => _('Photos', 'الصور');
+  String get photoOpen => _('Open the photo', 'فتح الصورة');
+
+  /// The server's English sentence, in Arabic when the app is, for the few a parent can meet.
+  String apiError(Object e) {
+    final m = e.toString();
+    if (!isAr) return m;
+    const known = {
+      'Sign-up for this club is closed.': 'التسجيل في هذا النادي مغلق.',
+      'Club not found.': 'لم يتم العثور على النادي.',
+      'Child not found.': 'لم يتم العثور على الطالب.',
+      'Trip not found.': 'لم يتم العثور على الرحلة.',
+      'Event not found.': 'لم يتم العثور على الفعالية.',
+      'This trip has been cancelled.': 'تم إلغاء هذه الرحلة.',
+      'Type your full name to sign.': 'اكتبوا اسمكم الكامل للتوقيع.',
+      'The deadline for this permission slip has passed. Please contact the school.': 'انقضى الموعد النهائي للرد على طلب الموافقة. يُرجى التواصل مع المدرسة.',
+    };
+    final hit = known[m];
+    if (hit != null) return hit;
+    final onList = RegExp(r'^(.+) is already on the list\.$').firstMatch(m);
+    if (onList != null) return 'تم تسجيل ${onList[1]} في القائمة بالفعل.';
+    final grade = RegExp(r'^This club isn’t open to (.+)’s year group\.$').firstMatch(m);
+    if (grade != null) return 'هذا النادي غير مفتوح للصف الدراسي الذي يدرس فيه ${grade[1]}.';
+    final notIn = RegExp(r'^(.+) isn’t in this club\.$').firstMatch(m);
+    if (notIn != null) return '${notIn[1]} غير مشترك في هذا النادي.';
+    return m;
+  }
 
   // excuses
   String get excusesTitle => _('Excuses', 'الأعذار');

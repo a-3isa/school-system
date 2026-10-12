@@ -141,6 +141,9 @@ model School {
   gradeBands   Json @default("{}")
   // Shown under the principal's comment on report cards.
   principalName String?
+  activities Activity[]
+  trips      Trip[]
+  events     Event[]
 }
 
 model SchoolModule {
@@ -199,6 +202,9 @@ model User {
   meetingsBooked       MeetingSlot[]      @relation("MeetingParent")
 
   @@index([schoolId, role])
+  supervisedActivities Activity[]    @relation("ActivitySupervisor")
+  ledTrips             Trip[]        @relation("TripLeader")
+  tripConsents         TripConsent[] @relation("TripConsentBy")
 }
 
 model Grade {
@@ -242,6 +248,7 @@ model Class {
   subjects        ClassSubject[]
 
   @@unique([schoolId, name])
+  tripClasses TripClass[]
 }
 
 model Room {
@@ -256,6 +263,7 @@ model Room {
   assessments Assessment[]
 
   @@unique([schoolId, name])
+  activities Activity[]
 }
 
 model Subject {
@@ -395,6 +403,10 @@ model Student {
   @@unique([schoolId, code])
   @@unique([schoolId, nationalId])
   @@index([schoolId, classId])
+  activityEnrolments ActivityEnrolment[]
+  activityAttendance ActivityAttendance[]
+  tripConsents        TripConsent[]
+  tripChecks          TripCheck[]
 }
 
 // A photo or scan the school keeps for a student: their photo, birth
@@ -433,6 +445,7 @@ model AcademicYear {
   reportCards ReportCard[]
 
   @@unique([schoolId, name])
+  activities Activity[]
 }
 
 // A day or days off: a public holiday, Eid, a school event.
@@ -531,6 +544,11 @@ model AttendanceRecord {
   @@unique([studentId, date, periodId])
   @@index([schoolId, date])
   @@index([classId, date])
+  // Set when the record was written by a trip (status ON_TRIP), so cancelling a trip removes exactly its records.
+  tripId String?
+  trip   Trip?   @relation(fields: [tripId], references: [id], onDelete: SetNull)
+  
+  @@index([tripId])
 }
 
 // A class away from its rooms (trip, exam elsewhere), set in advance so
@@ -1137,4 +1155,200 @@ model ReportCard {
 
   @@unique([studentId, yearId, term])
   @@index([schoolId, classId, term])
+}
+
+// ---- Activities: clubs, trips and permission slips, events ----
+
+enum EnrolmentStatus {
+  ENROLLED
+  WAITLISTED
+  WITHDRAWN
+}
+
+enum TripStatus {
+  DRAFT
+  // Parents can give or refuse permission.
+  OPEN
+  // Permission closed; the list is final.
+  CLOSED
+  CANCELLED
+}
+
+enum ConsentDecision {
+  GIVEN
+  DECLINED
+}
+
+// A club or after-school activity.
+model Activity {
+  id           String    @id @default(cuid())
+  schoolId     String
+  yearId       String
+  name         String
+  nameAr       String?
+  description  String?
+  supervisorId String?
+  // Weekdays it meets, 0 = Sunday … 6 = Saturday.
+  days         Int[]
+  startTime    String    // HH:mm
+  endTime      String    // HH:mm
+  roomId       String?
+  capacity     Int
+  // Year groups allowed to join; empty = all.
+  gradeIds     String[]
+  // EGP per term; null = free. Shown only when paidActivities is on.
+  fee          Int?
+  signupOpen   Boolean   @default(true)
+  archivedAt   DateTime?
+  createdAt    DateTime  @default(now())
+
+  school     School               @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  year       AcademicYear         @relation(fields: [yearId], references: [id], onDelete: Cascade)
+  supervisor User?                @relation("ActivitySupervisor", fields: [supervisorId], references: [id], onDelete: SetNull)
+  room       Room?                @relation(fields: [roomId], references: [id], onDelete: SetNull)
+  enrolments ActivityEnrolment[]
+  attendance ActivityAttendance[]
+
+  @@index([schoolId, yearId])
+}
+
+model ActivityEnrolment {
+  activityId String
+  studentId  String
+  status     EnrolmentStatus
+  // Order on the waitlist: earliest first.
+  joinedAt   DateTime        @default(now())
+  byUserId   String?
+  paidAt     DateTime?
+  updatedAt  DateTime        @updatedAt
+
+  activity Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  student  Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@id([activityId, studentId])
+  @@index([activityId, status, joinedAt])
+}
+
+model ActivityAttendance {
+  activityId String
+  studentId  String
+  date       DateTime @db.Date
+  present    Boolean
+  markedById String?
+  markedAt   DateTime @default(now())
+
+  activity Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  student  Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@id([activityId, studentId, date])
+}
+
+model Trip {
+  id          String     @id @default(cuid())
+  schoolId    String
+  title       String
+  destination String
+  description String?
+  date        DateTime   @db.Date
+  departTime  String     // HH:mm
+  returnTime  String     // HH:mm
+  // Lessons in these periods are marked "On a trip" for students going.
+  fromPeriod  Int?
+  toPeriod    Int?
+  // EGP; null = free.
+  fee         Int?
+  // Parents must answer before this moment.
+  consentBy   DateTime
+  status      TripStatus @default(DRAFT)
+  // When the "answer by tomorrow" reminder went out (sent once).
+  remindedAt  DateTime?
+  leaderId    String?
+  createdById String?
+  createdAt   DateTime   @default(now())
+
+  school     School             @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  leader     User?              @relation("TripLeader", fields: [leaderId], references: [id], onDelete: SetNull)
+  classes    TripClass[]
+  consents   TripConsent[]
+  checks     TripCheck[]
+  attendance AttendanceRecord[]
+
+  @@index([schoolId, date])
+}
+
+model TripClass {
+  tripId  String
+  classId String
+
+  trip  Trip  @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  class Class @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@id([tripId, classId])
+}
+
+// A parent's signed permission slip.
+model TripConsent {
+  tripId     String
+  studentId  String
+  decision   ConsentDecision
+  byUserId   String
+  // The parent typed their full name as their signature.
+  signedName String
+  // Anything the school should know (medicine, allergies on the day).
+  note       String?
+  at         DateTime        @default(now())
+  paidAt     DateTime?
+
+  trip    Trip    @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  byUser  User    @relation("TripConsentBy", fields: [byUserId], references: [id], onDelete: Cascade)
+
+  @@id([tripId, studentId])
+}
+
+// Headcount on the day.
+model TripCheck {
+  tripId    String
+  studentId String
+  leftAt    DateTime?
+  backAt    DateTime?
+
+  trip    Trip    @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@id([tripId, studentId])
+}
+
+model Event {
+  id          String       @id @default(cuid())
+  schoolId    String
+  title       String
+  description String?
+  startsAt    DateTime
+  endsAt      DateTime
+  allDay      Boolean      @default(false)
+  place       String?
+  audience    Json
+  publishedAt DateTime?
+  createdById String?
+  createdAt   DateTime     @default(now())
+
+  school School       @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  photos EventPhoto[]
+
+  @@index([schoolId, startsAt])
+}
+
+model EventPhoto {
+  id        String   @id @default(cuid())
+  eventId   String
+  mime      String
+  size      Int
+  data      Bytes
+  caption   String?
+  createdAt DateTime @default(now())
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId])
 }

@@ -195,6 +195,22 @@ class Api {
     }
   }
 
+  // ---- clubs, trips and the calendar ----------------------------------------
+
+  Future<List<Map<String, dynamic>>> clubs(String childId) async => ((await get('/parent/children/$childId/activities')) as List).cast<Map<String, dynamic>>();
+  Future<Map<String, dynamic>> joinClub(String childId, String clubId) async => await post('/parent/children/$childId/activities/$clubId/join') as Map<String, dynamic>;
+  Future<void> leaveClub(String childId, String clubId) => post('/parent/children/$childId/activities/$clubId/leave');
+
+  Future<List<Map<String, dynamic>>> trips(String childId) async => ((await get('/parent/children/$childId/trips')) as List).cast<Map<String, dynamic>>();
+  /// The parent's signed answer to a permission slip: the decision, the typed name and an optional note.
+  Future<void> answerTrip(String childId, String tripId, String decision, String signedName, String note) =>
+      post('/parent/children/$childId/trips/$tripId/consent', {'decision': decision, 'signedName': signedName, if (note.trim().isNotEmpty) 'note': note.trim()});
+
+  /// Everything dated for the parent between two days (YYYY-MM-DD), for one child or all of them.
+  Future<Map<String, dynamic>> calendar(String from, String to, {String? childId}) async =>
+      await get('/parent/calendar?from=$from&to=$to${childId == null ? '' : '&childId=$childId'}') as Map<String, dynamic>;
+  Future<Map<String, dynamic>> event(String id) async => await get('/parent/events/$id') as Map<String, dynamic>;
+
   /// The excuses sent for a child, newest first, with what the school decided.
   Future<List<dynamic>> excuses(String childId) async => await get('/parent/children/$childId/excuses') as List<dynamic>;
 
