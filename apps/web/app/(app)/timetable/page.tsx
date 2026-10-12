@@ -5,6 +5,7 @@ import { del, post, put, todayCairo } from '@/lib/api';
 import { useAction, useApi } from '@/lib/hooks';
 import { useI18n } from '@/lib/i18n';
 import { useSession } from '@/lib/session';
+import { CopyWeekModal } from '@/components/CopyWeekModal';
 import { Empty, ErrorNote, PageHead, Section, Tabs, Tag, toast } from '@/components/ui';
 
 /**
@@ -38,11 +39,13 @@ export default function TimetablePage() {
   const [picking, setPicking] = useState<string | null>(null);
   const [pick, setPick] = useState({ subjectId: '', roomId: '', teacherId: '' });
   const [cellError, setCellError] = useState<{ key: string; message: string } | null>(null);
+  const [copying, setCopying] = useState(false);
 
   const days: number[] = school.data?.schoolDays ?? [0, 1, 2, 3, 4];
   const today = new Date(`${todayCairo()}T00:00:00Z`).getUTCDay();
   const sortedPeriods = [...(periods.data ?? [])].sort((a, b) => a.number - b.number);
   const at = (d: number, p: string) => entries.data?.find((e) => e.dayOfWeek === d && e.periodId === p);
+  const current = classes.data?.find((c) => c.id === classId);
   const reloadAll = () => Promise.all([entries.reload(), everyLesson.reload(), classSubjects.reload(), taught.reload()]);
 
   const classSubject = (subjectId: string) => classSubjects.data?.find((s) => s.subjectId === subjectId);
@@ -99,7 +102,11 @@ export default function TimetablePage() {
 
   return (
     <>
-      <PageHead sub={isTeacher ? t.tt.subMine : t.tt.sub} title={isTeacher ? t.tt.mine : t.nav.timetable} />
+      <PageHead
+        sub={isTeacher ? t.tt.subMine : t.tt.sub}
+        title={isTeacher ? t.tt.mine : t.nav.timetable}
+        actions={isAdmin && current && entries.data?.length ? <button type="button" className="btn" onClick={() => setCopying(true)}>{t.tt.copyWeek}</button> : undefined}
+      />
       {!isTeacher && <Tabs label={t.common.class} value={classId} onChange={(v) => { setClassId(v); setPicking(null); }} items={(classes.data ?? []).map((c): [string, string] => [c.id, c.name])} />}
       <ErrorNote error={(act.error ?? entries.error) && x((act.error ?? entries.error)!)} />
       <div className="panel scroll">
@@ -163,6 +170,19 @@ export default function TimetablePage() {
           <Empty>{t.tt.addPeriodsFirst}</Empty>
         )}
       </div>
+      {isAdmin && current && (
+        <CopyWeekModal
+          open={copying}
+          onClose={() => setCopying(false)}
+          from={current}
+          classes={classes.data ?? []}
+          rooms={rooms.data ?? []}
+          everyLesson={everyLesson.data ?? []}
+          lessons={entries.data ?? []}
+          onCopied={reloadAll}
+          onOpenClass={(id) => { setClassId(id); setPicking(null); }}
+        />
+      )}
       {isAdmin && classId && classSubjects.data && (
         <Section title={t.subj.teachersTitle} aside={t.subj.teachersSub}>
           <div className="panel">

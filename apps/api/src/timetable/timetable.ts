@@ -1,6 +1,6 @@
 import { BadRequestException, Body, ConflictException, Controller, Delete, Get, Injectable, Module, NotFoundException, Param, Post, Put, Query } from '@nestjs/common';
-import { Prisma, Role } from '@prisma/client';
-import { IsInt, IsOptional, IsString, Max, Min, ValidateIf } from 'class-validator';
+import { Prisma, Role, RoomKind } from '@prisma/client';
+import { IsBoolean, IsInt, IsOptional, IsString, Max, Min, ValidateIf } from 'class-validator';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit';
 import { AuthUser, CurrentUser, Roles, SchoolId, STAFF } from '../auth/auth.decorators';
@@ -24,6 +24,19 @@ export class AssignTeacherDto {
   @IsString() subjectId: string;
   @ValidateIf((d) => d.teacherId !== null) @IsString() teacherId: string | null;
 }
+
+/** Copying one class's week to another class of the same year group. */
+export class CopyTimetableDto {
+  @IsString() fromClassId: string;
+  @IsString() toClassId: string;
+  /** The new class's own classroom, for the lessons the first class holds in an ordinary classroom; labs and other shared rooms stay as they are. */
+  @IsOptional() @IsString() roomId?: string;
+  /** Clear the new class's lessons first. Otherwise only its empty periods are filled. */
+  @IsOptional() @IsBoolean() replace?: boolean;
+}
+
+/** Why a lesson wasn't copied. */
+export type SkipReason = 'FILLED' | 'ROOM_BUSY' | 'TEACHER_BUSY';
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -146,6 +159,76 @@ export class TimetableService {
     return { lessons: lessons.length, teacher };
   }
 
+  /**
+   * Copies a class's week to another class of the same year group: the same subjects in the same periods.
+   * What differs between classes is not copied but worked out for the new class: its teacher for each subject
+   * (each class has its own) and its classroom. A lesson that can't go in (that period is filled, the room or
+   * the teacher is busy then) is left out and reported, so nothing is lost silently.
+   */
+  async copyWeek(user: AuthUser, schoolId: string, dto: CopyTimetableDto) {
+    if (dto.fromClassId === dto.toClassId) throw new BadRequestException('Choose two different classes.');
+    const [from, to] = await Promise.all([
+      this.prisma.class.findFirst({ where: { id: dto.fromClassId, schoolId }, select: { id: true, name: true, gradeId: true } }),
+      this.prisma.class.findFirst({ where: { id: dto.toClassId, schoolId }, select: { id: true, name: true, gradeId: true } }),
+    ]);
+    if (!from || !to) throw new BadRequestException('Class not found in this school.');
+    if (from.gradeId !== to.gradeId) throw new BadRequestException('A week can be copied only to another class of the same year group.');
+
+    const lessons = await this.prisma.timetableEntry.findMany({
+      where: { schoolId, classId: from.id },
+      include: { room: { select: { id: true, name: true, kind: true } }, subject: { select: { id: true, name: true, nameAr: true } }, period: { select: { number: true } } },
+      orderBy: [{ dayOfWeek: 'asc' }, { period: { number: 'asc' } }],
+    });
+    if (!lessons.length) throw new BadRequestException('This class has no lessons to copy.');
+    let ownRoom: { id: string; name: string } | null = null;
+    if (lessons.some((l) => l.room.kind === RoomKind.CLASSROOM)) {
+      if (!dto.roomId) throw new BadRequestException('Choose the classroom for the new class’s lessons.');
+      ownRoom = await this.prisma.room.findFirst({ where: { id: dto.roomId, schoolId }, select: { id: true, name: true } });
+      if (!ownRoom) throw new BadRequestException('Room not found in this school.');
+    }
+
+    const [subjects, rooms, others] = await Promise.all([
+      this.prisma.classSubject.findMany({ where: { classId: to.id }, select: { subjectId: true, teacherId: true, teacher: { select: { name: true } } } }),
+      this.prisma.room.findMany({ where: { schoolId, kind: { not: RoomKind.CLASSROOM } }, select: { id: true, name: true, kind: true }, orderBy: { name: 'asc' } }),
+      // Everything else in the school, to see what is busy: the new class's own lessons only matter unless they are being replaced.
+      this.prisma.timetableEntry.findMany({ where: { schoolId }, select: { classId: true, dayOfWeek: true, periodId: true, roomId: true, teacherId: true } }),
+    ]);
+    const teacherOf = new Map(subjects.map((c) => [c.subjectId, c]));
+    const live = others.filter((e) => !(dto.replace && e.classId === to.id));
+    const filled = new Set(live.filter((e) => e.classId === to.id).map((e) => `${e.dayOfWeek}|${e.periodId}`));
+    const roomBusy = new Set(live.map((e) => `${e.roomId}|${e.dayOfWeek}|${e.periodId}`));
+    const teacherBusy = new Set(live.filter((e) => e.teacherId).map((e) => `${e.teacherId}|${e.dayOfWeek}|${e.periodId}`));
+
+    const create: Prisma.TimetableEntryCreateManyInput[] = [];
+    const skipped: { dayOfWeek: number; period: number; subject: string; subjectAr: string | null; reason: SkipReason; detail: string | null }[] = [];
+    const skip = (l: (typeof lessons)[number], reason: SkipReason, detail: string | null = null) =>
+      skipped.push({ dayOfWeek: l.dayOfWeek, period: l.period.number, subject: l.subject.name, subjectAr: l.subject.nameAr, reason, detail });
+    const withoutTeacher = new Map<string, { subject: string; subjectAr: string | null }>();
+    for (const l of lessons) {
+      const cell = `${l.dayOfWeek}|${l.periodId}`;
+      // A lab or hall can't hold two classes at once, so the first class's room is rarely free at the same time:
+      // the same room if it is, otherwise another room of the same kind.
+      const room = l.room.kind === RoomKind.CLASSROOM ? ownRoom! : [l.room, ...rooms.filter((r) => r.kind === l.room.kind && r.id !== l.room.id)].find((r) => !roomBusy.has(`${r.id}|${cell}`)) ?? l.room;
+      const mine = teacherOf.get(l.subjectId);
+      if (!mine) continue; // the year group studies the same subjects, so this only happens if one was taken out of the new class
+      if (filled.has(cell)) { skip(l, 'FILLED'); continue; }
+      if (roomBusy.has(`${room.id}|${cell}`)) { skip(l, 'ROOM_BUSY', room.name); continue; }
+      if (mine.teacherId && teacherBusy.has(`${mine.teacherId}|${cell}`)) { skip(l, 'TEACHER_BUSY', mine.teacher?.name ?? null); continue; }
+      create.push({ schoolId, classId: to.id, dayOfWeek: l.dayOfWeek, periodId: l.periodId, roomId: room.id, subjectId: l.subjectId, teacherId: mine.teacherId });
+      filled.add(cell);
+      roomBusy.add(`${room.id}|${cell}`);
+      if (mine.teacherId) teacherBusy.add(`${mine.teacherId}|${cell}`);
+      else withoutTeacher.set(l.subjectId, { subject: l.subject.name, subjectAr: l.subject.nameAr });
+    }
+
+    await this.prisma.$transaction([
+      ...(dto.replace ? [this.prisma.timetableEntry.deleteMany({ where: { schoolId, classId: to.id } })] : []),
+      this.prisma.timetableEntry.createMany({ data: create }),
+    ]);
+    await this.audit.log(user, 'timetable.copy', 'class', to.id, { from: from.id, copied: create.length, skipped: skipped.length, replaced: !!dto.replace });
+    return { copied: create.length, skipped, withoutTeacher: [...withoutTeacher.values()].sort((a, b) => a.subject.localeCompare(b.subject)) };
+  }
+
   async remove(user: AuthUser, schoolId: string, id: string) {
     const { count } = await this.prisma.timetableEntry.deleteMany({ where: { id, schoolId } });
     if (!count) throw new NotFoundException('Lesson not found.');
@@ -191,6 +274,12 @@ export class TimetableController {
     const when = at ? new Date(at) : new Date();
     if (Number.isNaN(when.getTime())) throw new BadRequestException('“at” must be a date and time.');
     return this.timetable.lessonAt(schoolId, when, { roomId, classId });
+  }
+
+  @Roles(Role.SCHOOL_ADMIN)
+  @Post('copy')
+  copy(@CurrentUser() user: AuthUser, @SchoolId() schoolId: string, @Body() dto: CopyTimetableDto) {
+    return this.timetable.copyWeek(user, schoolId, dto);
   }
 
   @Roles(Role.SCHOOL_ADMIN)
