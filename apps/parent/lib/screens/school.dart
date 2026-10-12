@@ -5,9 +5,12 @@ import '../strings.dart';
 import '../theme.dart';
 import '../widgets.dart';
 import 'behaviour.dart';
+import 'calendar.dart';
+import 'clubs.dart';
 import 'grades.dart';
 import 'home.dart';
 import 'meetings.dart';
+import 'trips.dart';
 
 /// One way into a part of school life. A tile shows only when the school has
 /// the module (or feature) and the app has a screen for it.
@@ -24,7 +27,7 @@ final _tiles = <_Tile>[
   _Tile('behaviour', Icons.emoji_events_outlined, (s) => s.tileBehaviour, (d) => d.has('behavior')),
   _Tile('clubs', Icons.groups_outlined, (s) => s.tileClubs, (d) => d.has('activities')),
   _Tile('trips', Icons.directions_bus_outlined, (s) => s.tileTrips, (d) => d.has('activities', 'trips')),
-  _Tile('calendar', Icons.calendar_month_outlined, (s) => s.tileCalendar, (d) => d.has('activities', 'events')),
+  _Tile('calendar', Icons.calendar_month_outlined, (s) => s.tileCalendar, (d) => d.has('activities')),
   _Tile('meetings', Icons.event_outlined, (s) => s.tileMeetings, (d) => d.has('messaging', 'meetings')),
 ];
 
@@ -33,6 +36,9 @@ final Map<String, Widget Function(Api, HomeData)> _screens = {
   'grades': (api, data) => GradesScreen(api: api, data: data),
   'behaviour': (api, data) => BehaviourScreen(api: api, data: data),
   'meetings': (api, data) => MeetingsScreen(api: api, data: data),
+  'clubs': (api, data) => ClubsScreen(api: api, data: data),
+  'trips': (api, data) => TripsScreen(api: api, data: data),
+  'calendar': (api, data) => CalendarScreen(api: api, data: data),
 };
 
 /// Whether the school has anything for the School tab at all.

@@ -222,6 +222,34 @@ Marks, exams and report cards. Teachers work in **Gradebook**; parents read the 
 - **Separated families.** A parent restricted for a child sees none of this for that child, and isn't told about it (T4).
 
 
+### Clubs and activities (Activities module)
+
+Clubs and after-school activities. Student Affairs sets them up under **Clubs & activities**; parents sign their children up in the app's **School** tab, under **Clubs**.
+
+- **A club** has a name (and an Arabic one), the days it meets, its times, a room, a supervisor, the number of places, the year groups that may join (all of them when none is chosen), whether sign-up is open and, when the school keeps paid clubs on (the `paidActivities` feature), a fee for the term. It belongs to a school year and is archived, not deleted, when it ends: archiving withdraws everyone without a message.
+- **Joining.** A parent sees the clubs open to their child's year group, with the places left, and joins in one tap. When the club is full the child goes on the **waiting list** instead and sees their number. Two parents racing for the last place can't both get it: one is enrolled and the other waits. Joining a club that meets at the same time as another the child is in is allowed, with a note.
+- **Leaving.** A parent can take their child out (after a confirmation). When a place frees up, whether a parent left or Student Affairs withdrew someone or raised the number of places, the first on the waiting list moves up and their family is told.
+- **Student Affairs** adds a student to a club even when it is full (recorded in the activity log), withdraws a student, and marks a fee **paid** by hand (real payment comes with Phase 3). A club's **members** page shows who is in it, the waiting list in order, each family's phone numbers and each member's attendance.
+- **The supervisor** (a teacher) manages their own clubs: members and attendance. Other teachers see the catalogue only.
+- **Attendance** is taken on a day the club meets, a school day that has come: present or absent for each member. A day can be marked again to correct it.
+- **A club is also an audience.** An announcement, a poll or an event can go to the members of one club.
+
+### Trips and permission slips (Activities module, Trips feature)
+
+- **Planning.** Student Affairs makes a trip: title, destination, date (a school day), leaving and return times, the lessons it takes (or the whole day), a fee, a leader, the classes going and the **answer deadline**, which must be before it leaves. It starts as a **draft** that no parent sees.
+- **Opening it** asks the parents of every student in the classes for permission, with a notification. A parent restricted for a child (T4) hears nothing and sees nothing.
+- **The permission slip.** The parent reads the declaration, **types their full name as their signature**, may add a note (medicine, allergies on the day) and answers Yes or No. Either parent can answer and the latest answer stands, until the deadline. Every answer goes into the activity log with the decision and the typed name, and the other parent is told who answered. After the deadline the slip is closed and the parent is told to contact the school.
+- **Following up.** The trip's page lists every student: agreed, declined or still waiting, who signed, the note, and for those waiting the parents' phone numbers (with **Copy phone numbers of those waiting**). Student Affairs, the trip's leader and the teachers of the classes see it. A fee is marked paid by hand. If the day, the times or the fee change while it is open, the parents who already answered are told. One reminder goes to the parents who haven't answered a day before the deadline.
+- **Closing the answers** makes the list final: every student with permission is marked **On a trip** in the registers for the lessons the trip takes (the whole day when none are given), so nobody is flagged absent; students without permission stay expected at school. A closed trip can't be edited: cancel it and make a new one. **Cancelling** tells the parents and removes exactly the records the trip wrote.
+- **The headcount.** On the day of the trip the leader (or Student Affairs) opens it and taps each student when they get on, and again when they are back: "On the bus 23 of 25", "Back 0 of 25".
+
+### Events and the school calendar (Activities module, Events feature)
+
+- **Events.** Student Affairs writes an event (title, description, start and end or all day, place) for an audience: the whole school, year groups, classes or a club. It stays private until **published**, which tells each parent in the audience once.
+- **The gallery.** An event can have up to 30 photos, JPEG, PNG or WebP (judged by their bytes, never the file name), up to 2 MB each. Staff and the parents the event is for can see them; nobody else. Parents open a photo full size from the event in the app.
+- **The calendar.** In the app's **School** tab, **Calendar** shows a month as one agenda by day: published events for the parent, their children's trips and exams, their children's clubs (on days the school is open), holidays and the mid-year break. With more than one child it can show one child or all of them, and each item names its child. It works for any school with the Activities module, even one without events or trips.
+
+
 ## 6. How the straps decide (schools with straps)
 
 - **Gateways:** they only listen and report. Every few seconds each gateway sends what it heard to the server: each strap, how loud, when, and its battery. Gateways decide nothing.
@@ -253,6 +281,9 @@ Marks, exams and report cards. Teachers work in **Gradebook**; parents read the 
 | **Classes:** each class's page (grade, homeroom teacher, students with their parents). Student, parent and class pages link to each other. | | ✓ | |
 | **Import from Excel:** template, check, import | | ✓ | |
 | **Gradebook, Exam timetable, Report cards:** marks for each class and subject, exams by day, and the term report for each student (a teacher sees and writes only their own subjects; the class teacher reads the whole class; Student Affairs publishes report cards and edits the grade bands in School settings) | ✓ | ✓ | |
+| **Clubs & activities:** the catalogue, a club's members, waiting list and attendance (Student Affairs; a teacher manages the clubs they supervise and sees the rest) | ✓ | ✓ | |
+| **Trips:** plan, open, close and cancel (Student Affairs); who has answered (Student Affairs, the trip's leader, teachers of the classes); the headcount (Student Affairs, the leader) | ✓ | ✓ | |
+| **Events:** write, publish, add photos | | ✓ | |
 | **Behaviour notes:** the feed, writing a note, a student's behaviour section (a teacher sees and edits only their own classes and notes; incidents are Student Affairs only) | ✓ | ✓ | |
 | **Staff:** accounts | | ✓ | |
 | **Timetable** (whole school), **School structure & year** | | ✓ | |
@@ -293,6 +324,7 @@ The server enforces this: a teacher asking for school-wide data (the student lis
 - **`scripts/demo.ts`:** creates a demo school with 2 teachers, 2 classes of 12, a timetable, parents, 3 gateways and 24 straps.
   - On a school day it also plays today so far: arrivals, lessons, one child at home, one late, one leaving a lesson, everyone going home.
   - It subscribes the demo school to automatic attendance.
+  - It adds three clubs (Chess is full with a waiting list, Art has a fee that is partly paid), a trip next week for 4/1 that is open for permission with two answers, a past event with three photos and an upcoming one.
 - **`scripts/simulate-gateway.ts`:** sends live readings for chosen straps.
 
 ---

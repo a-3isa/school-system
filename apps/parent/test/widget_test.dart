@@ -970,6 +970,229 @@ void main() {
     });
   });
 
+
+  group('activities', () {
+    late FakePush push;
+    setUp(() {
+      push = FakePush();
+      pushFactory = () => push;
+    });
+
+    Map<String, Object?> activitiesMe({bool trips = true, bool events = true}) => {
+          'modules': ['core', 'attendance', 'activities'],
+          'features': {
+            'activities': {'paidActivities': true, 'trips': trips, 'events': events},
+          },
+        };
+    Map<String, Object?> club(String id, String name, {String? nameAr, int places = 3, int capacity = 10, String? status, int? position, int? fee, bool open = true, List<int> days = const [0, 2]}) => {
+          'id': id, 'name': name, 'nameAr': nameAr, 'description': null, 'days': days, 'startTime': '14:30', 'endTime': '15:30',
+          'supervisor': {'name': 'Hana Nabil', 'honorific': 'MS'}, 'room': 'Room 205', 'capacity': capacity, 'places': places, 'signupOpen': open,
+          'fee': fee, 'paid': false, 'status': status, 'waitlistPosition': position,
+        };
+    const salma = {'id': 's1', 'firstName': 'Salma', 'lastName': 'Gamal', 'gender': 'FEMALE', 'class': {'id': 'c1', 'name': '4-A'}};
+
+    Future<void> openFromSchool(WidgetTester tester, String lang, String tile, Map<String, Object> more, {Map<String, Object?>? me, List<String>? log}) async {
+      clock = () => DateTime.utc(2026, 10, 1, 7);
+      addTearDown(() => clock = DateTime.now);
+      tester.view.physicalSize = const Size(800, 2400);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await start(tester, {'lang': lang, 'token': 't'}, school(me_: me ?? activitiesMe(), more: {'/parent/children': [salma], ...more}, log: log));
+      await tester.tap(find.text(lang == 'ar' ? 'المدرسة' : 'School'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(tile));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('joining a full club puts the child on the waiting list, with a note when it clashes with another', (tester) async {
+      var joined = false;
+      final log = <String>[];
+      await openFromSchool(tester, 'en', 'Clubs', {
+        '/parent/children/s1/activities': (http.Request _) => [
+              club('k1', 'Chess club', places: 0, capacity: 2, status: joined ? 'WAITLISTED' : null, position: joined ? 2 : null),
+              club('k2', 'Art workshop', places: 12, fee: 350, days: [1]),
+            ],
+        '/parent/children/s1/activities/k1/join': (http.Request _) {
+          joined = true;
+          return {'status': 'WAITLISTED', 'waitlistPosition': 2, 'clash': {'name': 'Robotics', 'nameAr': null}};
+        },
+      }, log: log);
+      expect(find.text('Open to Salma'), findsOneWidget);
+      expect(find.text('Full'), findsOneWidget);
+      expect(find.text('12 places left'), findsOneWidget);
+      expect(find.text('350 EGP per term'), findsOneWidget);
+      expect(find.text('Sun, Tue · 14:30–15:30'), findsOneWidget);
+      expect(find.text('Join the waiting list'), findsOneWidget);
+      await tester.tap(find.text('Join the waiting list'));
+      await tester.pumpAndSettle();
+      expect(log, contains('POST /parent/children/s1/activities/k1/join {}'));
+      expect(find.text('Joined'), findsOneWidget);
+      expect(find.text('· Waiting list: number 2'), findsOneWidget);
+      expect(find.text('This meets at the same time as Robotics.'), findsOneWidget);
+      expect(find.text('Leave'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('leaving asks first, and the Arabic counts places with the right noun and shows the fee', (tester) async {
+      final log = <String>[];
+      await openFromSchool(tester, 'ar', 'الأندية', {
+        '/parent/children/s1/activities': [
+          club('k1', 'Chess club', nameAr: 'نادي الشطرنج', places: 0, status: 'ENROLLED'),
+          club('k2', 'Art workshop', nameAr: 'ورشة الفن', places: 3, fee: 350),
+          club('k3', 'Football', nameAr: 'كرة القدم', places: 11),
+          club('k4', 'Drama', nameAr: 'المسرح', places: 2, open: false),
+        ],
+        '/parent/children/s1/activities/k1/leave': {'ok': true},
+      }, log: log);
+      expect(find.text('نادي الشطرنج'), findsOneWidget);
+      expect(find.text('متبقٍ 3 أماكن'), findsOneWidget);
+      expect(find.text('متبقٍ 11 مكانًا'), findsOneWidget);
+      expect(find.text('متبقٍ مكانان'), findsOneWidget);
+      expect(find.textContaining('جنيهًا للفصل الدراسي'), findsOneWidget);
+      expect(find.text('التسجيل مغلق'), findsOneWidget);
+      await tester.tap(find.text('إلغاء الاشتراك'));
+      await tester.pumpAndSettle();
+      expect(find.text('إلغاء اشتراك Salma في نادي الشطرنج؟'), findsOneWidget);
+      await tester.tap(find.text('إبقاء'));
+      await tester.pumpAndSettle();
+      expect(log.where((l) => l.contains('/leave')), isEmpty);
+      await tester.tap(find.text('إلغاء الاشتراك'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('نعم، إلغاء الاشتراك'));
+      await tester.pumpAndSettle();
+      expect(log, contains('POST /parent/children/s1/activities/k1/leave {}'));
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    Map<String, Object?> trip({Map<String, Object?>? mine, bool canAnswer = true, String status = 'OPEN'}) => {
+          'id': 't1', 'title': 'Pyramids', 'destination': 'Giza', 'description': 'Bring a packed lunch.', 'date': '2026-10-05T00:00:00.000Z',
+          'departTime': '08:00', 'returnTime': '14:00', 'fee': 120, 'status': status, 'consentBy': '2026-10-03T15:00:00.000Z',
+          'myConsent': mine, 'canAnswer': canAnswer, 'paid': false,
+        };
+
+    testWidgets('the permission slip is worded for a girl in Arabic, asks for the signed name, and shows the answer given', (tester) async {
+      Map<String, Object?>? mine;
+      final log = <String>[];
+      await openFromSchool(tester, 'ar', 'الرحلات', {
+        '/parent/children/s1/trips': (http.Request _) => [trip(mine: mine, canAnswer: true)],
+        '/parent/children/s1/trips/t1/consent': (http.Request req) {
+          final body = jsonDecode(req.body) as Map<String, dynamic>;
+          mine = {'decision': body['decision'], 'signedName': body['signedName'], 'signedBy': 'Dina', 'note': body['note'], 'at': '2026-10-01T15:20:00.000Z'};
+          return {'ok': true};
+        },
+      }, log: log);
+      expect(find.text('! مطلوب الرد'), findsOneWidget);
+      await tester.tap(find.text('Pyramids'));
+      await tester.pumpAndSettle();
+      expect(find.text('أوافق، بصفتي وليّ أمر Salma، على مشاركتها في هذه الرحلة.'), findsOneWidget);
+      expect(find.text('اكتبوا الاسم الكامل للتوقيع'), findsOneWidget);
+      expect(find.text('يُرجى الرد قبل 3 أكتوبر الساعة \u206618:00\u2069'), findsOneWidget); // 15:00 UTC is 18:00 in Cairo
+      // Without a name nothing is sent.
+      await tester.tap(find.text('أوافق'));
+      await tester.pumpAndSettle();
+      expect(find.text('يُرجى كتابة الاسم الكامل للتوقيع.'), findsOneWidget);
+      expect(log.where((l) => l.contains('/consent')), isEmpty);
+      await tester.enterText(find.byType(TextField).first, 'Dina Hassan');
+      await tester.tap(find.text('أوافق'));
+      await tester.pumpAndSettle();
+      final sent = log.firstWhere((l) => l.contains('/consent'));
+      expect(sent, startsWith('POST /parent/children/s1/trips/t1/consent'));
+      expect(jsonDecode(sent.substring(sent.indexOf('{'))), {'decision': 'GIVEN', 'signedName': 'Dina Hassan'});
+      expect(find.text('تمت الموافقة يوم 1 أكتوبر الساعة \u206618:20\u2069 · بتوقيع Dina Hassan'), findsOneWidget);
+      expect(find.text('تغيير الرد'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('after the deadline the answer is closed, and a cancelled trip says so', (tester) async {
+      await openFromSchool(tester, 'en', 'Trips', {
+        '/parent/children/s1/trips': [trip(canAnswer: false), {...trip(status: 'CANCELLED', canAnswer: false), 'id': 't2', 'title': 'Museum'}],
+      });
+      await tester.tap(find.text('Pyramids'));
+      await tester.pumpAndSettle();
+      expect(find.text('Answers are closed. Please contact the school if anything has changed.'), findsOneWidget);
+      expect(find.text('I give permission'), findsNothing);
+      await tester.tap(find.text('Back'));
+      await tester.pumpAndSettle();
+      expect(find.text('This trip has been cancelled.'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('the calendar groups what is dated by day, with a glyph for each kind and the child where there are two', (tester) async {
+      final queries = <Map<String, String>>[];
+      await openFromSchool(tester, 'en', 'Calendar', {
+        '/parent/children': [salma, {'id': 's2', 'firstName': 'Omar', 'lastName': 'Gamal', 'gender': 'MALE', 'class': {'id': 'c2', 'name': '5-A'}}],
+        '/parent/calendar': (http.Request req) {
+          queries.add(req.url.queryParameters);
+          return {
+          'from': '2026-10-01', 'to': '2026-10-31',
+          'items': [
+            {'kind': 'EVENT', 'date': '2026-10-04', 'start': '09:00', 'end': '12:00', 'title': 'Sports day', 'id': 'e1'},
+            {'kind': 'CLUB', 'date': '2026-10-04', 'start': '14:30', 'end': '15:30', 'title': 'Chess club', 'titleAr': 'نادي الشطرنج', 'studentId': 's1', 'id': 'k1'},
+            {'kind': 'TRIP', 'date': '2026-10-05', 'start': '08:00', 'end': '14:00', 'title': 'Pyramids', 'studentId': 's2', 'id': 't1'},
+            {'kind': 'HOLIDAY', 'date': '2026-10-06', 'until': '2026-10-08', 'title': 'Armed Forces Day', 'id': 'h1'},
+          ],
+          };
+        },
+      });
+      expect(find.text('October 2026'), findsOneWidget);
+      expect(find.text('Sunday 4 October'), findsOneWidget);
+      expect(find.text('Monday 5 October'), findsOneWidget);
+      expect(find.text('Sports day'), findsOneWidget);
+      expect(find.text('★'), findsOneWidget);
+      expect(find.text('↗'), findsOneWidget);
+      expect(find.text('●'), findsOneWidget);
+      expect(find.text('\u206614:30–15:30\u2069 · Salma'), findsOneWidget); // two children: each item names its child
+      expect(find.text('until 8 October'), findsOneWidget);
+      expect(find.text('All children'), findsOneWidget);
+      expect(queries.first, {'from': '2026-10-01', 'to': '2026-10-31'});
+      // One child only is asked for that child, and the month can move on.
+      await tester.tap(find.text('Omar'));
+      await tester.pumpAndSettle();
+      expect(queries.last, {'from': '2026-10-01', 'to': '2026-10-31', 'childId': 's2'});
+      await tester.tap(find.byTooltip('Next month'));
+      await tester.pumpAndSettle();
+      expect(queries.last, {'from': '2026-11-01', 'to': '2026-11-30', 'childId': 's2'});
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('a school with clubs only still has the calendar, and trips are left out when switched off', (tester) async {
+      await openFromSchool(tester, 'en', 'Calendar', {'/parent/calendar': {'from': '2026-10-01', 'to': '2026-10-31', 'items': []}}, me: activitiesMe(trips: false, events: false));
+      expect(find.text('Nothing is planned this month.'), findsOneWidget);
+      await tester.tap(find.text('Back'));
+      await tester.pumpAndSettle();
+      expect(find.text('Trips'), findsNothing);
+      expect(find.text('Clubs'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    test('the notification sentences for clubs, trips and events read well in both languages', () {
+      final promoted = {'name': 'Chess club', 'nameAr': 'نادي الشطرنج'};
+      expect(S.en.notification('activity.promoted', 'Salma', promoted, 'x'), 'Good news: Salma now has a place in Chess club');
+      expect(S.ar.notification('activity.promoted', 'سلمى', promoted, 'x'), 'يسعدنا إبلاغكم بأنه أصبح لـسلمى مكان في نادي الشطرنج');
+      final trip = {'title': 'Pyramids', 'date': '2030-03-05'};
+      expect(S.en.notification('trip.consent', 'Salma', trip, 'x'), 'Permission needed: Pyramids on Tuesday 5 March for Salma');
+      expect(S.ar.notification('trip.consent', 'سلمى', trip, 'x'), 'مطلوب موافقتكم: رحلة Pyramids يوم الثلاثاء 5 مارس لـسلمى');
+      expect(S.en.notification('trip.reminder', 'Salma', {}, 'x'), 'Reminder: please answer the permission slip for Salma by tomorrow');
+      expect(S.ar.notification('trip.reminder', 'سلمى', {}, 'x'), 'تذكير: يُرجى الرد على طلب الموافقة على رحلة سلمى قبل الغد');
+      expect(S.en.notification('trip.answered', 'Salma', {'by': 'Dina', 'decision': 'GIVEN'}, 'x'), 'Dina answered the permission slip for Salma: Yes');
+      expect(S.ar.notification('trip.answered', 'سلمى', {'by': 'Dina', 'decision': 'DECLINED'}, 'x'), 'ردّ Dina على طلب الموافقة على رحلة سلمى: غير موافق');
+      expect(S.en.notification('trip.changed', 'Salma', trip, 'x'), 'The trip Pyramids has changed. Please check the details');
+      expect(S.ar.notification('trip.cancelled', 'سلمى', trip, 'x'), 'أُلغيت رحلة Pyramids المقررة يوم الثلاثاء 5 مارس');
+      expect(S.en.notification('event.new', '', {'title': 'Sports day', 'date': '2030-03-10'}, 'x'), 'School event: Sports day on Sunday 10 March');
+      expect(S.ar.notification('event.new', '', {'title': 'اليوم الرياضي', 'date': '2030-03-10'}, 'x'), 'فعالية مدرسية: اليوم الرياضي يوم الأحد 10 مارس');
+      expect(S.en.notification('trip.answered', 'Salma', {}, 'English title'), 'English title'); // no decision: the server’s words
+      expect(S.schoolNotificationTypes, contains('event.new'));
+    });
+
+    test('the server’s English sentences a parent can meet come out in Arabic', () {
+      expect(S.ar.apiError(ApiException(400, 'Sign-up for this club is closed.')), 'التسجيل في هذا النادي مغلق.');
+      expect(S.ar.apiError(ApiException(400, 'Salma is already on the list.')), 'تم تسجيل Salma في القائمة بالفعل.');
+      expect(S.ar.apiError(ApiException(400, 'This club isn’t open to Salma’s year group.')), 'هذا النادي غير مفتوح للصف الدراسي الذي يدرس فيه Salma.');
+      expect(S.ar.apiError(ApiException(400, 'Something else entirely.')), 'Something else entirely.');
+      expect(S.en.apiError(ApiException(400, 'Sign-up for this club is closed.')), 'Sign-up for this club is closed.');
+    });
+  });
+
   group('push notifications', () {
     late FakePush push;
     setUp(() {

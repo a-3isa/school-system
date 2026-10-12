@@ -228,6 +228,12 @@ html[lang='ar'] .nav-label { letter-spacing: 0; font-size: 12px; }
 /* Filters for the list below, in a row of their own under the heading. */
 .toolbar { display: flex; gap: 12px 16px; flex-wrap: wrap; align-items: flex-end; margin-block-start: -8px; }
 .toolbar > .tabs { align-self: flex-end; }
+.field.grow { flex: 1 1 180px; }
+/* The headcount on a trip: big buttons a leader can tap on a bus. */
+.headcount { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; }
+.count-btn { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; min-height: 84px; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface); color: var(--ink); font: inherit; text-align: start; cursor: pointer; }
+.count-btn.left { background: var(--l-bg); border-color: var(--l); }
+.count-btn.back { background: var(--p-bg); border-color: var(--p); cursor: default; }
 /* A link inside a panel (in a table, a list, a row) is a small target: give it a larger one without changing the layout. */
 .panel a:not(.btn), .editor a:not(.btn) { position: relative; }
 .panel a:not(.btn)::after, .editor a:not(.btn)::after { content: ''; position: absolute; inset: -8px -4px; }

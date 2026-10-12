@@ -161,7 +161,7 @@ export class EventsService {
     const told = await this.notifications.notify(
       reach.parentIds.map((userId) => ({
         schoolId, userId, type: 'event.new', title: `School event: ${event.title} on ${date}`, body: event.place ?? event.title,
-        data: { eventId: id, title: event.title, startsAt: event.startsAt.toISOString() },
+        data: { eventId: id, title: event.title, startsAt: event.startsAt.toISOString(), date },
       })),
     );
     await this.audit.log(user, 'event.publish', 'event', id, { told });

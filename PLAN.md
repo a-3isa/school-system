@@ -258,7 +258,7 @@ Each phase ends with something a school can use and pay for. Nothing gets rebuil
 - Strap purchase and replacement in the app
 
 **Phase 4 · School life**
-- Activities & clubs, trips and permission slips, events
+- Activities & clubs, trips and permission slips, events. **Built** (payment for paid clubs and trips comes with Phase 3: staff mark a fee paid by hand)
 - Academics: grades, exams, report cards (built on the Phase 1 timetable). **Built**
 - Behavior & notes, clinic visits. Notes, incidents and merit points are **built**; clinic visits are not
 - Messaging: parent–teacher chat, announcements, polls, meetings, emergency broadcast. **Built.** Announcements to a bus or a club follow with Transport and Activities; WhatsApp to bus supervisors with Transport
@@ -361,6 +361,7 @@ Each phase ends with something a school can use and pay for. Nothing gets rebuil
 | T14 | Who teaches a subject | Periods are the school's, the same for every class. A year group has its subjects; each class of it has them too, and the school assigns each to ONE teacher in that class (the default: the same teacher takes all of its lessons). The timetable only places subjects in periods, and each lesson takes the subject's teacher. The same subject can have different teachers in different classes, and each teacher has a profile showing what they teach. A subject can have an Arabic name |
 | T15 | Copying a week | A class's week can be copied to another class of the same year group. Each copied lesson takes the new class's own teacher for the subject and its own classroom (labs and halls take a free room of the same kind). Whatever can't be placed (room or teacher busy, period already filled) is reported, never dropped silently. By default only empty periods are filled; replacing the week is an explicit choice |
 | T16 | First-run guide and screen layout | Today shows Student Affairs a checklist of the eight steps of setting up a school (in the order that works, the next one first) until all are done. On every list screen the heading holds the one main action and the filters sit in a row under it. Times are typed 24-hour with Latin digits, not with the browser's picker, which follows the device |
+| T17 | Clubs, trips and events | A full club has a waiting list (first come, first served; a freed place moves the next family up and tells them); staff can add over capacity, audited. A permission slip is signed by the parent typing their full name: the name and decision go to the activity log. Closing a trip's answers writes On a trip into the registers for the students with permission; cancelling removes exactly those records. The calendar belongs to the Activities module as a whole, so a school with only clubs has one |
 
 ## 9. How to charge schools
 
