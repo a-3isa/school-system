@@ -273,7 +273,7 @@ The server enforces this: a teacher asking for school-wide data (the student lis
    - **Messages** shows only when the school has Messaging; **School** (grades, behaviour, clubs, trips, calendar, meetings) only when it has one of those. A school sees just the tabs it has.
    - With more than one child, the child chosen on one tab stays chosen on the others.
 4. **The child's day (Today):** arrival time, **where the child is now** (the room or the gate where the strap was heard in the last minute, e.g. "In Math, Room 204 · heard 09:41"), and each lesson's status. With two children there is a switcher. Where the child is now shows only at schools with the straps subscription, only after the parent agreed on the consent screen, and only for today.
-5. **Notifications:** the list, marked read when opened.
+5. **Notifications:** the list, marked read when opened. Marks published together arrive as one push each, but the list shows one child's marks of a day as one row ("4 new marks for Layla", and "in Science" when they are all one subject's); opening it marks them all read and opens the grades. A single mark keeps its own sentence.
 6. **Account:** name, email, mobile ("checked on WhatsApp"), **Change mobile**, and sign out.
 
 ## 9. Gateway firmware (ESP32)

@@ -49,12 +49,35 @@ class NotificationsTab extends StatelessWidget {
             Padding(padding: const EdgeInsets.symmetric(horizontal: 20), child: Text(s.noNotifs, style: TextStyle(color: c.ink2, fontSize: 15, height: 1.5))),
           for (final g in groups.entries) ...[
             Padding(padding: const EdgeInsets.fromLTRB(20, 10, 20, 6), child: Text(dayLabel(g.key), style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: c.ink2))),
-            for (final n in g.value) _Row(n: n, data: data, onOpen: onOpen),
+            for (final n in _collapseMarks(g.value)) _Row(n: n, data: data, onOpen: onOpen),
           ],
         ],
       ),
     );
   }
+}
+
+/// Marks the teacher publishes together arrive one notification each. A parent reads "4 new marks for Layla" once,
+/// not four lines: those of one child on one day become one row (kept at the place of the newest), unread if any is.
+List<Map<String, dynamic>> _collapseMarks(List<Map<String, dynamic>> day) {
+  final out = <Map<String, dynamic>>[];
+  final at = <String, int>{};
+  for (final n in day) {
+    final kid = ((n['data'] as Map?)?['studentId']) as String?;
+    if (n['type'] != 'marks.published' || kid == null) {
+      out.add(n);
+      continue;
+    }
+    final i = at[kid];
+    if (i == null) {
+      at[kid] = out.length;
+      out.add({...n, '_group': [n]});
+    } else {
+      (out[i]['_group'] as List).add(n);
+      if (n['readAt'] == null) out[i]['readAt'] = null;
+    }
+  }
+  return out;
 }
 
 class _Row extends StatelessWidget {
@@ -86,9 +109,16 @@ class _Row extends StatelessWidget {
       'behaviour.note' => switch (info['kind']) { 'PRAISE' => ('★', c.pFg, c.pBg), 'INCIDENT' => ('⚠', c.aFg, c.aBg), _ => ('!', c.lFg, c.lBg) },
       _ => ('i', c.eFg, c.eBg),
     };
-    final text = child == null && !S.schoolNotificationTypes.contains(type)
-        ? n['title'] as String
-        : s.notification(type, name, info, n['title'] as String, child?['gender'] as String?);
+    final group = ((n['_group'] as List?) ?? const []).cast<Map<String, dynamic>>();
+    String? sharedSubject(String key) {
+      final values = group.map((m) => ((m['data'] as Map?)?[key]) as String?).toSet();
+      return values.length == 1 ? values.first : null;
+    }
+    final text = group.length > 1
+        ? s.marksGroup(name, group.length, subject: sharedSubject('subject'), subjectAr: sharedSubject('subjectAr'))
+        : child == null && !S.schoolNotificationTypes.contains(type)
+            ? n['title'] as String
+            : s.notification(type, name, info, n['title'] as String, child?['gender'] as String?);
     final who = child == null
         ? n['body'] as String
         : ltr([child['class']?['name'], '${child['firstName']} ${child['lastName']}'].whereType<String>().join(' · '));
@@ -98,7 +128,7 @@ class _Row extends StatelessWidget {
       child: InkWell(
         onTap: () {
           // A failed mark-as-read (no network) isn't worth interrupting the parent for.
-          if (unread) data.markRead([n['id'] as String]).catchError((_) {});
+          if (unread) data.markRead((group.length > 1 ? group : [n]).where((m) => m['readAt'] == null).map((m) => m['id'] as String)).catchError((_) {});
           onOpen?.call(type, info);
         },
         child: Container(

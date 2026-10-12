@@ -206,6 +206,13 @@ class S {
     return '$n $many';
   }
 
+  /// Several marks published together, as one line: "4 new marks for Layla" (and "in Science" when they are all one subject's).
+  String marksGroup(String name, int n, {String? subject, String? subjectAr}) {
+    final inSubject = subject == null ? null : (subjectAr?.isNotEmpty == true ? subjectAr : subject);
+    final ar = n == 2 ? 'درجتان جديدتان' : '${_arCount(n, '', '', 'درجات', 'درجة')} جديدة';
+    return _('$n new marks for $name${subject == null ? '' : ' in $subject'}', '$ar لـ$name${inSubject == null ? '' : ' في $inSubject'}');
+  }
+
   String get newsTab => _('School news', 'أخبار المدرسة');
   String get chatsTab => _('Conversations', 'المحادثات');
   String get noNews => _('Nothing from the school yet.', 'لا توجد رسائل من المدرسة بعد.');
