@@ -105,7 +105,7 @@ class _ClubsScreenState extends State<ClubsScreen> {
     final joined = clubs?.where((c) => c['status'] != null).toList() ?? const <Map<String, dynamic>>[];
     final open = clubs?.where((c) => c['status'] == null).toList() ?? const <Map<String, dynamic>>[];
 
-    Widget section(String title, List<Map<String, dynamic>> list) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+    Widget section(String title, List<Map<String, dynamic>> list) => Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Padding(padding: const EdgeInsets.only(top: 8, bottom: 8), child: Text(title, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: context.c.ink2))),
           for (final c in list) ...[
             _ClubCard(club: c, busy: _busyId == c['id'], clash: _clash[c['id']], onJoin: () => _join(c), onLeave: () => _leave(c)),
