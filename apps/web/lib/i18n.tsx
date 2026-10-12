@@ -126,8 +126,10 @@ const SERVER_AR: [RegExp, (...m: string[]) => string][] = [
       // Subjects and teachers
       ['A subject with this name already exists.', 'توجد مادة بهذا الاسم بالفعل.'],
       ['This subject is in the timetable or has marks, so it can’t be deleted.', 'هذه المادة مستخدمة في الجدول الدراسي أو لها درجات، ولذلك لا يمكن حذفها.'],
-      ['This subject has no lessons in this class yet. Add it to the timetable first.', 'لا توجد حصص لهذه المادة في هذا الفصل بعد. أضيفوها إلى الجدول الدراسي أولًا.'],
-      ['Choose the teacher for this lesson.', 'اختاروا معلم هذه الحصة.'],
+      ['This subject isn’t one of this class’s subjects. Add it to the year group’s subjects first.', 'هذه المادة ليست من مواد هذا الفصل. أضيفوها إلى مواد الصف الدراسي أولًا.'],
+      ['Choose the teacher of this subject in this class.', 'اختاروا معلم هذه المادة في هذا الفصل.'],
+      ['This year group’s classes already have lessons or marks in this subject, so it can’t be removed.', 'لدى فصول هذا الصف الدراسي حصص أو درجات في هذه المادة، ولذلك لا يمكن إزالتها.'],
+      ['Grade not found.', 'لم يتم العثور على الصف الدراسي.'],
       ['That day isn’t a school day.', 'هذا اليوم ليس يوم دراسة.'],
       ['Class not found in this school.', 'لم يتم العثور على الفصل في هذه المدرسة.'],
       ['Period not found in this school.', 'لم يتم العثور على الحصة في هذه المدرسة.'],
@@ -139,6 +141,7 @@ const SERVER_AR: [RegExp, (...m: string[]) => string][] = [
     ] as [string, string][]
   ).map(([en, ar]): [RegExp, () => string] => [new RegExp(`^${en.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`), () => ar]),
   [/^Points for (praise|concern|incident) notes must be between (-?\d+) and (-?\d+)\.$/, (_, _k, a, b) => `يجب أن تكون النقاط بين ${a} و${b}.`],
+  [/^(.+) teaches (.+) in (.+)\. To change the teacher, change it for the whole subject\.$/, (_, who, sub, cls) => `${who} يدرّس ${sub} في الفصل ${cls}. لتغيير المعلم، غيّروه للمادة كلها.`],
   [/^(.+) already teaches (.+) on (Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday) in period (\d+)\.$/, (_, who, cls, day, p) => `${who} يدرّس الفصل ${cls} يوم ${({ Sunday: 'الأحد', Monday: 'الاثنين', Tuesday: 'الثلاثاء', Wednesday: 'الأربعاء', Thursday: 'الخميس', Friday: 'الجمعة', Saturday: 'السبت' } as Record<string, string>)[day]} في الحصة ${p} بالفعل.`],
   [/^(.+) already teaches (.+) in period (\d+)\.$/, (_, who, cls, p) => `${who} يدرّس الفصل ${cls} في الحصة ${p} بالفعل.`],
   [/^(.+) already has (.+) in period (\d+)\.$/, (_, cls, sub, p) => `لدى الفصل ${cls} حصة ${sub} في الحصة ${p} بالفعل.`],

@@ -97,11 +97,11 @@ export class AssessmentsService {
     const mine = new Set<string>();
     let rows;
     if (user.role === Role.SCHOOL_ADMIN) {
-      rows = await this.prisma.timetableEntry.findMany({ where: { schoolId }, select: { classId: true, subjectId: true, ...include }, distinct: ['classId', 'subjectId'] });
+      rows = await this.prisma.classSubject.findMany({ where: { class: { schoolId } }, select: { classId: true, subjectId: true, ...include } });
     } else {
       const homerooms = await this.access.homeroomIds(schoolId, user.id);
-      rows = await this.prisma.timetableEntry.findMany({
-        where: { schoolId, OR: [{ teacherId: user.id }, ...(homerooms.length ? [{ classId: { in: homerooms } }] : [])] },
+      rows = await this.prisma.classSubject.findMany({
+        where: { class: { schoolId }, OR: [{ teacherId: user.id }, ...(homerooms.length ? [{ classId: { in: homerooms } }] : [])] },
         select: { classId: true, subjectId: true, teacherId: true, ...include },
       });
       for (const r of rows) if (r.teacherId === user.id) mine.add(`${r.classId}:${r.subjectId}`);

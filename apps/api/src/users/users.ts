@@ -61,22 +61,26 @@ export class StaffController {
     if (person.role !== Role.TEACHER) return { ...person, teaching: null };
 
     const grade = { select: { name: true, nameAr: true } };
-    const [homerooms, lessons] = await Promise.all([
+    const [homerooms, taught, placed] = await Promise.all([
       this.prisma.class.findMany({ where: { schoolId, homeroomTeacherId: id }, select: { id: true, name: true, grade }, orderBy: { name: 'asc' } }),
-      this.prisma.timetableEntry.findMany({
-        where: { schoolId, teacherId: id },
+      // What the school assigned to them: each subject in each class.
+      this.prisma.classSubject.findMany({
+        where: { teacherId: id, class: { schoolId } },
         select: { classId: true, subjectId: true, class: { select: { name: true, grade } }, subject: { select: { name: true, nameAr: true } } },
       }),
+      // How many lessons of them are in the timetable so far.
+      this.prisma.timetableEntry.groupBy({ by: ['classId', 'subjectId'], where: { schoolId, teacherId: id }, _count: true }),
     ]);
+    const lessonCount = new Map(placed.map((p) => [`${p.classId}:${p.subjectId}`, p._count]));
     const byPair = new Map<string, { classId: string; className: string; gradeName: string; gradeNameAr: string | null; subjectId: string; subjectName: string; subjectNameAr: string | null; lessons: number }>();
-    for (const l of lessons) {
+    for (const l of taught) {
       const key = `${l.classId}:${l.subjectId}`;
       const row = byPair.get(key) ?? { classId: l.classId, className: l.class.name, gradeName: l.class.grade.name, gradeNameAr: l.class.grade.nameAr, subjectId: l.subjectId, subjectName: l.subject.name, subjectNameAr: l.subject.nameAr, lessons: 0 };
-      row.lessons++;
+      row.lessons = lessonCount.get(key) ?? 0;
       byPair.set(key, row);
     }
     const assignments = [...byPair.values()].sort((a, b) => a.className.localeCompare(b.className, 'en', { numeric: true }) || a.subjectName.localeCompare(b.subjectName));
-    return { ...person, teaching: { lessonsPerWeek: lessons.length, homerooms, assignments } };
+    return { ...person, teaching: { lessonsPerWeek: [...lessonCount.values()].reduce((a, b) => a + b, 0), homerooms, assignments } };
   }
 
   @Post()

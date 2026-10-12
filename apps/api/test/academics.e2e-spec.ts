@@ -40,6 +40,8 @@ describe('Academics (e2e)', () => {
     id.english = (await admin.post('/api/subjects', { name: 'English' })).body.id;
     id.p1 = (await admin.post('/api/periods', { number: 1, startTime: '08:00', endTime: '08:45' })).body.id;
     id.p2 = (await admin.post('/api/periods', { number: 2, startTime: '08:45', endTime: '09:30' })).body.id;
+    await admin.put(`/api/grades/${grade.id}/subjects/${id.math}`, {}).expect(200); // the year group studies it
+    await admin.put(`/api/grades/${grade.id}/subjects/${id.english}`, {}).expect(200); // the year group studies it
     await admin.post('/api/timetable', { classId: id.classA, dayOfWeek: 0, periodId: id.p1, roomId: id.roomA, subjectId: id.math, teacherId: id.t1 }).expect(201);
     await admin.post('/api/timetable', { classId: id.classA, dayOfWeek: 0, periodId: id.p2, roomId: id.roomA, subjectId: id.english, teacherId: id.t2 }).expect(201);
     await admin.post('/api/timetable', { classId: id.classB, dayOfWeek: 0, periodId: id.p1, roomId: id.roomB, subjectId: id.math, teacherId: id.t3 }).expect(201);
@@ -69,7 +71,7 @@ describe('Academics (e2e)', () => {
       expect((await t1.get('/api/academics/teaching').expect(200)).body).toEqual([{ classId: id.classA, className: '4-A', subjectId: id.math, subjectName: 'Math', subjectNameAr: null, canMark: true }]);
       const homeroom = (await t2.get('/api/academics/teaching').expect(200)).body;
       expect(homeroom.map((p: any) => [p.subjectName, p.canMark])).toEqual([['English', true], ['Math', false]]);
-      expect((await admin.get('/api/academics/teaching').expect(200)).body).toHaveLength(3);
+      expect((await admin.get('/api/academics/teaching').expect(200)).body).toHaveLength(4); // both subjects in both classes: a subject needn't be in the timetable yet
       await social.get('/api/academics/teaching').expect(403);
     });
   });

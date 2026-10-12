@@ -15,9 +15,9 @@ export const CANT_MARK = 'You can only mark subjects you teach.';
 export class AcademicsAccess {
   constructor(private readonly prisma: PrismaService) {}
 
-  /** The class and subject pairs a teacher teaches, from the timetable. */
+  /** The class and subject pairs a teacher teaches: the subjects the school has assigned to them. */
   async pairs(schoolId: string, teacherId: string) {
-    return this.prisma.timetableEntry.findMany({ where: { schoolId, teacherId }, select: { classId: true, subjectId: true }, distinct: ['classId', 'subjectId'] });
+    return this.prisma.classSubject.findMany({ where: { teacherId, class: { schoolId } }, select: { classId: true, subjectId: true } });
   }
 
   async homeroomIds(schoolId: string, teacherId: string): Promise<string[]> {
@@ -28,7 +28,7 @@ export class AcademicsAccess {
   async teaches(user: AuthUser, schoolId: string, classId: string, subjectId: string): Promise<boolean> {
     if (user.role === Role.SCHOOL_ADMIN) return true;
     if (user.role !== Role.TEACHER) return false;
-    return !!(await this.prisma.timetableEntry.findFirst({ where: { schoolId, classId, subjectId, teacherId: user.id }, select: { id: true } }));
+    return !!(await this.prisma.classSubject.findFirst({ where: { classId, subjectId, teacherId: user.id, class: { schoolId } }, select: { classId: true } }));
   }
 
   async isHomeroom(user: AuthUser, schoolId: string, classId: string): Promise<boolean> {
@@ -43,7 +43,7 @@ export class AcademicsAccess {
     if (user.role !== Role.TEACHER) return false;
     if (await this.isHomeroom(user, schoolId, classId)) return true;
     if (subjectId) return this.teaches(user, schoolId, classId, subjectId);
-    return !!(await this.prisma.timetableEntry.findFirst({ where: { schoolId, classId, teacherId: user.id }, select: { id: true } }));
+    return !!(await this.prisma.classSubject.findFirst({ where: { classId, teacherId: user.id, class: { schoolId } }, select: { classId: true } }));
   }
 
   async assertMayWrite(user: AuthUser, schoolId: string, classId: string, subjectId: string) {

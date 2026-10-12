@@ -106,6 +106,7 @@ describe('Phase 1 core (e2e)', () => {
     roomId = (await admin.post('/api/rooms', { name: 'Room 204' }).expect(201)).body.id;
     room2Id = (await admin.post('/api/rooms', { name: 'Lab 1', kind: 'LAB' }).expect(201)).body.id;
     subjectId = (await admin.post('/api/subjects', { name: 'Math' }).expect(201)).body.id;
+    await admin.put(`/api/grades/${grade.body.id}/subjects/${subjectId}`, {}).expect(200); // the year group studies it
     period1 = (await admin.post('/api/periods', { number: 1, startTime: '08:00', endTime: '08:45' }).expect(201)).body.id;
     const overlap = await admin.post('/api/periods', { number: 2, startTime: '08:30', endTime: '09:15' }).expect(400);
     expect(overlap.body.message).toContain('Overlaps period 1');
@@ -119,7 +120,7 @@ describe('Phase 1 core (e2e)', () => {
     const clash = await admin.post('/api/timetable', { classId, dayOfWeek: 3, periodId: period1, roomId: room2Id, subjectId, teacherId }).expect(409);
     expect(clash.body.message).toBe('4-A already has Math in period 1.');
     await admin.post('/api/timetable', { classId, dayOfWeek: 5, periodId: period1, roomId, subjectId, teacherId }).expect(400); // Friday
-    expect((await admin.post('/api/timetable', { classId, dayOfWeek: 2, periodId: period1, roomId, subjectId }).expect(400)).body.message).toContain('Choose the teacher for this lesson.');
+    expect(await admin.post('/api/timetable', { classId, dayOfWeek: 2, periodId: period1, roomId, subjectId }).expect(201)).toBeDefined(); // the subject already has its teacher, so the lesson takes it
   });
 
   it('finds the lesson happening in a room right now', async () => {

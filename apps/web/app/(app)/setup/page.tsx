@@ -6,6 +6,7 @@ import { useAction, useApi } from '@/lib/hooks';
 import { useI18n } from '@/lib/i18n';
 import { Dict } from '@/lib/strings';
 import { byStage, useGradeName } from '@/components/ClassPicker';
+import { GradeSubjectsEditor } from '@/components/GradeSubjectsEditor';
 import { SubjectsEditor } from '@/components/SubjectsEditor';
 import { Empty, ErrorNote, Field, PageHead, Section, toast } from '@/components/ui';
 
@@ -280,6 +281,7 @@ export default function SetupPage() {
 
         <SubjectsEditor />
       </div>
+      <GradeSubjectsEditor />
     </>
   );
 }

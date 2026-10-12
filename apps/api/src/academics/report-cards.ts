@@ -81,20 +81,16 @@ export class ReportCardsService {
     if (!cls) throw new NotFoundException('Class not found.');
     if (!year) throw new NotFoundException('Academic year not found.');
     const [lessons, assessments, bands] = await Promise.all([
-      this.prisma.timetableEntry.findMany({ where: { schoolId, classId }, select: { subjectId: true, subject: { select: { name: true, nameAr: true } }, teacher: { select: { id: true, name: true, honorific: true } } } }),
+      this.prisma.classSubject.findMany({ where: { classId }, select: { subjectId: true, subject: { select: { name: true, nameAr: true } }, teacher: { select: { id: true, name: true, honorific: true } } } }),
       this.scores.assessments(schoolId, classId, yearId, term, { publishedOnly: true }),
       this.scores.bandsOf(schoolId, cls.system),
     ]);
-    const subjects = new Map<string, { id: string; name: string; nameAr: string | null; teachers: Map<string, { n: number; name: string }> }>();
-    for (const l of lessons) {
-      const s = subjects.get(l.subjectId) ?? { id: l.subjectId, name: l.subject.name, nameAr: l.subject.nameAr, teachers: new Map() };
-      if (l.teacher) s.teachers.set(l.teacher.id, { n: (s.teachers.get(l.teacher.id)?.n ?? 0) + 1, name: titled(l.teacher) });
-      subjects.set(l.subjectId, s);
-    }
+    // The class's subjects, each with the teacher the school gave it.
+    const subjects = new Map<string, { id: string; name: string; nameAr: string | null; teacher: string | null }>();
+    for (const l of lessons) subjects.set(l.subjectId, { id: l.subjectId, name: l.subject.name, nameAr: l.subject.nameAr, teacher: l.teacher ? titled(l.teacher) : null });
     const assessed = await this.prisma.subject.findMany({ where: { id: { in: [...new Set(assessments.map((a) => a.subjectId))] } }, select: { id: true, name: true, nameAr: true } });
-    for (const a of assessed) if (!subjects.has(a.id)) subjects.set(a.id, { id: a.id, name: a.name, nameAr: a.nameAr, teachers: new Map() });
+    for (const a of assessed) if (!subjects.has(a.id)) subjects.set(a.id, { id: a.id, name: a.name, nameAr: a.nameAr, teacher: null });
     const list = [...subjects.values()]
-      .map((s) => ({ id: s.id, name: s.name, nameAr: s.nameAr, teacher: [...s.teachers.values()].sort((a, b) => b.n - a.n)[0]?.name ?? null }))
       .sort((a, b) => a.name.localeCompare(b.name));
     return { school, cls, year, subjects: list, assessments, bands, term };
   }

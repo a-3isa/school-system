@@ -106,6 +106,13 @@ async function main() {
   const subjects: Record<string, any> = {};
   const subjectAr: Record<string, string> = { Math: 'الرياضيات', Arabic: 'اللغة العربية', English: 'اللغة الإنجليزية', Science: 'العلوم' };
   for (const s of ['Math', 'Arabic', 'English', 'Science']) subjects[s] = await A('POST', '/subjects', { name: s, nameAr: subjectAr[s] });
+  // Primary 4 studies these four subjects; every class of the year group has them.
+  for (const s of Object.values(subjects)) await A('PUT', `/grades/${g4.id}/subjects/${s.id}`, {});
+  // The school assigns each subject to a teacher, class by class: Maths is Hana's in 4/1 and Karim's in 4/2 (same year group,
+  // different class, different teacher); Arabic and English are Mona's in 4/1 and Sherif's in 4/2. The lessons follow.
+  for (const [cls, who] of [[c4a, { Math: hana, Science: hana, Arabic: mona, English: mona }], [c4b, { Math: karim, Science: karim, Arabic: sherif, English: sherif }]] as const) {
+    for (const [name, teacher] of Object.entries(who)) await A('PUT', '/timetable/assign', { classId: cls.id, subjectId: subjects[name].id, teacherId: teacher.id });
+  }
   const times = [['08:00', '08:45'], ['08:45', '09:30'], ['09:50', '10:35'], ['10:35', '11:20'], ['11:40', '12:25'], ['12:25', '13:10']];
   const periods: any[] = [];
   for (const [i, [startTime, endTime]] of times.entries()) periods.push(await A('POST', '/periods', { number: i + 1, startTime, endTime }));
@@ -116,13 +123,11 @@ async function main() {
       const [a, b] = plan[(i + day) % plan.length];
       const aInLab = a === 'Science';
       const bInLab = b === 'Science' && !aInLab;
-      await A('POST', '/timetable', { classId: c4a.id, dayOfWeek: day, periodId: p.id, roomId: aInLab ? lab.id : r204.id, subjectId: subjects[a].id, teacherId: a === 'Math' || a === 'Science' ? hana.id : mona.id });
-      await A('POST', '/timetable', { classId: c4b.id, dayOfWeek: day, periodId: p.id, roomId: bInLab ? lab.id : r205.id, subjectId: subjects[b].id, teacherId: b === 'English' || b === 'Arabic' ? sherif.id : karim.id });
+      await A('POST', '/timetable', { classId: c4a.id, dayOfWeek: day, periodId: p.id, roomId: aInLab ? lab.id : r204.id, subjectId: subjects[a].id });
+      await A('POST', '/timetable', { classId: c4b.id, dayOfWeek: day, periodId: p.id, roomId: bInLab ? lab.id : r205.id, subjectId: subjects[b].id });
     }
   }
 
-  // Every lesson has a teacher, and a subject can have several: Maths is Hana's in 4/1 and Karim's in 4/2 (same year group,
-  // different class, different teacher). Arabic and English: Mona in 4/1, Sherif in 4/2.
 
   for (let i = 0; i < 24; i++) {
     // Every student comes with a parent. Some brothers and sisters share a mother

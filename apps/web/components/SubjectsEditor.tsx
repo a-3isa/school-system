@@ -3,12 +3,40 @@ import { FormEvent, useState } from 'react';
 import { del, patch, post } from '@/lib/api';
 import { useAction, useApi } from '@/lib/hooks';
 import { useI18n } from '@/lib/i18n';
-import { Empty, ErrorNote, toast } from './ui';
+import { Empty, ErrorNote, Tag, toast } from './ui';
+
+/** Where one subject is used: its year groups, and its classes with their teachers and lessons. */
+function SubjectUsage({ id }: { id: string }) {
+  const { t, x, staff } = useI18n();
+  const usage = useApi<any>(`/subjects/${id}`);
+  if (!usage.data) return <div className="editor-row small muted">{usage.error ? x(usage.error) : t.common.loading}</div>;
+  const u = usage.data;
+  return (
+    <div className="editor-row" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 8, background: 'var(--surface-2)' }}>
+      <div className="stack small" style={{ gap: 4 }}>
+        <b>{t.subj.yearGroupsLabel}</b>
+        {u.yearGroups.length ? (
+          <span className="row wrap" style={{ gap: 6 }}>
+            {u.yearGroups.map((g: any) => <Tag key={g.id} tone="N">{x(g.name)}{g.lessonsPerWeek ? ` · ${t.subj.perWeekN(g.lessonsPerWeek)}` : ''}</Tag>)}
+          </span>
+        ) : <span className="muted">—</span>}
+      </div>
+      <div className="stack small" style={{ gap: 4 }}>
+        <b>{t.subj.classesLabel}</b>
+        {u.classes.length ? u.classes.map((c: any) => (
+          <span key={c.classId}>{x(c.className)} · {c.teacher ? staff(c.teacher) : <span className="muted">{t.subj.noTeacher}</span>} · <span className="muted">{t.subj.placedN(c.lessons)}</span></span>
+        )) : <span className="muted">—</span>}
+      </div>
+      {(u.lessons > 0 || u.assessments > 0) && <span className="small muted">{t.subj.inUse(u.lessons, u.assessments)}</span>}
+    </div>
+  );
+}
 
 /**
- * The school's subjects: a name in English and, optionally, in Arabic (shown on Arabic screens and
- * report cards). A name can be fixed later; a subject can be deleted only while nothing uses it.
- * Giving a subject a teacher is done in the timetable, class by class.
+ * The school's subjects, all four of create, read, update and delete: add one (an English name and, optionally,
+ * an Arabic one that Arabic screens and report cards use), see where it is used, fix its names, and delete it
+ * while no lesson or mark uses it (that takes it out of its year groups and classes too).
+ * Which year group studies it is set below, and who teaches it in each class on the Timetable page.
  */
 export function SubjectsEditor() {
   const { t, x } = useI18n();
@@ -17,6 +45,7 @@ export function SubjectsEditor() {
   const [name, setName] = useState('');
   const [nameAr, setNameAr] = useState('');
   const [editing, setEditing] = useState<string | null>(null);
+  const [open, setOpen] = useState<string | null>(null);
   const [draft, setDraft] = useState({ name: '', nameAr: '' });
 
   async function add(e: FormEvent) {
@@ -37,9 +66,10 @@ export function SubjectsEditor() {
   }
 
   async function remove(s: any) {
-    if (!confirm(t.subj.deleteConfirm(s.name))) return;
+    if (!confirm(t.subj.deleteConfirm(s.name, s.yearGroups, s.classes))) return;
     if (await act.run(() => del(`/subjects/${s.id}`))) {
       toast(t.subj.deleted);
+      setOpen(null);
       await subjects.reload();
     }
   }
@@ -58,12 +88,21 @@ export function SubjectsEditor() {
             <button type="button" className="btn small" onClick={() => setEditing(null)}>{t.common.cancel}</button>
           </div>
         ) : (
-          <div key={s.id} className="editor-row">
-            <span><span>{s.name}</span>{s.nameAr && <small dir="rtl" style={{ alignSelf: 'flex-start' }}>{s.nameAr}</small>}</span>
-            <div className="row" style={{ gap: 6, flex: 'none' }}>
-              <button type="button" className="btn small" onClick={() => { setEditing(s.id); setDraft({ name: s.name, nameAr: s.nameAr ?? '' }); }}>{t.subj.edit}</button>
-              <button type="button" className="icon-btn" aria-label={t.common.remove} title={t.common.remove} onClick={() => void remove(s)}>✕</button>
+          <div key={s.id}>
+            <div className="editor-row">
+              <span>
+                <button type="button" className="btn link" aria-expanded={open === s.id} title={open === s.id ? t.subj.hideDetails : t.subj.details} onClick={() => setOpen(open === s.id ? null : s.id)} style={{ justifyContent: 'flex-start', fontWeight: 500, color: 'inherit' }}>
+                  {s.name}
+                </button>
+                {s.nameAr && <small dir="rtl" style={{ alignSelf: 'flex-start' }}>{s.nameAr}</small>}
+                <small>{t.subj.usedIn(s.yearGroups, s.classes)}</small>
+              </span>
+              <div className="row" style={{ gap: 6, flex: 'none' }}>
+                <button type="button" className="btn small" onClick={() => { setEditing(s.id); setDraft({ name: s.name, nameAr: s.nameAr ?? '' }); }}>{t.subj.edit}</button>
+                <button type="button" className="icon-btn" aria-label={t.common.remove} title={t.common.remove} onClick={() => void remove(s)}>✕</button>
+              </div>
             </div>
+            {open === s.id && <SubjectUsage id={s.id} />}
           </div>
         ),
       )}

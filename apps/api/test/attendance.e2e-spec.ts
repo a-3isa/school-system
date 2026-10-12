@@ -39,6 +39,7 @@ describe('Manual attendance (e2e)', () => {
     yesterday = shift(today, -1);
     tomorrow = shift(today, 1);
     const dow = new Date(`${today}T00:00:00Z`).getUTCDay();
+    await admin.put(`/api/grades/${grade.id}/subjects/${subjectId}`, {}).expect(200); // the year group studies it
     await admin.post('/api/timetable', { classId, dayOfWeek: dow, periodId: p1, roomId, subjectId, teacherId: t.id }).expect(201);
     await admin.post('/api/timetable', { classId, dayOfWeek: (dow + 6) % 7, periodId: p1, roomId, subjectId, teacherId: t.id }).expect(201);
 

@@ -178,6 +178,7 @@ model User {
   school      School?           @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   children    StudentGuardian[]
   teaching    TimetableEntry[]
+  classSubjects ClassSubject[]
   homerooms   Class[]
   marked      AttendanceRecord[]
   excusesSent Excuse[] @relation("ExcuseSubmitter")
@@ -208,8 +209,9 @@ model Grade {
   stage    Stage  @default(OTHER)
   order    Int
 
-  school  School  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  classes Class[]
+  school   School         @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  classes  Class[]
+  subjects GradeSubject[]
 
   @@unique([schoolId, name])
 }
@@ -237,6 +239,7 @@ model Class {
   aways           ClassAway[]
   assessments     Assessment[]
   reportCards     ReportCard[]
+  subjects        ClassSubject[]
 
   @@unique([schoolId, name])
 }
@@ -262,11 +265,44 @@ model Subject {
   // The name in Arabic, shown on Arabic screens and report cards.
   nameAr   String?
 
-  school      School           @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  timetable   TimetableEntry[]
-  assessments Assessment[]
+  school        School           @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  timetable     TimetableEntry[]
+  assessments   Assessment[]
+  gradeSubjects GradeSubject[]
+  classSubjects ClassSubject[]
 
   @@unique([schoolId, name])
+}
+
+// The subjects a year group studies, and how many lessons a week each has. A year group's classes
+// all study these; what differs from class to class is who teaches them and where they sit in the week.
+model GradeSubject {
+  gradeId        String
+  subjectId      String
+  lessonsPerWeek Int?
+
+  grade   Grade   @relation(fields: [gradeId], references: [id], onDelete: Cascade)
+  subject Subject @relation(fields: [subjectId], references: [id], onDelete: Restrict)
+
+  @@id([gradeId, subjectId])
+  @@index([subjectId])
+}
+
+// One subject in one class, and its teacher. The school assigns subjects to teachers; the lessons follow:
+// every lesson of the subject in the class is taken by this teacher. Rows appear by themselves from the
+// year group's subjects.
+model ClassSubject {
+  classId   String
+  subjectId String
+  teacherId String?
+
+  class   Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
+  subject Subject @relation(fields: [subjectId], references: [id], onDelete: Restrict)
+  teacher User?   @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+
+  @@id([classId, subjectId])
+  @@index([teacherId])
+  @@index([subjectId])
 }
 
 // The school's bell schedule: period 1 is 08:00–08:45, and so on.

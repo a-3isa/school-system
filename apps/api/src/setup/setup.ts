@@ -10,6 +10,7 @@ import { AuthUser, CurrentUser, Roles, SchoolId, SCHOOL_WIDE, STAFF } from '../a
 import { defined, mapPrismaError, TIME_RE, toMinutes } from '../common/validation';
 import { SchoolCalendar } from './calendar';
 import { dbDate } from '../common/dates';
+import { syncClassSubjects } from '../timetable/curriculum';
 
 // ---------- DTOs ----------
 
@@ -426,6 +427,7 @@ export class ClassesController {
   async create(@CurrentUser() user: AuthUser, @SchoolId() schoolId: string, @Body() dto: ClassDto) {
     await this.setup.checkClass(schoolId, dto);
     const cls = await this.prisma.class.create({ data: { ...dto, homeroomTeacherId: dto.homeroomTeacherId || null, section: dto.section?.trim() || null, schoolId } }).catch((e) => mapPrismaError(e, 'A class with this name already exists.'));
+    await syncClassSubjects(this.prisma, cls.id); // the class studies its year group's subjects
     await this.audit.log(user, 'class.create', 'class', cls.id, { ...dto });
     return cls;
   }
@@ -439,6 +441,7 @@ export class ClassesController {
     await this.setup.checkClass(schoolId, { ...before, ...sent } as ClassDto);
     const data = { ...sent, ...(dto.homeroomTeacherId !== undefined ? { homeroomTeacherId: dto.homeroomTeacherId || null } : {}), ...(dto.section !== undefined ? { section: dto.section.trim() || null } : {}) };
     const cls = await this.prisma.class.update({ where: { id }, data }).catch((e) => mapPrismaError(e, 'A class with this name already exists.'));
+    if (cls.gradeId !== before.gradeId) await syncClassSubjects(this.prisma, id);
     await this.audit.log(user, 'class.update', 'class', id, { ...dto });
     return cls;
   }
@@ -486,9 +489,38 @@ export class RoomsController {
 export class SubjectsController {
   constructor(private readonly prisma: PrismaService, private readonly audit: AuditService) {}
 
+  /** Every subject, with how many year groups and classes use it. */
   @Get()
-  list(@SchoolId() schoolId: string) {
-    return this.prisma.subject.findMany({ where: { schoolId }, orderBy: { name: 'asc' } });
+  async list(@SchoolId() schoolId: string) {
+    const rows = await this.prisma.subject.findMany({ where: { schoolId }, orderBy: { name: 'asc' }, include: { _count: { select: { gradeSubjects: true, classSubjects: true } } } });
+    return rows.map(({ _count, ...s }) => ({ ...s, yearGroups: _count.gradeSubjects, classes: _count.classSubjects }));
+  }
+
+  /** One subject and where it is used: its year groups, its classes with their teachers, and how many lessons and marks it has. */
+  @Roles(Role.SCHOOL_ADMIN)
+  @Get(':id')
+  async one(@SchoolId() schoolId: string, @Param('id') id: string) {
+    const subject = await this.prisma.subject.findFirst({
+      where: { id, schoolId },
+      include: {
+        gradeSubjects: { select: { lessonsPerWeek: true, grade: { select: { id: true, name: true, nameAr: true, order: true } } } },
+        classSubjects: { select: { classId: true, class: { select: { name: true } }, teacher: { select: { id: true, name: true, honorific: true } } } },
+      },
+    });
+    if (!subject) throw new NotFoundException('Subject not found.');
+    const [lessons, marks] = await Promise.all([
+      this.prisma.timetableEntry.groupBy({ by: ['classId'], where: { subjectId: id }, _count: true }),
+      this.prisma.assessment.count({ where: { subjectId: id } }),
+    ]);
+    const placed = new Map(lessons.map((l) => [l.classId, l._count]));
+    const { gradeSubjects, classSubjects, ...own } = subject;
+    return {
+      ...own,
+      yearGroups: gradeSubjects.map((g) => ({ ...g.grade, lessonsPerWeek: g.lessonsPerWeek })).sort((a, b) => a.order - b.order),
+      classes: classSubjects.map((c) => ({ classId: c.classId, className: c.class.name, teacher: c.teacher, lessons: placed.get(c.classId) ?? 0 })).sort((a, b) => a.className.localeCompare(b.className, 'en', { numeric: true })),
+      lessons: lessons.reduce((n, l) => n + l._count, 0),
+      assessments: marks,
+    };
   }
 
   @Roles(Role.SCHOOL_ADMIN)
@@ -513,16 +545,27 @@ export class SubjectsController {
     return subject;
   }
 
-  /** A subject can go only while nothing uses it: no lessons in the timetable and no marks. */
+  /**
+   * A subject can go while no lesson in the timetable and no mark uses it. Its year groups and classes
+   * (and the teachers given it there) go with it: a school that adds a subject by mistake shouldn't have to
+   * untick it grade by grade first.
+   */
   @Roles(Role.SCHOOL_ADMIN)
   @Delete(':id')
   async remove(@CurrentUser() user: AuthUser, @SchoolId() schoolId: string, @Param('id') id: string) {
     const subject = await this.prisma.subject.findFirst({ where: { id, schoolId }, select: { id: true, name: true } });
     if (!subject) throw new NotFoundException('Subject not found.');
-    const [lessons, assessments] = await Promise.all([this.prisma.timetableEntry.count({ where: { subjectId: id } }), this.prisma.assessment.count({ where: { subjectId: id } })]);
+    const [lessons, assessments] = await Promise.all([
+      this.prisma.timetableEntry.count({ where: { subjectId: id } }),
+      this.prisma.assessment.count({ where: { subjectId: id } }),
+    ]);
     if (lessons || assessments) throw new BadRequestException('This subject is in the timetable or has marks, so it can’t be deleted.');
-    await this.prisma.subject.delete({ where: { id } });
-    await this.audit.log(user, 'subject.delete', 'subject', id, { name: subject.name });
+    const [classes, yearGroups] = await this.prisma.$transaction([
+      this.prisma.classSubject.deleteMany({ where: { subjectId: id } }),
+      this.prisma.gradeSubject.deleteMany({ where: { subjectId: id } }),
+      this.prisma.subject.delete({ where: { id } }),
+    ]);
+    await this.audit.log(user, 'subject.delete', 'subject', id, { name: subject.name, yearGroups: yearGroups.count, classes: classes.count });
     return { ok: true };
   }
 }
