@@ -5,6 +5,7 @@ function service(over: Record<string, unknown> = {}) {
   const prisma = {
     grade: { count: jest.fn().mockResolvedValue(1) },
     class: { count: jest.fn().mockResolvedValue(1) },
+    activity: { count: jest.fn().mockResolvedValue(1) },
     student: { findMany: jest.fn().mockResolvedValue([]), count: jest.fn().mockResolvedValue(0) },
     ...over,
   };
@@ -31,8 +32,17 @@ describe('AudienceService', () => {
     await expect(svc.validate('s1', { kind: 'GRADES', ids: ['g1', 'g1'] })).resolves.toBeUndefined();
   });
 
-  it('keeps clubs out until the Activities module exists', async () => {
-    await expect(service().svc.validate('s1', { kind: 'ACTIVITY', ids: ['x'] })).rejects.toThrow('Clubs aren’t available yet.');
+  it('takes a club as an audience: it asks for one, and only this school’s own', async () => {
+    await expect(service().svc.validate('s1', { kind: 'ACTIVITY', ids: ['x'] })).resolves.toBeUndefined();
+    await expect(service().svc.validate('s1', { kind: 'ACTIVITY', ids: [] })).rejects.toThrow('Choose at least one club.');
+    const { svc } = service({ activity: { count: jest.fn().mockResolvedValue(0) } });
+    await expect(svc.validate('s1', { kind: 'ACTIVITY', ids: ['x'] })).rejects.toThrow('Club not found.');
+  });
+
+  it('reaches the enrolled members of a club, not those waiting or withdrawn', async () => {
+    const { svc, prisma } = service();
+    await svc.reach('s1', { kind: 'ACTIVITY', ids: ['a1'] });
+    expect(prisma.student.findMany.mock.calls[0][0].where).toEqual({ schoolId: 's1', active: true, activityEnrolments: { some: { activityId: { in: ['a1'] }, status: 'ENROLLED' } } });
   });
 
   it('reaches unrestricted parents once each, even with two children', async () => {
