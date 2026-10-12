@@ -1,6 +1,6 @@
 import { BadRequestException, Body, ConflictException, Controller, Delete, Get, Injectable, Module, NotFoundException, Param, Post, Put, Query } from '@nestjs/common';
 import { Prisma, Role } from '@prisma/client';
-import { IsInt, IsOptional, IsString, Max, Min, ValidateIf } from 'class-validator';
+import { IsInt, IsString, Max, Min, ValidateIf } from 'class-validator';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit';
 import { AuthUser, CurrentUser, Roles, SchoolId, STAFF } from '../auth/auth.decorators';
@@ -13,7 +13,8 @@ export class TimetableEntryDto {
   @IsString() periodId: string;
   @IsString() roomId: string;
   @IsString() subjectId: string;
-  @IsOptional() @IsString() teacherId?: string;
+  /** Every lesson has a teacher: the one who teaches this subject to this class at this time. */
+  @IsString({ message: 'Choose the teacher for this lesson.' }) teacherId: string;
 }
 
 /** Who teaches a subject in a class: set once for all of its lessons. `null` takes the teacher off them. */
@@ -57,13 +58,13 @@ export class TimetableService {
       this.prisma.period.findFirst({ where: { id: dto.periodId, schoolId } }),
       this.prisma.room.findFirst({ where: { id: dto.roomId, schoolId } }),
       this.prisma.subject.findFirst({ where: { id: dto.subjectId, schoolId } }),
-      dto.teacherId ? this.prisma.user.findFirst({ where: { id: dto.teacherId, schoolId, role: Role.TEACHER } }) : null,
+      this.prisma.user.findFirst({ where: { id: dto.teacherId, schoolId, role: Role.TEACHER, active: true } }),
     ]);
     if (!cls) throw new BadRequestException('Class not found in this school.');
     if (!period) throw new BadRequestException('Period not found in this school.');
     if (!room) throw new BadRequestException('Room not found in this school.');
     if (!subject) throw new BadRequestException('Subject not found in this school.');
-    if (dto.teacherId && !teacher) throw new BadRequestException('Teacher not found in this school.');
+    if (!teacher) throw new BadRequestException('Teacher not found in this school.');
 
     // Explain clashes precisely instead of relying on a bare unique-constraint error.
     const slot = { dayOfWeek: dto.dayOfWeek, periodId: dto.periodId };
@@ -71,14 +72,14 @@ export class TimetableService {
       where: {
         schoolId,
         ...slot,
-        OR: [{ classId: dto.classId }, { roomId: dto.roomId }, ...(dto.teacherId ? [{ teacherId: dto.teacherId }] : [])],
+        OR: [{ classId: dto.classId }, { roomId: dto.roomId }, { teacherId: dto.teacherId }],
       },
       include: entryInclude,
     });
     for (const c of clashes) {
       if (c.classId === dto.classId) throw new ConflictException(`${cls.name} already has ${c.subject.name} in period ${period.number}.`);
       if (c.roomId === dto.roomId) throw new ConflictException(`${room.name} is already used by ${c.class.name} in period ${period.number}.`);
-      if (dto.teacherId && c.teacherId === dto.teacherId) throw new ConflictException(`${teacher!.name} already teaches ${c.class.name} in period ${period.number}.`);
+      if (c.teacherId === dto.teacherId) throw new ConflictException(`${teacher.name} already teaches ${c.class.name} in period ${period.number}.`);
     }
 
     const entry = await this.prisma.timetableEntry.create({ data: { ...dto, schoolId }, include: entryInclude });

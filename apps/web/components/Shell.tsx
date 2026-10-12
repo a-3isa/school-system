@@ -38,7 +38,7 @@ const CHATTERS = ['SCHOOL_ADMIN', 'TEACHER'];
 
 // Later features add their own items here (academics, activities).
 const SCHOOL_NAV: { group: NavKey; items: NavItem[] }[] = [
-  { group: 'teaching', items: [{ href: '/class', key: 'myClass', roles: ['TEACHER'] }] },
+  { group: 'teaching', items: [{ href: '/class', key: 'myClass', roles: ['TEACHER'] }, { href: '/profile', key: 'myProfile', roles: ['TEACHER'] }] },
   { group: 'overview', items: [{ href: '/today', key: 'today', roles: SCHOOL_WIDE }] },
   {
     group: 'attendance',

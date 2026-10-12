@@ -22,6 +22,8 @@ export default function TimetablePage() {
   const rooms = useApi<any[]>(isAdmin ? '/rooms' : null);
   const subjects = useApi<any[]>(isAdmin ? '/subjects' : null);
   const teachers = useApi<any[]>(isAdmin ? '/staff?role=TEACHER' : null);
+  // Every lesson in the school: who already teaches a subject, and who is busy at a given time.
+  const everyLesson = useApi<any[]>(isAdmin ? '/timetable' : null);
   const school = useApi('/school');
   const act = useAction();
   /** The empty cell being filled in, as "day:periodId", and why the last add failed there. */
@@ -43,13 +45,36 @@ export default function TimetablePage() {
     })
     .sort((a, b) => a.subject.name.localeCompare(b.subject.name));
   const assignedTo = (subjectId: string) => subjectRows.find((r) => r.subject.id === subjectId)?.teacherId || '';
+  const teachersOfSubject = (subjectId: string) => new Set((everyLesson.data ?? []).filter((e) => e.subjectId === subjectId && e.teacherId).map((e) => e.teacherId as string));
+  /** The class a teacher is in at that time, if they are in one. */
+  const busyWith = (teacherId: string, day: number, periodId: string): string | null => (everyLesson.data ?? []).find((e) => e.teacherId === teacherId && e.dayOfWeek === day && e.periodId === periodId)?.class?.name ?? null;
+  /**
+   * The teachers to choose from for a subject: those who already teach it first (often there are several,
+   * one for each class), then everyone else. Anyone already in another class at that time can't be chosen.
+   */
+  function teacherOptions(subjectId: string, day?: number, periodId?: string) {
+    const known = teachersOfSubject(subjectId);
+    const sub = subjects.data?.find((s) => s.id === subjectId) ?? subjectRows.find((r) => r.subject.id === subjectId)?.subject;
+    const option = (tc: any) => {
+      const busy = day !== undefined && periodId ? busyWith(tc.id, day, periodId) : null;
+      return <option key={tc.id} value={tc.id} disabled={!!busy}>{staff(tc)}{busy ? ` · ${t.subj.busyWith(busy)}` : ''}</option>;
+    };
+    const mine = (teachers.data ?? []).filter((tc) => known.has(tc.id));
+    const rest = (teachers.data ?? []).filter((tc) => !known.has(tc.id));
+    return (
+      <>
+        {mine.length > 0 && <optgroup label={t.subj.teachThis(subject(sub))}>{mine.map(option)}</optgroup>}
+        {rest.length > 0 && <optgroup label={mine.length ? t.subj.otherTeachers : t.subj.allTeachers}>{rest.map(option)}</optgroup>}
+      </>
+    );
+  }
 
   async function assign(row: (typeof subjectRows)[number], teacherId: string) {
     if (teacherId === '__several') return;
     const who = teachers.data?.find((tc) => tc.id === teacherId);
     if (await act.run(async () => { await put('/timetable/assign', { classId, subjectId: row.subject.id, teacherId: teacherId || null }); })) {
       toast(who ? t.subj.assigned(subject(row.subject), staff(who)) : t.subj.unassigned(subject(row.subject)));
-      await entries.reload();
+      await Promise.all([entries.reload(), everyLesson.reload()]);
     }
   }
 
@@ -62,9 +87,9 @@ export default function TimetablePage() {
   async function add(d: number, periodId: string) {
     const key = `${d}:${periodId}`;
     try {
-      await post('/timetable', { classId, dayOfWeek: d, periodId, subjectId: pick.subjectId, roomId: pick.roomId, teacherId: pick.teacherId || undefined });
+      await post('/timetable', { classId, dayOfWeek: d, periodId, subjectId: pick.subjectId, roomId: pick.roomId, teacherId: pick.teacherId });
       setPicking(null);
-      await entries.reload();
+      await Promise.all([entries.reload(), everyLesson.reload()]);
     } catch (e) {
       // A clash (teacher or room already busy) is shown right in the cell.
       setCellError({ key, message: (e as Error).message });
@@ -75,7 +100,7 @@ export default function TimetablePage() {
     <>
       <PageHead sub={isTeacher ? t.tt.subMine : t.tt.sub} title={isTeacher ? t.tt.mine : t.nav.timetable} />
       {!isTeacher && <Tabs label={t.common.class} value={classId} onChange={(v) => { setClassId(v); setPicking(null); }} items={(classes.data ?? []).map((c): [string, string] => [c.id, c.name])} />}
-      <ErrorNote error={act.error ?? entries.error} />
+      <ErrorNote error={(act.error ?? entries.error) && x((act.error ?? entries.error)!)} />
       <div className="panel scroll">
         {sortedPeriods.length ? (
           <div className="tt" style={{ gridTemplateColumns: `92px repeat(${days.length}, minmax(150px, 1fr))` }}>
@@ -95,12 +120,16 @@ export default function TimetablePage() {
                           <span>{e.room.name}</span>
                           {!isTeacher && e.teacher && <span>{staff(e.teacher)}</span>}
                           {isAdmin && (
-                            <button type="button" className="icon-btn" aria-label={t.tt.remove} title={t.tt.remove} onClick={async () => { if (await act.run(() => del(`/timetable/${e.id}`))) await entries.reload(); }}>✕</button>
+                            <button type="button" className="icon-btn" aria-label={t.tt.remove} title={t.tt.remove} onClick={async () => { if (await act.run(() => del(`/timetable/${e.id}`))) await Promise.all([entries.reload(), everyLesson.reload()]); }}>✕</button>
                           )}
                         </div>
                       ) : isAdmin && picking === key ? (
                         <form className="pickcell" onSubmit={(ev) => { ev.preventDefault(); void add(d, p.id); }}>
-                          <select required autoFocus aria-label={t.tt.subject} value={pick.subjectId} onChange={(ev) => setPick({ ...pick, subjectId: ev.target.value, teacherId: pick.teacherId || assignedTo(ev.target.value) })}>
+                          <select required autoFocus aria-label={t.tt.subject} value={pick.subjectId} onChange={(ev) => {
+                              // The class's teacher for this subject is suggested, unless they are busy then.
+                              const suggested = assignedTo(ev.target.value);
+                              setPick({ ...pick, subjectId: ev.target.value, teacherId: suggested && !busyWith(suggested, d, p.id) ? suggested : '' });
+                            }}>
                             <option value="">{t.tt.subject}</option>
                             {subjects.data?.map((s) => <option key={s.id} value={s.id}>{subject(s)}</option>)}
                           </select>
@@ -108,11 +137,11 @@ export default function TimetablePage() {
                             <option value="">{t.tt.room}</option>
                             {rooms.data?.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
                           </select>
-                          <select aria-label={t.tt.teacher} value={pick.teacherId} onChange={(ev) => setPick({ ...pick, teacherId: ev.target.value })}>
-                            <option value="">{t.tt.teacher}</option>
-                            {teachers.data?.map((tc) => <option key={tc.id} value={tc.id}>{staff(tc)}</option>)}
+                          <select required disabled={!pick.subjectId} aria-label={t.tt.teacher} title={pick.subjectId ? undefined : t.subj.chooseSubjectFirst} value={pick.teacherId} onChange={(ev) => setPick({ ...pick, teacherId: ev.target.value })}>
+                            <option value="">{pick.subjectId ? t.tt.teacher : t.subj.chooseSubjectFirst}</option>
+                            {pick.subjectId && teacherOptions(pick.subjectId, d, p.id)}
                           </select>
-                          {cellError?.key === key && <span className="cell-error" role="alert">✕ {cellError.message}</span>}
+                          {cellError?.key === key && <span className="cell-error" role="alert">✕ {x(cellError.message)}</span>}
                           <span className="row">
                             <button type="submit" className="btn primary">{t.common.add}</button>
                             <button type="button" className="btn" onClick={() => setPicking(null)}>{t.common.cancel}</button>
@@ -145,7 +174,7 @@ export default function TimetablePage() {
                   <select className="input" aria-label={`${subject(r.subject)}: ${t.tt.teacher}`} value={r.teacherId} disabled={act.busy} onChange={(ev) => void assign(r, ev.target.value)} style={{ maxWidth: 260 }}>
                     <option value="">{t.subj.noTeacher}</option>
                     {r.teacherId === '__several' && <option value="__several" disabled>{t.subj.several}</option>}
-                    {teachers.data?.map((tc) => <option key={tc.id} value={tc.id}>{staff(tc)}</option>)}
+                    {teacherOptions(r.subject.id)}
                   </select>
                 </div>
               ))

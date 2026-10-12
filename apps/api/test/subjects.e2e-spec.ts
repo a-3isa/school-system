@@ -16,8 +16,11 @@ describe('Subjects and their teachers (e2e)', () => {
   let schoolId: string;
   const id: Record<string, string> = {};
 
-  const lesson = (classId: string, dayOfWeek: number, periodId: string, subjectId: string, roomId: string, teacherId?: string) =>
-    admin.post('/api/timetable', { classId, dayOfWeek, periodId, subjectId, roomId, ...(teacherId ? { teacherId } : {}) });
+  const lesson = (classId: string, dayOfWeek: number, periodId: string, subjectId: string, roomId: string, teacherId: string) =>
+    admin.post('/api/timetable', { classId, dayOfWeek, periodId, subjectId, roomId, teacherId });
+  /** A lesson with no teacher, as the school had before a teacher was required on every lesson. */
+  const legacyLesson = (classId: string, dayOfWeek: number, periodId: string, subjectId: string, roomId: string) =>
+    prisma.timetableEntry.create({ data: { schoolId, classId, dayOfWeek, periodId, subjectId, roomId } });
   const assign = (c: Client, body: object) => c.put('/api/timetable/assign', body);
   const teachingOf = async (c: Client) => (await c.get('/api/academics/teaching').expect(200)).body.map((p: any) => `${p.className} ${p.subjectName}${p.canMark ? '' : ' (read only)'}`);
   const teachersOf = async (classId: string, subjectId: string) =>
@@ -88,7 +91,7 @@ describe('Subjects and their teachers (e2e)', () => {
       await admin.delete(`/api/subjects/${art}`).expect(200);
       expect((await admin.get('/api/subjects').expect(200)).body.map((s: any) => s.name)).not.toContain('Art');
 
-      await lesson(id.classA, 0, id.p1, id.math, id.roomA).expect(201);
+      await lesson(id.classA, 0, id.p1, id.math, id.roomA, id.t1).expect(201);
       expect((await admin.delete(`/api/subjects/${id.math}`).expect(400)).body.message).toBe('This subject is in the timetable or has marks, so it can’t be deleted.');
       await admin.delete(`/api/subjects/${id.math}`).expect(400);
       const entry = await prisma.timetableEntry.findFirstOrThrow({ where: { classId: id.classA, subjectId: id.math } });
@@ -107,8 +110,8 @@ describe('Subjects and their teachers (e2e)', () => {
     });
 
     it('sets the teacher on every lesson of the subject in the class at once, and the teacher can then mark it', async () => {
-      await lesson(id.classA, 0, id.p1, id.math, id.roomA).expect(201); // no teacher chosen yet
-      await lesson(id.classA, 1, id.p1, id.math, id.roomA).expect(201);
+      await legacyLesson(id.classA, 0, id.p1, id.math, id.roomA); // no teacher chosen
+      await legacyLesson(id.classA, 1, id.p1, id.math, id.roomA);
       await lesson(id.classA, 0, id.p2, id.english, id.roomA, id.t2).expect(201); // another subject, already staffed
       expect(await teachingOf(t1)).toEqual([]); // a lesson with no teacher gives nobody the gradebook
       const create = (c: Client) => c.post('/api/academics/assessments', { classId: id.classA, subjectId: id.math, kind: 'QUIZ', title: 'Quiz', date: '2026-10-01', maxScore: 10 });
@@ -142,7 +145,7 @@ describe('Subjects and their teachers (e2e)', () => {
     });
 
     it('is not blocked by the subject’s own lessons, and a teacher can teach one subject in two classes', async () => {
-      await lesson(id.classB, 1, id.p2, id.math, id.roomB).expect(201);
+      await legacyLesson(id.classB, 1, id.p2, id.math, id.roomB);
       await assign(admin, { classId: id.classB, subjectId: id.math, teacherId: id.t2 }).expect(200); // Sherif already has one of these lessons
       await assign(admin, { classId: id.classB, subjectId: id.math, teacherId: id.t2 }).expect(200); // and again: nothing to clash with
       expect(await teachingOf(t2)).toEqual(['4-A English', '4-B Math']);
@@ -162,6 +165,66 @@ describe('Subjects and their teachers (e2e)', () => {
       await assign(t1, { classId: id.classA, subjectId: id.math, teacherId: id.t1 }).expect(403);
       expect((await assign(other, { classId: id.classA, subjectId: id.math, teacherId: null }).expect(400)).body.message).toBe('Class not found in this school.');
       expect((await assign(admin, { classId: id.classA, subjectId: 'nope', teacherId: null }).expect(400)).body.message).toBe('Subject not found in this school.');
+    });
+  });
+  describe('adding a lesson', () => {
+    it('needs a teacher, who must be an active teacher of this school', async () => {
+      const body = { classId: id.classA, dayOfWeek: 2, periodId: id.p1, subjectId: id.english, roomId: id.roomA };
+      expect((await admin.post('/api/timetable', body).expect(400)).body.message).toContain('Choose the teacher for this lesson.');
+      expect((await admin.post('/api/timetable', { ...body, teacherId: id.nurse }).expect(400)).body.message).toBe('Teacher not found in this school.');
+      await prisma.user.update({ where: { id: id.t3 }, data: { active: false } });
+      expect((await admin.post('/api/timetable', { ...body, teacherId: id.t3 }).expect(400)).body.message).toBe('Teacher not found in this school.');
+      await prisma.user.update({ where: { id: id.t3 }, data: { active: true } });
+    });
+
+    it('lets one subject have several teachers: a different one in each class of the same year group', async () => {
+      // Maths in 4-A is Omar's (from above); in 4-B it is Sherif's. Same grade, same subject, two teachers.
+      await lesson(id.classA, 2, id.p2, id.math, id.roomA, id.t3).expect(201);
+      await lesson(id.classB, 2, id.p2, id.math, id.roomB, id.t2).expect(201);
+      const maths = await prisma.timetableEntry.findMany({ where: { subjectId: id.math, schoolId, teacherId: { not: null } }, select: { classId: true, teacherId: true } });
+      const teachersByClass = (c: string) => [...new Set(maths.filter((m) => m.classId === c).map((m) => m.teacherId))];
+      expect(teachersByClass(id.classA)).toContain(id.t3);
+      expect(teachersByClass(id.classB)).toContain(id.t2);
+    });
+
+    it('lets the same class have two teachers for one subject, on different lessons', async () => {
+      await lesson(id.classA, 3, id.p1, id.english, id.roomA, id.t2).expect(201);
+      await lesson(id.classA, 4, id.p1, id.english, id.roomA, id.t3).expect(201);
+      expect(new Set(await teachersOf(id.classA, id.english)).size).toBeGreaterThan(1);
+    });
+
+    it('refuses a teacher who is in another class at that time, and the same teacher can teach both classes at other times', async () => {
+      const res = await lesson(id.classB, 3, id.p1, id.math, id.roomB, id.t2).expect(409); // Sherif has 4-A English on Thursday-ish: day 3 period 1
+      expect(res.body.message).toBe('Sherif already teaches 4-A in period 1.');
+      await lesson(id.classB, 4, id.p2, id.english, id.roomB, id.t2).expect(201); // another time: fine
+    });
+  });
+
+  describe('a teacher’s profile', () => {
+    it('shows each class and subject they teach with its lessons a week, and the classes they lead', async () => {
+      await admin.patch(`/api/classes/${id.classB}`, { homeroomTeacherId: id.t2 }).expect(200);
+      const p = (await admin.get(`/api/staff/${id.t2}`).expect(200)).body;
+      expect(p).toEqual(expect.objectContaining({ id: id.t2, name: 'Sherif', role: 'TEACHER', active: true }));
+      expect(p.teaching.homerooms.map((c: any) => c.name)).toEqual(['4-B']);
+      expect(p.teaching.assignments.map((a: any) => [a.className, a.subjectName, a.lessons])).toEqual([
+        ['4-A', 'English', 2], // Sunday period 2 and Thursday period 1
+        ['4-B', 'English', 1],
+        ['4-B', 'Math', 1],
+      ]);
+      expect(p.teaching.lessonsPerWeek).toBe(4);
+      expect(p.teaching.assignments[0]).toEqual(expect.objectContaining({ gradeName: 'Grade 4', subjectNameAr: null }));
+    });
+
+    it('is the teacher’s own to read, and Student Affairs’ to read for anyone', async () => {
+      expect((await t2.get(`/api/staff/${id.t2}`).expect(200)).body.teaching.lessonsPerWeek).toBe(4);
+      expect((await t2.get(`/api/staff/${id.t1}`).expect(403)).body.message).toBe('You can see only your own profile.');
+      expect((await admin.get(`/api/staff/${id.t1}`).expect(200)).body.teaching.assignments).toEqual([]);
+    });
+
+    it('has no teaching for other staff, and can’t be read across schools or for someone who isn’t staff', async () => {
+      expect((await admin.get(`/api/staff/${id.nurse}`).expect(200)).body).toEqual(expect.objectContaining({ role: 'NURSE', teaching: null }));
+      await other.get(`/api/staff/${id.t2}`).expect(404);
+      await admin.get('/api/staff/nope').expect(404);
     });
   });
 });

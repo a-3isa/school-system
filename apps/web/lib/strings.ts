@@ -16,7 +16,7 @@ export const en = {
     overview: 'Overview', attendance: 'Attendance', people: 'People', setup: 'School setup', platform: 'Platform',
     teaching: 'Teaching', myClass: 'My class', academics: 'Academics', messages: 'Messages', behaviour: 'Behaviour', activities: 'Activities',
     inbox: 'Conversations', announcements: 'Announcements', polls: 'Polls', meetings: 'Parent meetings', emergency: 'Emergency message',
-    behaviourNotes: 'Behaviour notes', gradebook: 'Gradebook', exams: 'Exam timetable', reportCards: 'Report cards',
+    myProfile: 'My profile', behaviourNotes: 'Behaviour notes', gradebook: 'Gradebook', exams: 'Exam timetable', reportCards: 'Report cards',
     today: 'Today', take: 'Attendance register', exceptions: 'Follow-ups', excuses: 'Excuses', where: 'On campus now',
     students: 'Students', parents: 'Parents', classes: 'Classes', import: 'Import from Excel', staff: 'Faculty & staff',
     timetable: 'Timetable', structure: 'School structure & year', devices: 'Smart band readers', modules: 'School settings', audit: 'Activity log',
@@ -84,6 +84,12 @@ export const en = {
     noTeacher: 'No teacher yet', noTeacherNote: 'Nobody but Student Affairs can mark this subject yet.', several: 'Several teachers',
     lessonsN: (n: number) => (n === 1 ? '1 lesson a week' : `${n} lessons a week`), assigned: (subject: string, teacher: string) => `${teacher} now teaches ${subject}.`, unassigned: (subject: string) => `${subject} has no teacher now.`,
     noLessons: 'Add this class’s lessons to the timetable first, then choose a teacher for each subject.',
+    chooseSubjectFirst: 'Choose a subject first', teachThis: (subject: string) => `Already teach ${subject}`, otherTeachers: 'Other teachers', allTeachers: 'Teachers', busyWith: (cls: string) => `busy with ${cls}`,
+  },
+  prof: {
+    back: 'Faculty & staff', lessonsWeek: 'Lessons a week', classesN: 'Classes', subjectsN: 'Subjects', teaches: 'What they teach', classCol: 'Class', subjectCol: 'Subject', lessonsCol: 'Lessons a week',
+    none: 'Not teaching any lesson yet', noneSub: 'Choose them as the teacher when you build a class’s timetable.',
+    classTeacherOf: 'Class teacher of', week: 'Their week', canNotSignIn: 'Can’t sign in', notTeacher: 'Only teachers have lessons, so there is no timetable to show.', mobile: 'Mobile',
   },
   acad: {
     // gradebook
@@ -358,7 +364,7 @@ export const en = {
   },
   tt: {
     sub: 'Each class’s week: subject, room and teacher', subMine: 'Your lessons', mine: 'My timetable', today: 'today',
-    addLesson: 'Add lesson', remove: 'Remove lesson', subject: 'Subject', room: 'Room', teacher: 'Teacher (optional)',
+    addLesson: 'Add lesson', remove: 'Remove lesson', subject: 'Subject', room: 'Room', teacher: 'Teacher',
     addPeriodsFirst: 'Add periods first, in School structure & year.',
   },
   devices: {
@@ -464,7 +470,7 @@ export const ar: Dict = {
     overview: 'نظرة عامة', attendance: 'الحضور', people: 'المجتمع المدرسي', setup: 'تهيئة المدرسة', platform: 'المنصة',
     teaching: 'التدريس', myClass: 'فصلي', academics: 'الشؤون الأكاديمية', messages: 'الرسائل', behaviour: 'السلوك', activities: 'الأنشطة',
     inbox: 'المحادثات', announcements: 'الإعلانات', polls: 'استطلاعات الرأي', meetings: 'مقابلات أولياء الأمور', emergency: 'رسالة طارئة',
-    behaviourNotes: 'ملاحظات السلوك', gradebook: 'سجل الدرجات', exams: 'جدول الامتحانات', reportCards: 'الشهادات',
+    myProfile: 'ملفي الشخصي', behaviourNotes: 'ملاحظات السلوك', gradebook: 'سجل الدرجات', exams: 'جدول الامتحانات', reportCards: 'الشهادات',
     today: 'اليوم', take: 'كشف الحضور', exceptions: 'المتابعات', excuses: 'الأعذار', where: 'داخل المدرسة الآن',
     students: 'الطلاب', parents: 'أولياء الأمور', classes: 'الفصول', import: 'استيراد من Excel', staff: 'هيئة التدريس والعاملون',
     timetable: 'الجدول', structure: 'هيكل المدرسة والعام الدراسي', devices: 'أجهزة قراءة الأساور', modules: 'إعدادات المدرسة', audit: 'سجل النشاط',
@@ -532,6 +538,12 @@ export const ar: Dict = {
     noTeacher: 'لم يُحدَّد معلم بعد', noTeacherNote: 'لا يستطيع رصد درجات هذه المادة الآن سوى شؤون الطلبة.', several: 'عدة معلمين',
     lessonsN: (n) => arN(n, 'حصة واحدة أسبوعيًا', 'حصتان أسبوعيًا', 'حصص أسبوعيًا', 'حصة أسبوعيًا'), assigned: (subject, teacher) => `${teacher} يدرّس ${subject} الآن.`, unassigned: (subject) => `لا يوجد معلم لمادة ${subject} الآن.`,
     noLessons: 'أضيفوا حصص هذا الفصل إلى الجدول الدراسي أولًا، ثم اختاروا معلمًا لكل مادة.',
+    chooseSubjectFirst: 'اختاروا المادة أولًا', teachThis: (subject) => `يدرّسون ${subject} بالفعل`, otherTeachers: 'معلمون آخرون', allTeachers: 'المعلمون', busyWith: (cls) => `مشغول مع ${cls}`,
+  },
+  prof: {
+    back: 'هيئة التدريس والعاملون', lessonsWeek: 'الحصص أسبوعيًا', classesN: 'الفصول', subjectsN: 'المواد', teaches: 'ما يدرّسه', classCol: 'الفصل', subjectCol: 'المادة', lessonsCol: 'الحصص أسبوعيًا',
+    none: 'لا يدرّس أي حصة بعد', noneSub: 'اختاروه معلمًا عند بناء الجدول الدراسي للفصل.',
+    classTeacherOf: 'رائد الفصل', week: 'جدوله الأسبوعي', canNotSignIn: 'لا يستطيع تسجيل الدخول', notTeacher: 'الحصص خاصة بالمعلمين، ولذلك لا يوجد جدول لعرضه.', mobile: 'رقم الهاتف',
   },
   acad: {
     // gradebook
@@ -809,7 +821,7 @@ export const ar: Dict = {
   },
   tt: {
     sub: 'أسبوع كل فصل: المادة والقاعة والمعلم', subMine: 'حصصك', mine: 'جدولي', today: 'اليوم',
-    addLesson: 'إضافة حصة', remove: 'حذف الحصة', subject: 'المادة', room: 'القاعة', teacher: 'المعلم (اختياري)',
+    addLesson: 'إضافة حصة', remove: 'حذف الحصة', subject: 'المادة', room: 'القاعة', teacher: 'المعلم',
     addPeriodsFirst: 'أضف الحصص أولًا من «هيكل المدرسة والعام الدراسي».',
   },
   devices: {

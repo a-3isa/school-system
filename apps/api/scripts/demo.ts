@@ -91,6 +91,7 @@ async function main() {
   const hana = await A('POST', '/staff', { name: 'Hana Nabil', honorific: 'MS', role: 'TEACHER', email: 'hana@demo.school', password: 'demo-teacher-1' });
   const sherif = await A('POST', '/staff', { name: 'Sherif Kamal', honorific: 'MR', role: 'TEACHER', email: 'sherif@demo.school', password: 'demo-teacher-1' });
   const mona = await A('POST', '/staff', { name: 'Mona Adel', honorific: 'MS', role: 'TEACHER', email: 'mona@demo.school', password: 'demo-teacher-1' });
+  const karim = await A('POST', '/staff', { name: 'Karim Samir', honorific: 'MR', role: 'TEACHER', email: 'karim@demo.school', password: 'demo-teacher-1' });
   // An Egyptian primary school: Primary 1–6, two classes of Primary 4 (4/1 and 4/2) in the languages system.
   const grades: any[] = await A('POST', '/grades/egypt', { stages: ['PRIMARY'] });
   const g4 = grades.find((g) => g.name === 'Primary 4');
@@ -115,13 +116,13 @@ async function main() {
       const [a, b] = plan[(i + day) % plan.length];
       const aInLab = a === 'Science';
       const bInLab = b === 'Science' && !aInLab;
-      await A('POST', '/timetable', { classId: c4a.id, dayOfWeek: day, periodId: p.id, roomId: aInLab ? lab.id : r204.id, subjectId: subjects[a].id, teacherId: a === 'Math' || a === 'Science' ? hana.id : undefined });
-      await A('POST', '/timetable', { classId: c4b.id, dayOfWeek: day, periodId: p.id, roomId: bInLab ? lab.id : r205.id, subjectId: subjects[b].id, teacherId: b === 'English' || b === 'Arabic' ? sherif.id : undefined });
+      await A('POST', '/timetable', { classId: c4a.id, dayOfWeek: day, periodId: p.id, roomId: aInLab ? lab.id : r204.id, subjectId: subjects[a].id, teacherId: a === 'Math' || a === 'Science' ? hana.id : mona.id });
+      await A('POST', '/timetable', { classId: c4b.id, dayOfWeek: day, periodId: p.id, roomId: bInLab ? lab.id : r205.id, subjectId: subjects[b].id, teacherId: b === 'English' || b === 'Arabic' ? sherif.id : karim.id });
     }
   }
 
-  // Who teaches what: a subject gets its teacher in a class in one step, for all of its lessons. Mona takes Arabic and English in 4/1.
-  for (const s of ['Arabic', 'English']) await A('PUT', '/timetable/assign', { classId: c4a.id, subjectId: subjects[s].id, teacherId: mona.id });
+  // Every lesson has a teacher, and a subject can have several: Maths is Hana's in 4/1 and Karim's in 4/2 (same year group,
+  // different class, different teacher). Arabic and English: Mona in 4/1, Sherif in 4/2.
 
   for (let i = 0; i < 24; i++) {
     // Every student comes with a parent. Some brothers and sisters share a mother
