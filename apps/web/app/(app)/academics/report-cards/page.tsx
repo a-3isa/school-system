@@ -58,16 +58,20 @@ export default function ReportCardsPage() {
         actions={
           cls ? (
             <>
-              <select className="input" aria-label={t.common.class} value={cls.id} onChange={(e) => setClassId(e.target.value)} style={{ maxWidth: 220 }}>
-                {classes.map((c) => <option key={c.id} value={c.id}>{x(c.name)}</option>)}
-              </select>
-              <Tabs label={t.nav.reportCards} value={term} onChange={setTermSel} items={[['1', t.acad.term(1)], ['2', t.acad.term(2)]]} />
               {(isAdmin || teacher) && yearId && <button type="button" className="btn" disabled={act.busy} onClick={() => void prepare()}>{t.acad.prepare}</button>}
               {isAdmin && <button type="button" className="btn primary" disabled={act.busy || !drafts.length} onClick={() => void publishAll()}>{t.acad.publishClass}</button>}
             </>
           ) : undefined
         }
       />
+      {cls && (
+        <div className="toolbar">
+          <select className="input" aria-label={t.common.class} value={cls.id} onChange={(e) => setClassId(e.target.value)} style={{ maxWidth: 220 }}>
+            {classes.map((c) => <option key={c.id} value={c.id}>{x(c.name)}</option>)}
+          </select>
+          <Tabs label={t.nav.reportCards} value={term} onChange={setTermSel} items={[['1', t.acad.term(1)], ['2', t.acad.term(2)]]} />
+        </div>
+      )}
       <ErrorNote error={err && x(err)} />
       {!cls && (teaching.data || everyClass.data) && <Empty title={t.acad.chooseClass} />}
       {cls && !list.data && !err && <Empty>{t.common.loading}</Empty>}

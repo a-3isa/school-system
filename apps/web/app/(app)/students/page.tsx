@@ -29,8 +29,8 @@ export default function StudentsPage() {
           </>
         )}
       />
-      <input type="search" className="input" aria-label={t.students.search} placeholder={t.students.search} value={q} onChange={(e) => setQ(e.target.value)} />
-      <div className="row wrap" style={{ gap: 10 }}>
+      <div className="toolbar">
+        <input type="search" className="input" aria-label={t.students.search} placeholder={t.students.search} value={q} onChange={(e) => setQ(e.target.value)} style={{ flex: '1 1 260px' }} />
         <span style={{ minWidth: 200 }}><ClassSelect classes={classes.data} value={classId} onChange={setClassId} empty={t.common.allClasses} /></span>
       </div>
       <ErrorNote error={students.error} />

@@ -57,13 +57,11 @@ export default function AnnouncementsPage() {
       <PageHead
         sub={t.ann.sub}
         title={t.nav.announcements}
-        actions={
-          <>
-            <Tabs label={t.nav.announcements} value={tab} onChange={(v) => { setTab(v); setOpened(null); }} items={[['SENT', t.ann.tabs.SENT], ['DRAFT', t.ann.tabs.DRAFT]]} />
-            {canWrite && <button type="button" className="btn primary" onClick={() => setEditing('new')}>{t.ann.new}</button>}
-          </>
-        }
+        actions={canWrite ? <button type="button" className="btn primary" onClick={() => setEditing('new')}>{t.ann.new}</button> : undefined}
       />
+      <div className="toolbar">
+        <Tabs label={t.nav.announcements} value={tab} onChange={(v) => { setTab(v); setOpened(null); }} items={[['SENT', t.ann.tabs.SENT], ['DRAFT', t.ann.tabs.DRAFT]]} />
+      </div>
       <ErrorNote error={(list.error ?? act.error) && x((list.error ?? act.error)!)} />
       <section className="panel">
         {list.data?.length ? (

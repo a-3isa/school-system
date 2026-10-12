@@ -35,6 +35,7 @@ describe('School without straps or live location (e2e)', () => {
     periodId = (await admin.post('/api/periods', { number: 1, startTime: '00:00', endTime: '23:59' })).body.id;
     today = await app.get(AttendanceService).today(schoolId);
     const dow = new Date(`${today}T00:00:00Z`).getUTCDay();
+    await admin.put(`/api/grades/${grade.id}/subjects/${subject}`, {}).expect(200); // the year group studies it
     await admin.post('/api/timetable', { classId, dayOfWeek: dow, periodId, roomId: room, subjectId: subject, teacherId: t.id }).expect(201);
 
     layla = (await admin.post('/api/students', { ...(await kid(admin)), code: 'P1', firstName: 'Layla', lastName: 'Hussein', classId, parent: { relation: 'GUARDIAN', name: 'Guardian', email: 'g-P1@plain.test.eg' } })).body.id;

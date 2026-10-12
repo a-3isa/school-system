@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link';
 import { FormEvent, useState } from 'react';
 import { patch, post } from '@/lib/api';
 import { useAction, useApi } from '@/lib/hooks';
@@ -77,7 +78,7 @@ export default function StaffPage() {
                     {titles.map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                   </select>
                 </td>
-                <td className="strong">{u.name}</td>
+                <td className="strong"><Link href={`/staff/${u.id}`}>{u.name}</Link></td>
                 <td>{roleName(u.role)}</td>
                 <td className="small muted"><bdi dir="ltr">{u.email}</bdi>{u.phone && <span className="sub num"><bdi dir="ltr">{u.phone}</bdi></span>}</td>
                 <td><Switch on={u.active} label={t.staff.activeFor(staffName(u))} disabled={act.busy} onChange={() => toggle(u)} /></td>

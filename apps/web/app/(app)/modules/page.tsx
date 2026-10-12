@@ -7,6 +7,7 @@ import { useI18n } from '@/lib/i18n';
 import { has, useSession } from '@/lib/session';
 import { BandsEditor } from '@/components/BandsEditor';
 import { ErrorNote, PageHead, Pill, Section, Switch, toast } from '@/components/ui';
+import { TimeInput } from '@/components/TimeInput';
 
 /** Saturday first, as Egyptian school weeks are read. */
 const WEEK = [6, 0, 1, 2, 3, 4, 5];
@@ -82,15 +83,15 @@ export default function ModulesPage() {
         </div>
         <div className="settings-row">
           <span><b>{t.modules.absTime}</b><span>{t.modules.absTimeHelp}</span></span>
-          <input className="input num" type="time" aria-label={t.modules.absTime} style={{ width: 140 }} value={settings.absenceNoticeTime} onChange={(e) => setSettings({ ...settings, absenceNoticeTime: e.target.value })} />
+          <TimeInput className="input num" aria-label={t.modules.absTime} style={{ width: 140 }} value={settings.absenceNoticeTime} onChange={(v) => setSettings({ ...settings, absenceNoticeTime: v })} />
         </div>
         {has(me, 'messaging', 'chat') && (
           <div className="settings-row">
             <span><b>{t.modules.chatHours}</b><span>{t.modules.chatHoursHelp}</span></span>
             <span className="row" style={{ gap: 8 }}>
-              <input className="input num" type="time" aria-label={t.modules.chatFrom} style={{ width: 120 }} value={settings.chatFrom} onChange={(e) => setSettings({ ...settings, chatFrom: e.target.value })} />
+              <TimeInput className="input num" aria-label={t.modules.chatFrom} style={{ width: 120 }} value={settings.chatFrom} onChange={(v) => setSettings({ ...settings, chatFrom: v })} />
               <span aria-hidden="true">–</span>
-              <input className="input num" type="time" aria-label={t.modules.chatTo} style={{ width: 120 }} value={settings.chatTo} onChange={(e) => setSettings({ ...settings, chatTo: e.target.value })} />
+              <TimeInput className="input num" aria-label={t.modules.chatTo} style={{ width: 120 }} value={settings.chatTo} onChange={(v) => setSettings({ ...settings, chatTo: v })} />
             </span>
           </div>
         )}

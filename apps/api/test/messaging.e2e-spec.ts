@@ -75,6 +75,8 @@ describe('Messaging (e2e)', () => {
     const math = (await admin.post('/api/subjects', { name: 'Math' })).body.id;
     const art = (await admin.post('/api/subjects', { name: 'Art' })).body.id;
     const period = (await admin.post('/api/periods', { number: 1, startTime: '08:00', endTime: '08:45' })).body.id;
+    await admin.put(`/api/grades/${grade.id}/subjects/${math}`, {}).expect(200); // the year group studies it
+    await admin.put(`/api/grades/${grade.id}/subjects/${art}`, {}).expect(200); // the year group studies it
     await admin.post('/api/timetable', { classId: id.classA, dayOfWeek: 0, periodId: period, roomId: roomA, subjectId: math, teacherId: id.t1 }).expect(201);
     await admin.post('/api/timetable', { classId: id.classB, dayOfWeek: 0, periodId: period, roomId: roomB, subjectId: art, teacherId: id.t2 }).expect(201);
 

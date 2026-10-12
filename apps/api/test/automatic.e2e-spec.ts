@@ -55,8 +55,10 @@ describe('Automatic attendance (e2e)', () => {
     const subject = (await admin.post('/api/subjects', { name: 'Math' })).body.id;
     const endLocal = localParts(end, 'Africa/Cairo').time;
     ids.period = (await admin.post('/api/periods', { number: 1, startTime: local.time, endTime: endLocal }).expect(201)).body.id;
+    await admin.put(`/api/grades/${grade.id}/subjects/${subject}`, {}).expect(200); // the year group studies it
     await admin.post('/api/timetable', { classId: ids.class, dayOfWeek: local.dayOfWeek, periodId: ids.period, roomId: ids.room204, subjectId: subject, teacherId: t.id }).expect(201);
-    await admin.post('/api/timetable', { classId: ids.classC, dayOfWeek: local.dayOfWeek, periodId: ids.period, roomId: ids.lab, subjectId: subject }).expect(201);
+    const sara = (await admin.post('/api/staff', { name: 'Sara', role: 'TEACHER', email: 'sara@auto.eg', password: 'teacher-pass' })).body;
+    await admin.post('/api/timetable', { classId: ids.classC, dayOfWeek: local.dayOfWeek, periodId: ids.period, roomId: ids.lab, subjectId: subject, teacherId: sara.id }).expect(201);
 
     for (const [i, name] of ['Layla', 'Ali', 'Omar', 'Yara', 'Karim', 'Salma'].entries()) {
       ids[name] = (await admin.post('/api/students', { ...(await kid(admin)), code: `A${i}`, firstName: name, lastName: 'Test', classId: ids.class, parent: { relation: 'GUARDIAN', name: 'Guardian', email: `g-A${i}@au.test.eg` } })).body.id;

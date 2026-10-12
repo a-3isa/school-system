@@ -19,16 +19,14 @@ export default function ExamsPage() {
       <PageHead
         sub={t.acad.examsSub}
         title={t.nav.exams}
-        actions={
-          <>
-            <select className="input" aria-label={t.acad.yearGroup} value={gradeId} onChange={(e) => setGradeId(e.target.value)} style={{ maxWidth: 240 }}>
-              <option value="">{t.acad.allYearGroups}</option>
-              {(grades.data ?? []).map((g) => <option key={g.id} value={g.id}>{lang === 'ar' && g.nameAr ? g.nameAr : x(g.name)}</option>)}
-            </select>
-            <button type="button" className="btn no-print" onClick={() => window.print()}>{t.acad.print}</button>
-          </>
-        }
+        actions={<button type="button" className="btn no-print" onClick={() => window.print()}>{t.acad.print}</button>}
       />
+      <div className="toolbar no-print">
+        <select className="input" aria-label={t.acad.yearGroup} value={gradeId} onChange={(e) => setGradeId(e.target.value)} style={{ maxWidth: 240 }}>
+          <option value="">{t.acad.allYearGroups}</option>
+          {(grades.data ?? []).map((g) => <option key={g.id} value={g.id}>{lang === 'ar' && g.nameAr ? g.nameAr : x(g.name)}</option>)}
+        </select>
+      </div>
       <ErrorNote error={(exams.error ?? grades.error) && x((exams.error ?? grades.error)!)} />
       {exams.data && !exams.data.length && <Empty title={t.acad.noExams}>{t.acad.noExamsSub}</Empty>}
       {[...byDay.entries()].map(([date, rows]) => (

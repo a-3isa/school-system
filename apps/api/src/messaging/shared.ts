@@ -18,10 +18,10 @@ export async function ownChild(prisma: PrismaService, parentId: string, studentI
   return link.student;
 }
 
-/** Classes a teacher teaches (from the timetable) or leads as class teacher. */
+/** Classes a teacher teaches (the subjects the school assigned them) or leads as class teacher. */
 export async function teacherClassIds(prisma: PrismaService, schoolId: string, teacherId: string): Promise<Set<string>> {
   const [lessons, homerooms] = await Promise.all([
-    prisma.timetableEntry.findMany({ where: { schoolId, teacherId }, select: { classId: true }, distinct: ['classId'] }),
+    prisma.classSubject.findMany({ where: { teacherId, class: { schoolId } }, select: { classId: true }, distinct: ['classId'] }),
     prisma.class.findMany({ where: { schoolId, homeroomTeacherId: teacherId }, select: { id: true } }),
   ]);
   return new Set([...lessons.map((l) => l.classId), ...homerooms.map((c) => c.id)]);
@@ -70,11 +70,11 @@ export interface Contact {
   homeroom: boolean;
 }
 
-/** The teachers of a child's class (from the timetable) and its class teacher: the staff a parent may chat with or book (decision T3). */
+/** The teachers of a child's class (who the school assigned its subjects to) and its class teacher: the staff a parent may chat with or book (decision T3). */
 export async function childTeachers(prisma: PrismaService, schoolId: string, classId: string | null): Promise<Contact[]> {
   if (!classId) return [];
   const [lessons, cls] = await Promise.all([
-    prisma.timetableEntry.findMany({ where: { schoolId, classId, teacherId: { not: null } }, select: { teacherId: true, subject: { select: { name: true } } } }),
+    prisma.classSubject.findMany({ where: { classId, class: { schoolId }, teacherId: { not: null } }, select: { teacherId: true, subject: { select: { name: true } } } }),
     prisma.class.findFirst({ where: { id: classId, schoolId }, select: { homeroomTeacherId: true } }),
   ]);
   const subjects = new Map<string, Set<string>>();

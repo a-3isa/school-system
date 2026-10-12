@@ -7,6 +7,7 @@ import { useSession } from '@/lib/session';
 import { Audience, AudiencePicker } from '@/components/AudiencePicker';
 import { Modal } from '@/components/Modal';
 import { Empty, ErrorNote, Field, PageHead, Tag, toast } from '@/components/ui';
+import { TimeInput } from '@/components/TimeInput';
 
 const tomorrow = () => new Date(Date.now() + 86400_000).toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' });
 
@@ -133,7 +134,7 @@ function Creator({ teacher, onClose, onCreated }: { teacher: boolean; onClose: (
         <label className="row" style={{ gap: 10 }}><input type="checkbox" checked={showResults} onChange={(e) => setShowResults(e.target.checked)} />{t.poll.showResults}</label>
         <div className="row wrap" style={{ gap: 12, alignItems: 'flex-end' }}>
           <Field label={t.poll.closesAt} id="poll-day"><input id="poll-day" className="input" type="date" min={todayCairo()} value={day} onChange={(e) => setDay(e.target.value)} /></Field>
-          <Field label={t.poll.closesTime} id="poll-time"><input id="poll-time" className="input num" type="time" value={time} onChange={(e) => setTime(e.target.value)} /></Field>
+          <Field label={t.poll.closesTime} id="poll-time"><TimeInput id="poll-time" className="input num" value={time} onChange={(v) => setTime(v)} /></Field>
         </div>
         <div className="field">
           {t.audience.label}

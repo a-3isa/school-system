@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Get, Module, NotFoundException, Param, Patch, Post, Query } from '@nestjs/common';
+import { BadRequestException, Body, Controller, ForbiddenException, Get, Module, NotFoundException, Param, Patch, Post, Query } from '@nestjs/common';
 import { Role } from '@prisma/client';
 import { IsBoolean, IsEmail, IsIn, IsOptional, IsString, MinLength } from 'class-validator';
 import { PrismaService } from '../prisma/prisma.service';
@@ -45,6 +45,42 @@ export class StaffController {
       select: publicUser,
       orderBy: { name: 'asc' },
     });
+  }
+
+  /**
+   * A member of staff's profile. For a teacher it adds what they teach, from the timetable: each class
+   * and subject with its lessons a week, and the classes they lead. Student Affairs sees anyone's; a
+   * teacher sees their own.
+   */
+  @Roles(Role.SCHOOL_ADMIN, Role.TEACHER)
+  @Get(':id')
+  async one(@CurrentUser() user: AuthUser, @SchoolId() schoolId: string, @Param('id') id: string) {
+    if (user.role !== Role.SCHOOL_ADMIN && user.id !== id) throw new ForbiddenException('You can see only your own profile.');
+    const person = await this.prisma.user.findFirst({ where: { id, schoolId, role: { in: [...STAFF_ROLES] } }, select: publicUser });
+    if (!person) throw new NotFoundException('Staff member not found.');
+    if (person.role !== Role.TEACHER) return { ...person, teaching: null };
+
+    const grade = { select: { name: true, nameAr: true } };
+    const [homerooms, taught, placed] = await Promise.all([
+      this.prisma.class.findMany({ where: { schoolId, homeroomTeacherId: id }, select: { id: true, name: true, grade }, orderBy: { name: 'asc' } }),
+      // What the school assigned to them: each subject in each class.
+      this.prisma.classSubject.findMany({
+        where: { teacherId: id, class: { schoolId } },
+        select: { classId: true, subjectId: true, class: { select: { name: true, grade } }, subject: { select: { name: true, nameAr: true } } },
+      }),
+      // How many lessons of them are in the timetable so far.
+      this.prisma.timetableEntry.groupBy({ by: ['classId', 'subjectId'], where: { schoolId, teacherId: id }, _count: true }),
+    ]);
+    const lessonCount = new Map(placed.map((p) => [`${p.classId}:${p.subjectId}`, p._count]));
+    const byPair = new Map<string, { classId: string; className: string; gradeName: string; gradeNameAr: string | null; subjectId: string; subjectName: string; subjectNameAr: string | null; lessons: number }>();
+    for (const l of taught) {
+      const key = `${l.classId}:${l.subjectId}`;
+      const row = byPair.get(key) ?? { classId: l.classId, className: l.class.name, gradeName: l.class.grade.name, gradeNameAr: l.class.grade.nameAr, subjectId: l.subjectId, subjectName: l.subject.name, subjectNameAr: l.subject.nameAr, lessons: 0 };
+      row.lessons = lessonCount.get(key) ?? 0;
+      byPair.set(key, row);
+    }
+    const assignments = [...byPair.values()].sort((a, b) => a.className.localeCompare(b.className, 'en', { numeric: true }) || a.subjectName.localeCompare(b.subjectName));
+    return { ...person, teaching: { lessonsPerWeek: [...lessonCount.values()].reduce((a, b) => a + b, 0), homerooms, assignments } };
   }
 
   @Post()

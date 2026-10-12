@@ -44,6 +44,7 @@ describe('The lesson happening now (e2e)', () => {
     const room = (await admin.post('/api/rooms', { name: 'Room 204' })).body.id;
     const subject = (await admin.post('/api/subjects', { name: 'Math' })).body.id;
     periodId = (await admin.post('/api/periods', { number: 1, startTime: local.time, endTime: localParts(end, 'Africa/Cairo').time }).expect(201)).body.id;
+    await admin.put(`/api/grades/${grade.id}/subjects/${subject}`, {}).expect(200); // the year group studies it
     await admin.post('/api/timetable', { classId, dayOfWeek: local.dayOfWeek, periodId, roomId: room, subjectId: subject, teacherId: t.id }).expect(201);
     for (const [key, kind, name] of [['GATE', 'GATE', 'Gate A'], ['R204', 'ROOM', 'Room 204']] as const) {
       const g = (await owner.post('/api/owner/gateways', { serial: `LIVE-${key}` }).expect(201)).body;

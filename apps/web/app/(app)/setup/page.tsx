@@ -6,8 +6,10 @@ import { useAction, useApi } from '@/lib/hooks';
 import { useI18n } from '@/lib/i18n';
 import { Dict } from '@/lib/strings';
 import { byStage, useGradeName } from '@/components/ClassPicker';
+import { GradeSubjectsEditor } from '@/components/GradeSubjectsEditor';
 import { SubjectsEditor } from '@/components/SubjectsEditor';
 import { Empty, ErrorNote, Field, PageHead, Section, toast } from '@/components/ui';
+import { TimeInput } from '@/components/TimeInput';
 
 const ROOM_KINDS = ['CLASSROOM', 'LAB', 'LIBRARY', 'SPORTS', 'OTHER'] as const;
 const STAGES = ['KG', 'PRIMARY', 'PREPARATORY', 'SECONDARY'] as const;
@@ -15,10 +17,10 @@ const SYSTEMS = ['NATIONAL_ARABIC', 'NATIONAL_LANGUAGES', 'BRITISH', 'AMERICAN',
 const STREAMS = ['SCIENCE', 'MATHEMATICS', 'LITERARY'] as const;
 
 /** A small list with a remove button on each row and an add form underneath. */
-function Editor({ title, rows, onAdd, children }: { title: string; rows: { key: string; a: ReactNode; b?: ReactNode; remove?: () => void }[]; onAdd: (e: FormEvent) => void; children: ReactNode }) {
+function Editor({ id, title, rows, onAdd, children }: { id?: string; title: string; rows: { key: string; a: ReactNode; b?: ReactNode; remove?: () => void }[]; onAdd: (e: FormEvent) => void; children: ReactNode }) {
   const { t } = useI18n();
   return (
-    <div className="editor">
+    <div className="editor" id={id}>
       <div className="editor-head"><b>{title}</b><span className="num">{rows.length}</span></div>
       {rows.map((r) => (
         <div key={r.key} className="editor-row">
@@ -88,9 +90,18 @@ export default function SetupPage() {
   return (
     <>
       <PageHead sub={t.setup.sub} title={t.nav.structure} />
+      <nav className="jump" aria-label={t.setup.jumpTo}>
+        <a href="#stages">{t.eg.stagesTitle}</a>
+        <a href="#classes">{t.eg.classesTitle}</a>
+        <a href="#year">{t.eg.yearTitle}</a>
+        <a href="#rooms">{t.setup.rooms}</a>
+        <a href="#periods">{t.setup.periods}</a>
+        <a href="#subjects">{t.setup.subjects}</a>
+        <a href="#year-group-subjects">{t.subj.gradeTitle}</a>
+      </nav>
       <ErrorNote error={act.error} />
 
-      <Section title={t.eg.stagesTitle}>
+      <Section id="stages" title={t.eg.stagesTitle}>
         <div className="panel pad stack" style={{ gap: 14 }}>
           <p className="small muted" style={{ margin: 0 }}>{t.eg.stagesHelp}</p>
           <div className="row wrap" style={{ gap: 16, alignItems: 'center' }}>
@@ -130,7 +141,7 @@ export default function SetupPage() {
         </div>
       </Section>
 
-      <Section title={t.eg.classesTitle} aside={String(classes.data?.length ?? '')}>
+      <Section id="classes" title={t.eg.classesTitle} aside={String(classes.data?.length ?? '')}>
         <div className="panel">
           <p className="small muted" style={{ margin: 0, padding: '14px 18px 4px' }}>{t.eg.classesHelp}</p>
           {byStage(classes.data ?? []).map(([stage, list]) => (
@@ -200,7 +211,7 @@ export default function SetupPage() {
       </Section>
 
       <div className="cols">
-        <Section title={t.eg.yearTitle}>
+        <Section id="year" title={t.eg.yearTitle}>
           <div className="panel">
             <p className="small muted" style={{ margin: 0, padding: '14px 18px 4px' }}>{t.eg.yearHelp}</p>
             {years.data?.map((y) => (
@@ -258,6 +269,7 @@ export default function SetupPage() {
 
       <div className="editors">
         <Editor
+          id="rooms"
           title={t.setup.rooms}
           rows={(rooms.data ?? []).map((r) => ({ key: r.id, a: r.name, b: kind(r.kind), remove: remove(`/rooms/${r.id}`, rooms.reload) }))}
           onAdd={run(() => post('/rooms', room), () => { setRoom({ ...room, name: '' }); void rooms.reload(); })}
@@ -269,17 +281,19 @@ export default function SetupPage() {
         </Editor>
 
         <Editor
+          id="periods"
           title={t.setup.periods}
           rows={(periods.data ?? []).map((p) => ({ key: p.id, a: t.today.periodN(p.number), b: <bdi dir="ltr">{p.startTime}–{p.endTime}</bdi>, remove: remove(`/periods/${p.id}`, periods.reload) }))}
           onAdd={run(() => post('/periods', period), () => { setPeriod({ number: period.number + 1, startTime: period.endTime, endTime: period.endTime }); void periods.reload(); })}
         >
           <input className="input num" type="number" min={1} aria-label={t.setup.number} value={period.number} onChange={(e) => setPeriod({ ...period, number: Number(e.target.value) })} style={{ flex: '0 0 64px' }} />
-          <input className="input num" type="time" required aria-label={t.setup.starts} value={period.startTime} onChange={(e) => setPeriod({ ...period, startTime: e.target.value })} />
-          <input className="input num" type="time" required aria-label={t.setup.ends} value={period.endTime} onChange={(e) => setPeriod({ ...period, endTime: e.target.value })} />
+          <TimeInput className="input num" required aria-label={t.setup.starts} value={period.startTime} onChange={(v) => setPeriod({ ...period, startTime: v })} />
+          <TimeInput className="input num" required aria-label={t.setup.ends} value={period.endTime} onChange={(v) => setPeriod({ ...period, endTime: v })} />
         </Editor>
 
         <SubjectsEditor />
       </div>
+      <GradeSubjectsEditor />
     </>
   );
 }

@@ -33,20 +33,18 @@ export default function ExceptionsPage() {
       <PageHead
         sub={t.exc.sub}
         title={t.nav.exceptions}
-        actions={
-          <>
-            <Field label={t.common.date} id="day">
-              <input id="day" type="date" className="input" value={date} onChange={(e) => setDate(e.target.value || todayCairo())} />
-            </Field>
-            <Tabs
-              label={t.nav.exceptions}
-              value={tab}
-              onChange={(v) => { setTab(v); setResolving(null); }}
-              items={[['OPEN', t.exc.openN(open.data?.length ?? 0)], ['RESOLVED', t.exc.resolvedN(resolved.data?.length ?? 0)]]}
-            />
-          </>
-        }
       />
+      <div className="toolbar">
+        <Field label={t.common.date} id="day">
+          <input id="day" type="date" className="input" value={date} onChange={(e) => setDate(e.target.value || todayCairo())} />
+        </Field>
+        <Tabs
+          label={t.nav.exceptions}
+          value={tab}
+          onChange={(v) => { setTab(v); setResolving(null); }}
+          items={[['OPEN', t.exc.openN(open.data?.length ?? 0)], ['RESOLVED', t.exc.resolvedN(resolved.data?.length ?? 0)]]}
+        />
+      </div>
       <ErrorNote error={open.error ?? act.error} />
       <section className="panel">
         {list?.length ? (

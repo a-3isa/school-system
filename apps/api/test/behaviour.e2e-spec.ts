@@ -35,6 +35,7 @@ describe('Behaviour (e2e)', () => {
     const rooms = [(await admin.post('/api/rooms', { name: 'Room A' })).body.id, (await admin.post('/api/rooms', { name: 'Room B' })).body.id];
     const math = (await admin.post('/api/subjects', { name: 'Math' })).body.id;
     const period = (await admin.post('/api/periods', { number: 1, startTime: '08:00', endTime: '08:45' })).body.id;
+    await admin.put(`/api/grades/${grade.id}/subjects/${math}`, {}).expect(200); // the year group studies it
     await admin.post('/api/timetable', { classId: id.classA, dayOfWeek: 0, periodId: period, roomId: rooms[0], subjectId: math, teacherId: id.t1 }).expect(201);
     await admin.post('/api/timetable', { classId: id.classB, dayOfWeek: 0, periodId: period, roomId: rooms[1], subjectId: math, teacherId: id.t2 }).expect(201);
 

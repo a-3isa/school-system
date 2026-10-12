@@ -23,9 +23,9 @@ export function PageHead({ sub, title, actions, crumb }: { sub?: ReactNode; titl
   );
 }
 
-export function Section({ title, aside, children }: { title?: ReactNode; aside?: ReactNode; children: ReactNode }) {
+export function Section({ title, aside, children, id }: { title?: ReactNode; aside?: ReactNode; children: ReactNode; id?: string }) {
   return (
-    <section className="section">
+    <section className="section" id={id}>
       {(title || aside) && (
         <div className="section-head">
           {title ? <h2>{title}</h2> : <span />}

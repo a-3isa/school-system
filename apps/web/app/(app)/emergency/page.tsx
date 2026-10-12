@@ -39,7 +39,7 @@ export default function EmergencyPage() {
         <Field label={t.emg.fieldBody} id="emg-body">
           <textarea id="emg-body" className="input" rows={5} maxLength={4000} required value={body} onChange={(e) => setBody(e.target.value)} />
         </Field>
-        <label className="row" style={{ gap: 10 }}>
+        <label className="check" style={{ alignItems: 'flex-start', gap: 10 }}>
           <input type="checkbox" checked={understood} onChange={(e) => setUnderstood(e.target.checked)} />
           <span>{t.emg.understand}</span>
         </label>

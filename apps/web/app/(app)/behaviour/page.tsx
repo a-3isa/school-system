@@ -5,7 +5,7 @@ import { useAction, useApi } from '@/lib/hooks';
 import { useI18n } from '@/lib/i18n';
 import { has, useSession } from '@/lib/session';
 import { KIND_GLYPH, KIND_TONE, Kind, NoteModal } from '@/components/BehaviourNote';
-import { Empty, ErrorNote, PageHead, Tabs, Tag, toast } from '@/components/ui';
+import { Empty, ErrorNote, Field, PageHead, Tabs, Tag, toast } from '@/components/ui';
 
 type Tab = 'ALL' | Kind;
 
@@ -39,20 +39,16 @@ export default function BehaviourPage() {
       <PageHead
         sub={t.beh.sub}
         title={t.nav.behaviourNotes}
-        actions={
-          <>
-            <Tabs label={t.nav.behaviourNotes} value={tab} onChange={setTab} items={[['ALL', t.beh.tabs.ALL], ['PRAISE', t.beh.tabs.PRAISE], ['CONCERN', t.beh.tabs.CONCERN], ['INCIDENT', t.beh.tabs.INCIDENT]]} />
-            <button type="button" className="btn primary" onClick={() => setEditing('new')}>{t.beh.new}</button>
-          </>
-        }
+        actions={<button type="button" className="btn primary" onClick={() => setEditing('new')}>{t.beh.new}</button>}
       />
-      <div className="row wrap" style={{ gap: 12, marginBlockEnd: 16 }}>
+      <div className="toolbar">
+        <Tabs label={t.nav.behaviourNotes} value={tab} onChange={setTab} items={[['ALL', t.beh.tabs.ALL], ['PRAISE', t.beh.tabs.PRAISE], ['CONCERN', t.beh.tabs.CONCERN], ['INCIDENT', t.beh.tabs.INCIDENT]]} />
         <select className="input" aria-label={t.common.class} value={classId} onChange={(e) => setClassId(e.target.value)} style={{ maxWidth: 220 }}>
           <option value="">{t.common.allClasses}</option>
           {classes.map(([id, name]) => <option key={id} value={id}>{x(name)}</option>)}
         </select>
-        <input className="input" type="date" aria-label={t.beh.date} value={from} max={to || undefined} onChange={(e) => setFrom(e.target.value)} style={{ maxWidth: 180 }} />
-        <input className="input" type="date" aria-label={t.beh.date} value={to} min={from || undefined} onChange={(e) => setTo(e.target.value)} style={{ maxWidth: 180 }} />
+        <Field label={t.beh.from} id="beh-from"><input id="beh-from" className="input" type="date" value={from} max={to || undefined} onChange={(e) => setFrom(e.target.value)} style={{ maxWidth: 180 }} /></Field>
+        <Field label={t.beh.to} id="beh-to"><input id="beh-to" className="input" type="date" value={to} min={from || undefined} onChange={(e) => setTo(e.target.value)} style={{ maxWidth: 180 }} /></Field>
       </div>
       <ErrorNote error={(list.error ?? act.error) && x((list.error ?? act.error)!)} />
       <section className="panel">
