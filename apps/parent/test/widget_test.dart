@@ -953,6 +953,75 @@ void main() {
       expect(S.en.notification('marks.published', 'Salma', {}, 'English title'), 'English title'); // no subject: the server’s words
     });
 
+    test('marks published together read as one line, in both languages', () {
+      expect(S.en.marksGroup('Salma', 3, subject: 'Math'), '3 new marks for Salma in Math');
+      expect(S.en.marksGroup('Salma', 4), '4 new marks for Salma');
+      expect(S.ar.marksGroup('سلمى', 2, subject: 'Math', subjectAr: 'الرياضيات'), 'درجتان جديدتان لـسلمى في الرياضيات');
+      expect(S.ar.marksGroup('سلمى', 5), '5 درجات جديدة لـسلمى');
+      expect(S.ar.marksGroup('سلمى', 12, subject: 'Math'), '12 درجة جديدة لـسلمى في Math');
+    });
+
+    testWidgets('the notification list shows one child’s marks of a day as one row, and opening it reads them all', (tester) async {
+      clock = () => DateTime.utc(2026, 10, 11, 7);
+      addTearDown(() => clock = DateTime.now);
+      tester.view.physicalSize = const Size(800, 2400);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final now = DateTime.now().toUtc().toIso8601String();
+      Map<String, Object?> mark(String id, String title, {String subject = 'Math', String? readAt}) =>
+          {'id': id, 'type': 'marks.published', 'title': 'English title', 'body': '…', 'readAt': readAt, 'createdAt': now, 'data': {'studentId': 's1', 'subject': subject, 'subjectAr': null, 'title': title}};
+      final notes = [
+        mark('m1', 'Quiz 1'),
+        mark('m2', 'Quiz 2'),
+        mark('m3', 'Quiz 3', readAt: '2026-10-11T05:00:00.000Z'), // one of them is already read: the row is still unread
+        mark('s1', 'Plants', subject: 'Science'),
+        {'id': 'n1', 'type': 'attendance.arrived', 'title': 'x', 'body': '…', 'readAt': null, 'createdAt': now, 'data': {'studentId': 's1', 'time': '07:42'}},
+      ];
+      final log = <String>[];
+      await start(tester, {'lang': 'en', 'token': 't'}, school(me_: academicsMe(), more: {...routes(), '/notifications': notes, '/notifications/m1/read': {'ok': true}, '/notifications/m2/read': {'ok': true}, '/notifications/m3/read': {'ok': true}, '/notifications/s1/read': {'ok': true}}, log: log));
+      await tester.tap(find.text('Notifications'));
+      await tester.pumpAndSettle();
+      expect(find.text('4 new marks for Layla'), findsOneWidget); // Math and Science: no subject in the line
+      expect(find.textContaining('Quiz'), findsNothing);
+      expect(find.text('Layla arrived safely at school'), findsOneWidget); // other kinds are untouched
+      await tester.tap(find.text('4 new marks for Layla'));
+      await tester.pumpAndSettle();
+      // Only the unread ones are marked read, and the grades open.
+      expect(log.where((l) => l.startsWith('POST /notifications/') && l.contains('/read')).map((l) => l.split(' ')[1]).toSet(), {'/notifications/m1/read', '/notifications/m2/read', '/notifications/s1/read'});
+      expect(find.text(S.en.gradesSub), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('marks of one subject say which, and a single mark keeps its own sentence', (tester) async {
+      clock = () => DateTime.utc(2026, 10, 11, 7);
+      addTearDown(() => clock = DateTime.now);
+      tester.view.physicalSize = const Size(800, 2400);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final now = DateTime.now().toUtc().toIso8601String();
+      Map<String, Object?> mark(String id, String title) =>
+          {'id': id, 'type': 'marks.published', 'title': 'English title', 'body': '…', 'readAt': null, 'createdAt': now, 'data': {'studentId': 's1', 'subject': 'Math', 'subjectAr': null, 'title': title}};
+      await start(tester, {'lang': 'en', 'token': 't'}, school(me_: academicsMe(), more: {...routes(), '/notifications': [mark('m1', 'Quiz 1'), mark('m2', 'Quiz 2')]}));
+      await tester.tap(find.text('Notifications'));
+      await tester.pumpAndSettle();
+      expect(find.text('2 new marks for Layla in Math'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('a single mark keeps its own sentence', (tester) async {
+      clock = () => DateTime.utc(2026, 10, 11, 7);
+      addTearDown(() => clock = DateTime.now);
+      tester.view.physicalSize = const Size(800, 2400);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final one = {'id': 'm1', 'type': 'marks.published', 'title': 'English title', 'body': '…', 'readAt': null, 'createdAt': DateTime.now().toUtc().toIso8601String(), 'data': {'studentId': 's1', 'subject': 'Math', 'subjectAr': null, 'title': 'Quiz 1'}};
+      await start(tester, {'lang': 'en', 'token': 't'}, school(me_: academicsMe(), more: {...routes(), '/notifications': [one]}));
+      await tester.tap(find.text('Notifications'));
+      await tester.pumpAndSettle();
+      expect(find.text('New mark for Layla in Math: Quiz 1'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+    });
+
     test('numbers, scores and titles are formatted for each language', () {
       expect(S.en.pct(90), '90%');
       expect(S.en.pct(67.5), '67.5%');
