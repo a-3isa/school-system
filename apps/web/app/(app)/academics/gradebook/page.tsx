@@ -97,18 +97,22 @@ export default function GradebookPage() {
   }
 
   const chooser = (
-    <>
+    <div className="toolbar">
       <select className="input" aria-label={t.acad.pick} value={pair ? `${pair.classId}:${pair.subjectId}` : ''} onChange={(e) => setPairKey(e.target.value)} style={{ maxWidth: 280 }}>
         {list.map((p) => <option key={`${p.classId}:${p.subjectId}`} value={`${p.classId}:${p.subjectId}`}>{x(`${p.className} · ${subject({ name: p.subjectName, nameAr: p.subjectNameAr })}`)}</option>)}
       </select>
       <Tabs label={t.acad.pick} value={term} onChange={(v) => setTermSel(v)} items={[['1', t.acad.term(1)], ['2', t.acad.term(2)]]} />
-      {canMark && <button type="button" className="btn primary" onClick={() => setModal({})}>{t.acad.newAssessment}</button>}
-    </>
+    </div>
   );
 
   return (
     <>
-      <PageHead sub={t.acad.gradebookSub} title={t.nav.gradebook} actions={pair ? chooser : undefined} />
+      <PageHead
+        sub={t.acad.gradebookSub}
+        title={t.nav.gradebook}
+        actions={pair && canMark ? <button type="button" className="btn primary" onClick={() => setModal({})}>{t.acad.newAssessment}</button> : undefined}
+      />
+      {pair && chooser}
       <ErrorNote error={(pairs.error ?? gb.error ?? act.error ?? save.error) && x((pairs.error ?? gb.error ?? act.error ?? save.error)!)} />
       {pairs.data && !list.length && <Empty title={t.acad.noPairs}>{t.acad.noPairsSub}</Empty>}
       {pair && !canMark && <Note tone="info">{t.acad.readOnly}</Note>}

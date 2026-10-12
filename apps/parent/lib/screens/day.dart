@@ -185,13 +185,25 @@ class _DayTabState extends State<DayTab> {
         _ => Notice(title: s.schoolWillCall, fg: c.aFg, bg: c.aBg),
       };
     }
+    return [if (notice != null) ...[notice, const SizedBox(height: 14)]];
+  }
+
+  /// Where the excuses sent for this child are, as a row that looks like a link, after the day itself.
+  List<Widget> _excusesEntry(BuildContext context) {
+    final child = widget.data.child(_childId);
+    if (child == null) return const [];
     return [
-      if (notice != null) ...[notice, const SizedBox(height: 14)],
-      Align(
-        alignment: AlignmentDirectional.centerStart,
-        child: TextButton(
-          onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => ExcusesScreen(api: widget.api, child: child))),
-          child: Text(s.excusesTitle),
+      const SizedBox(height: 18),
+      Panel(
+        padding: EdgeInsets.zero,
+        child: Material(
+          type: MaterialType.transparency,
+          child: ListTile(
+            leading: Icon(Icons.edit_note_outlined, color: context.c.primary),
+            title: Text(S.of(context).excusesTitle, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+            trailing: Icon(Icons.chevron_right, color: context.c.ink3),
+            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => ExcusesScreen(api: widget.api, child: child))),
+          ),
         ),
       ),
     ];
@@ -245,6 +257,7 @@ class _DayTabState extends State<DayTab> {
       const SizedBox(height: 8),
       if (lessons.isEmpty) Text(s.noLessons, style: TextStyle(color: c.ink2)),
       for (final l in lessons) _LessonRow(lesson: l, now: now, current: identical(l, current), inRoom: inCurrent && identical(l, current)),
+      ..._excusesEntry(context),
     ];
   }
 }

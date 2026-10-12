@@ -7,6 +7,7 @@ import { useApi, useEvery } from '@/lib/hooks';
 import { useI18n } from '@/lib/i18n';
 import { useSession } from '@/lib/session';
 import { EXCEPTION_TONE, Lesson, LessonRow } from '@/components/Lessons';
+import { SetupGuide } from '@/components/SetupGuide';
 import { Empty, ErrorNote, Kpi, LiveStamp, Note, PageHead, Section, STATUS_GLYPH, STATUS_TONE, STATUSES, Tag } from '@/components/ui';
 
 export default function TodayPage() {
@@ -45,6 +46,7 @@ export default function TodayPage() {
   return (
     <>
       <PageHead sub={x([day(date), status.data?.term && t.eg.term(status.data.term), status.data?.year].filter(Boolean).join(' · '))} title={t.today.title} actions={hasAttendance && <LiveStamp at={summary.loadedAt} />} />
+      {me.role === 'SCHOOL_ADMIN' && <SetupGuide />}
       {closed && <Note title={closed} />}
       {!hasAttendance && <Note>{t.today.noAttendance}</Note>}
       {hasAttendance && (

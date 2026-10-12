@@ -27,7 +27,7 @@ export function GradeSubjectsEditor() {
 
   const err = act.error ?? grades.error ?? subjects.error ?? curriculum.error;
   return (
-    <Section title={t.subj.gradeTitle} aside={t.subj.gradeSub}>
+    <Section id="year-group-subjects" title={t.subj.gradeTitle} aside={t.subj.gradeSub}>
       <ErrorNote error={err && x(err)} />
       {grades.data && !grades.data.length && <Empty>{t.subj.noGrades}</Empty>}
       {subjects.data && !subjects.data.length && <Empty>{t.subj.noSubjects}</Empty>}

@@ -27,7 +27,7 @@ export function ClassSelect({ id, classes, value, onChange, empty, required }: {
   const { t } = useI18n();
   const groups = byStage(classes ?? []);
   return (
-    <select id={id} className="input" value={value} required={required} onChange={(e) => onChange(e.target.value)}>
+    <select id={id} className="input" aria-label={id ? undefined : t.common.class} value={value} required={required} onChange={(e) => onChange(e.target.value)}>
       <option value="">{empty}</option>
       {groups.map(([stage, list]) =>
         groups.length > 1 || stage !== 'OTHER' ? (

@@ -23,6 +23,8 @@ type Props = {
   lessons: any[];
   onCopied: () => Promise<unknown>;
   onOpenClass: (id: string) => void;
+  /** The class to copy to, when the dialog is opened from that class's own page. */
+  initialTo?: string;
 };
 
 /**
@@ -31,7 +33,7 @@ type Props = {
  * only thing asked is which class, which classroom, and whether to keep or replace what it already has.
  * Anything that couldn't be placed is listed afterwards, never dropped silently.
  */
-function CopyWeekForm({ onClose, from, classes, rooms, everyLesson, lessons, onCopied, onOpenClass }: Omit<Props, 'open'>) {
+function CopyWeekForm({ onClose, from, classes, rooms, everyLesson, lessons, onCopied, onOpenClass, initialTo }: Omit<Props, 'open'>) {
   const { t, x, subject } = useI18n();
   const act = useAction();
   const targets = classes.filter((c) => c.gradeId === from.gradeId && c.id !== from.id);
@@ -40,8 +42,10 @@ function CopyWeekForm({ onClose, from, classes, rooms, everyLesson, lessons, onC
   const needsRoom = lessons.some((e) => e.room?.kind === 'CLASSROOM');
   const classrooms = rooms.filter((r) => r.kind === 'CLASSROOM');
 
-  const [toId, setToId] = useState('');
-  const [roomId, setRoomId] = useState('');
+  /** The classroom a class already uses is the likely answer. */
+  const classroomOf = (classId: string): string => everyLesson.find((e) => e.class?.id === classId && e.room?.kind === 'CLASSROOM')?.room.id ?? '';
+  const [toId, setToId] = useState(initialTo ?? '');
+  const [roomId, setRoomId] = useState(initialTo ? classroomOf(initialTo) : '');
   const [replace, setReplace] = useState(false);
   const [result, setResult] = useState<CopyResult | null>(null);
   const target = targets.find((c) => c.id === toId);
@@ -50,8 +54,7 @@ function CopyWeekForm({ onClose, from, classes, rooms, everyLesson, lessons, onC
   function choose(id: string) {
     setToId(id);
     setReplace(false);
-    // The classroom that class already uses is the likely answer.
-    setRoomId(everyLesson.find((e) => e.class?.id === id && e.room?.kind === 'CLASSROOM')?.room.id ?? '');
+    setRoomId(classroomOf(id));
   }
 
   async function submit(e: FormEvent) {

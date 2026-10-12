@@ -258,6 +258,31 @@ export class SchoolController {
     return { date, ...(await this.calendar.day(await this.setup.school(schoolId), date)) };
   }
 
+  /**
+   * How far the school's set-up has got: only counts of what exists, for the guide on Today. A new school
+   * has a long chain to go through (year groups, classes, subjects, rooms and periods, teachers, who teaches
+   * what, the timetable, students) and the dashboard shows where it has got to and what comes next.
+   */
+  @Roles(Role.SCHOOL_ADMIN)
+  @Get('setup')
+  async progress(@SchoolId() schoolId: string) {
+    const [years, grades, classes, subjects, gradeSubjects, periods, rooms, teachers, classSubjects, withoutTeacher, lessons, students] = await Promise.all([
+      this.prisma.academicYear.count({ where: { schoolId } }),
+      this.prisma.grade.count({ where: { schoolId } }),
+      this.prisma.class.count({ where: { schoolId } }),
+      this.prisma.subject.count({ where: { schoolId } }),
+      this.prisma.gradeSubject.count({ where: { grade: { schoolId } } }),
+      this.prisma.period.count({ where: { schoolId } }),
+      this.prisma.room.count({ where: { schoolId } }),
+      this.prisma.user.count({ where: { schoolId, role: Role.TEACHER, active: true } }),
+      this.prisma.classSubject.count({ where: { class: { schoolId } } }),
+      this.prisma.classSubject.count({ where: { class: { schoolId }, teacherId: null } }),
+      this.prisma.timetableEntry.count({ where: { schoolId } }),
+      this.prisma.student.count({ where: { schoolId } }),
+    ]);
+    return { years, grades, classes, subjects, gradeSubjects, periods, rooms, teachers, classSubjects, withoutTeacher, lessons, students };
+  }
+
   // ---- the school year ----
 
   @Roles(...STAFF)

@@ -76,7 +76,7 @@ export function SubjectsEditor() {
 
   const rows: any[] = subjects.data ?? [];
   return (
-    <div className="editor">
+    <div className="editor" id="subjects">
       <div className="editor-head"><b>{t.setup.subjects}</b><span className="num">{rows.length}</span></div>
       <ErrorNote error={(act.error ?? subjects.error) && x((act.error ?? subjects.error)!)} />
       {rows.map((s) =>

@@ -6,6 +6,7 @@ import { useI18n } from '@/lib/i18n';
 import { has, useSession } from '@/lib/session';
 import { Modal } from './Modal';
 import { ErrorNote, Field, Tone } from './ui';
+import { TimeInput } from './TimeInput';
 
 export type Kind = 'PRAISE' | 'CONCERN' | 'INCIDENT';
 /** Merit points a note of each kind may carry (the API enforces the same). */
@@ -150,7 +151,7 @@ export function NoteModal({ student, note, onClose, onSaved }: {
         {!note && (
           <div className="row wrap" style={{ gap: 12 }}>
             <Field label={t.beh.date} id="note-date"><input id="note-date" className="input" type="date" max={todayCairo()} value={date} onChange={(e) => setDate(e.target.value)} /></Field>
-            <Field label={t.beh.time} id="note-time"><input id="note-time" className="input num" type="time" value={time} onChange={(e) => setTime(e.target.value)} /></Field>
+            <Field label={t.beh.time} id="note-time"><TimeInput id="note-time" className="input num" value={time} onChange={(v) => setTime(v)} /></Field>
           </div>
         )}
         <label className="row" style={{ gap: 10 }}>

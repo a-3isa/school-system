@@ -5,6 +5,7 @@ import { useAction, useApi } from '@/lib/hooks';
 import { useI18n } from '@/lib/i18n';
 import { useSession } from '@/lib/session';
 import { Empty, ErrorNote, Field, PageHead, Section, toast } from '@/components/ui';
+import { TimeInput } from '@/components/TimeInput';
 
 const LENGTHS = [10, 15, 20, 30];
 
@@ -56,8 +57,8 @@ export default function MeetingsPage() {
             </Field>
           )}
           <Field label={t.mtg.date} id="mtg-date"><input id="mtg-date" className="input" type="date" min={todayCairo()} required value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></Field>
-          <Field label={t.mtg.from} id="mtg-from"><input id="mtg-from" className="input num" type="time" required value={form.fromTime} onChange={(e) => setForm({ ...form, fromTime: e.target.value })} /></Field>
-          <Field label={t.mtg.to} id="mtg-to"><input id="mtg-to" className="input num" type="time" required value={form.toTime} onChange={(e) => setForm({ ...form, toTime: e.target.value })} /></Field>
+          <Field label={t.mtg.from} id="mtg-from"><TimeInput id="mtg-from" className="input num" required value={form.fromTime} onChange={(v) => setForm({ ...form, fromTime: v })} /></Field>
+          <Field label={t.mtg.to} id="mtg-to"><TimeInput id="mtg-to" className="input num" required value={form.toTime} onChange={(v) => setForm({ ...form, toTime: v })} /></Field>
           <Field label={t.mtg.slot} id="mtg-slot">
             <select id="mtg-slot" className="input" value={form.slotMinutes} onChange={(e) => setForm({ ...form, slotMinutes: Number(e.target.value) })}>
               {LENGTHS.map((n) => <option key={n} value={n}>{t.mtg.minutes(n)}</option>)}

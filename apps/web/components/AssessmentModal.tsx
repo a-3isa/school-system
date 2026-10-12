@@ -5,6 +5,7 @@ import { useAction, useApi } from '@/lib/hooks';
 import { useI18n } from '@/lib/i18n';
 import { Modal } from './Modal';
 import { ErrorNote, Field } from './ui';
+import { TimeInput } from './TimeInput';
 
 export const KINDS = ['CLASSWORK', 'QUIZ', 'HOMEWORK', 'PROJECT', 'MIDTERM', 'FINAL'] as const;
 export type AssessmentKind = (typeof KINDS)[number];
@@ -86,8 +87,8 @@ export function AssessmentModal({ pair, assessment, onClose, onSaved }: {
         <span className="small muted">{t.acad.weightHelp}</span>
         {exam && (
           <div className="row wrap" style={{ gap: 12 }}>
-            <Field label={t.acad.startTime} id="as-start"><input id="as-start" className="input num" type="time" value={start} onChange={(e) => setStart(e.target.value)} /></Field>
-            <Field label={t.acad.endTime} id="as-end"><input id="as-end" className="input num" type="time" value={end} onChange={(e) => setEnd(e.target.value)} /></Field>
+            <Field label={t.acad.startTime} id="as-start"><TimeInput id="as-start" className="input num" value={start} onChange={(v) => setStart(v)} /></Field>
+            <Field label={t.acad.endTime} id="as-end"><TimeInput id="as-end" className="input num" value={end} onChange={(v) => setEnd(v)} /></Field>
             <Field label={t.acad.room} id="as-room" className="grow">
               <select id="as-room" className="input" value={room} onChange={(e) => setRoom(e.target.value)}>
                 <option value="">{t.acad.noRoom}</option>

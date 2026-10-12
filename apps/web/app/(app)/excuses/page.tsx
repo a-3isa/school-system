@@ -37,15 +37,15 @@ export default function ExcusesPage() {
       <PageHead
         sub={t.excuses.sub}
         title={t.nav.excuses}
-        actions={
-          <Tabs
-            label={t.nav.excuses}
-            value={tab}
-            onChange={(v) => { setTab(v); setRejecting(null); }}
-            items={[['PENDING', t.excuses.waitingN(waiting.data?.length ?? 0)], ['APPROVED', t.excuses.tabs.APPROVED], ['REJECTED', t.excuses.tabs.REJECTED], ['ALL', t.excuses.tabs.ALL]]}
-          />
-        }
       />
+      <div className="toolbar">
+        <Tabs
+          label={t.nav.excuses}
+          value={tab}
+          onChange={(v) => { setTab(v); setRejecting(null); }}
+          items={[['PENDING', t.excuses.waitingN(waiting.data?.length ?? 0)], ['APPROVED', t.excuses.tabs.APPROVED], ['REJECTED', t.excuses.tabs.REJECTED], ['ALL', t.excuses.tabs.ALL]]}
+        />
+      </div>
       <ErrorNote error={list.error ?? act.error} />
       <section className="panel">
         {list.data?.length ? (

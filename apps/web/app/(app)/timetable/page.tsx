@@ -6,7 +6,7 @@ import { useAction, useApi } from '@/lib/hooks';
 import { useI18n } from '@/lib/i18n';
 import { useSession } from '@/lib/session';
 import { CopyWeekModal } from '@/components/CopyWeekModal';
-import { Empty, ErrorNote, PageHead, Section, Tabs, Tag, toast } from '@/components/ui';
+import { Empty, ErrorNote, Note, PageHead, Section, Tabs, Tag, toast } from '@/components/ui';
 
 /**
  * Each class's week. The periods are the school's, the same for every class; what a class decides is where
@@ -39,13 +39,19 @@ export default function TimetablePage() {
   const [picking, setPicking] = useState<string | null>(null);
   const [pick, setPick] = useState({ subjectId: '', roomId: '', teacherId: '' });
   const [cellError, setCellError] = useState<{ key: string; message: string } | null>(null);
-  const [copying, setCopying] = useState(false);
+  /** The class whose week is being copied, and (when started from an empty class) the class it goes to. */
+  const [copyFrom, setCopyFrom] = useState<any>(null);
+  const [copyTo, setCopyTo] = useState<string | undefined>();
 
   const days: number[] = school.data?.schoolDays ?? [0, 1, 2, 3, 4];
   const today = new Date(`${todayCairo()}T00:00:00Z`).getUTCDay();
   const sortedPeriods = [...(periods.data ?? [])].sort((a, b) => a.number - b.number);
   const at = (d: number, p: string) => entries.data?.find((e) => e.dayOfWeek === d && e.periodId === p);
   const current = classes.data?.find((c) => c.id === classId);
+  const lessonsOf = (id: string) => (everyLesson.data ?? []).filter((e) => e.class?.id === id);
+  /** Other classes of the same year group, with their lessons: a week can be copied between them. */
+  const siblings = (classes.data ?? []).filter((c) => current && c.gradeId === current.gradeId && c.id !== current.id).map((c) => ({ ...c, lessons: lessonsOf(c.id).length }));
+  const emptyWithSources = isAdmin && current && entries.data?.length === 0 && siblings.some((s) => s.lessons > 0);
   const reloadAll = () => Promise.all([entries.reload(), everyLesson.reload(), classSubjects.reload(), taught.reload()]);
 
   const classSubject = (subjectId: string) => classSubjects.data?.find((s) => s.subjectId === subjectId);
@@ -105,10 +111,20 @@ export default function TimetablePage() {
       <PageHead
         sub={isTeacher ? t.tt.subMine : t.tt.sub}
         title={isTeacher ? t.tt.mine : t.nav.timetable}
-        actions={isAdmin && current && entries.data?.length ? <button type="button" className="btn" onClick={() => setCopying(true)}>{t.tt.copyWeek}</button> : undefined}
+        actions={isAdmin && current && entries.data?.length && siblings.length ? <button type="button" className="btn" onClick={() => { setCopyFrom(current); setCopyTo(undefined); }}>{t.tt.copyWeek}</button> : undefined}
       />
       {!isTeacher && <Tabs label={t.common.class} value={classId} onChange={(v) => { setClassId(v); setPicking(null); }} items={(classes.data ?? []).map((c): [string, string] => [c.id, c.name])} />}
       <ErrorNote error={(act.error ?? entries.error) && x((act.error ?? entries.error)!)} />
+      {emptyWithSources && current && (
+        <Note title={x(t.tt.emptyClass(current.name))}>
+          <span>{t.tt.emptyHint}</span>
+          <span className="row wrap" style={{ gap: 8, marginBlockStart: 8 }}>
+            {siblings.filter((s) => s.lessons > 0).map((s) => (
+              <button key={s.id} type="button" className="btn" onClick={() => { setCopyFrom(s); setCopyTo(current.id); }}>{x(t.tt.copyFromN(s.name, s.lessons))}</button>
+            ))}
+          </span>
+        </Note>
+      )}
       <div className="panel scroll">
         {sortedPeriods.length ? (
           <div className="tt" style={{ gridTemplateColumns: `92px repeat(${days.length}, minmax(150px, 1fr))` }}>
@@ -172,13 +188,14 @@ export default function TimetablePage() {
       </div>
       {isAdmin && current && (
         <CopyWeekModal
-          open={copying}
-          onClose={() => setCopying(false)}
-          from={current}
+          open={!!copyFrom}
+          onClose={() => setCopyFrom(null)}
+          from={copyFrom ?? current}
+          initialTo={copyTo}
           classes={classes.data ?? []}
           rooms={rooms.data ?? []}
           everyLesson={everyLesson.data ?? []}
-          lessons={entries.data ?? []}
+          lessons={lessonsOf((copyFrom ?? current).id)}
           onCopied={reloadAll}
           onOpenClass={(id) => { setClassId(id); setPicking(null); }}
         />
