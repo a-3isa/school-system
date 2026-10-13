@@ -75,6 +75,7 @@ In `apps/api/.env`:
 
 - Set `JWT_SECRET` to any long random text.
 - Keep `DATABASE_URL=postgresql://school:school@localhost:5432/school_dev`.
+- Leave `CORS_ORIGINS` empty. Any page on `localhost` may call the API in development; in production it must list the dashboard and parent web addresses.
 - Leave `SMTP_URL` and `WHATSAPP_*` empty. Emails and WhatsApp codes are then printed in the API's terminal instead of being sent.
 
 Then create the tables and the platform owner. The owner email and password are your choice; you sign in with them later.

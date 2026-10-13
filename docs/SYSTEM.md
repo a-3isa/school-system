@@ -398,6 +398,8 @@ The platform is made for Egypt's private, language and international schools, an
   - The detection numbers (−70 / −85 dBm, 70%, 10 minutes) need tuning in real rooms.
 - **Sending for real:**
   - **Push notifications:** connected to Firebase (project `school-platform-eg`), but not yet tried on a real phone. Android should work once the server has its key (`FIREBASE_SERVICE_ACCOUNT`); iPhones need an Apple APNs key uploaded in the Firebase console and the Push Notifications capability in Xcode. Tapping a push (or a notification in the list) opens what it is about; on the web it only opens the app. The web build gets browser push too. See `docs/PUSH.md`.
+  - **Browser access:** `CORS_ORIGINS` lists the dashboard and parent web addresses (comma-separated). In production the API refuses to start without it; in development any page on localhost is allowed.
+  - **Sign-ins:** staff and the owner stay signed in for 7 days, parents for 30. “Sign out of all devices” (dashboard side bar, parent app Account) ends every sign-in a person has, and so does a new password or switching an account off.
   - **Email:** needs an email account to send from (`SMTP_URL` in `apps/api/.env`). Until then, sign-up and password codes are written in the server log.
   - **WhatsApp:** needs a WhatsApp Business account with an approved code template (`WHATSAPP_*` in `apps/api/.env`). Until then, mobile codes are written in the server log.
   - **School emails to parents:** announcements reach parents as app notifications only. Emailed newsletters aren't built.
