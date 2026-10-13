@@ -75,6 +75,7 @@ In `apps/api/.env`:
 
 - Set `JWT_SECRET` to any long random text.
 - Keep `DATABASE_URL=postgresql://school:school@localhost:5432/school_dev`.
+- Leave `CORS_ORIGINS` empty. Any page on `localhost` may call the API in development; in production it must list the dashboard and parent web addresses.
 - Leave `SMTP_URL` and `WHATSAPP_*` empty. Emails and WhatsApp codes are then printed in the API's terminal instead of being sent.
 
 Then create the tables and the platform owner. The owner email and password are your choice; you sign in with them later.
@@ -95,9 +96,22 @@ npm test -w apps/api                          # API unit tests
 npm run test:e2e -w apps/api                  # API tests against school_test
 #   If your database user isn't school:school, point the tests at it first:
 #   TEST_DATABASE_URL=postgresql://USER:PASSWORD@localhost:5432/school_test
+npm test -w apps/web                          # dashboard tests (words in both languages, set-up guide, copy week…)
 npm run build -w apps/web                     # the dashboard compiles
 cd apps/parent && flutter analyze && flutter test && cd ../..
 ```
+
+CI also checks that the migrations build exactly the schema in `schema.prisma`, so a schema change cannot ship without its migration. To run that check yourself, use a throwaway database that is only ever used for this, never `school_dev`:
+
+```bash
+psql -U school -d school_test -c "CREATE DATABASE school_shadow"      # once
+cd apps/api
+npx prisma migrate diff --from-migrations prisma/migrations --to-schema-datamodel prisma/schema.prisma --shadow-database-url postgresql://school:school@localhost:5432/school_shadow --exit-code
+```
+
+It should say “No difference detected.” Anything else means a migration is missing.
+
+The gateway firmware's logic (what it keeps of what it hears) is tested on a computer, with no board: `cd firmware/gateway && pio test -e native`. CI runs it before building the firmware. This needs PlatformIO and a C++ compiler on your computer.
 
 Everything should pass. If a test fails, keep its output and send it over.
 

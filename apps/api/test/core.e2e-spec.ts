@@ -67,12 +67,14 @@ describe('Phase 1 core (e2e)', () => {
     admin = as(await login('admin@nv.eg', 'admin-pass'));
   });
 
-  it('switches modules with their dependencies', async () => {
-    const res = await owner.put(`/api/owner/schools/${schoolId}/modules/canteen`, { enabled: true }).expect(200);
-    expect(res.body.alsoEnabled).toEqual(['payments']);
-    const blocked = await owner.put(`/api/owner/schools/${schoolId}/modules/payments`, { enabled: false }).expect(400);
-    expect(blocked.body.message).toContain('Canteen');
-    await owner.put(`/api/owner/schools/${schoolId}/modules/canteen`, { enabled: false }).expect(200);
+  it('switches built modules on and off, and refuses the ones that are not built yet', async () => {
+    const off = await owner.put(`/api/owner/schools/${schoolId}/modules/behavior`, { enabled: false }).expect(200);
+    expect(off.body.modules.find((m: any) => m.key === 'behavior').enabled).toBe(false);
+    const on = await owner.put(`/api/owner/schools/${schoolId}/modules/behavior`, { enabled: true }).expect(200);
+    expect(on.body.alsoEnabled).toEqual([]);
+    expect(on.body.modules.find((m: any) => m.key === 'behavior').enabled).toBe(true);
+    const canteen = await owner.put(`/api/owner/schools/${schoolId}/modules/canteen`, { enabled: true }).expect(400);
+    expect(canteen.body.message).toBe('Canteen & wallet isn’t available yet.');
     await owner.put(`/api/owner/schools/${schoolId}/modules/core`, { enabled: false }).expect(400);
   });
 

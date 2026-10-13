@@ -3,7 +3,8 @@ import { PrismaClient, Role } from '@prisma/client';
 import { AddressInfo } from 'net';
 import { io, Socket } from 'socket.io-client';
 import request from 'supertest';
-import { Client, kid, login, ownerClient, PNG, startApp } from './helpers';
+import { Client, client, kid, login, ownerClient, PNG, startApp } from './helpers';
+import { EmailService } from '../src/auth/email';
 import { localParts } from '../src/common/time';
 import { MeetingsService } from '../src/messaging/meetings';
 
@@ -365,6 +366,45 @@ describe('Messaging (e2e)', () => {
       const parent = connect(await tokenOf('p1@msg.eg', 'parent-pass'));
       await next(parent, 'connect');
       parent.close();
+    });
+
+    describe('closes a staff member’s open chat the moment they lose access', () => {
+      const staff = async (key: string) => {
+        id[key] = (await admin.post('/api/staff', { name: key, role: 'TEACHER', email: `${key}@msg.eg`, password: 'temp-pass-1' }).expect(201)).body.id;
+        const token = await tokenOf(`${key}@msg.eg`, 'temp-pass-1');
+        const socket = connect(token);
+        await next(socket, 'connect');
+        return { token, socket, dropped: next(socket, 'disconnect') };
+      };
+
+      it('when Student Affairs switches the account off', async () => {
+        const { socket, dropped } = await staff('off');
+        await admin.patch(`/api/staff/${id.off}`, { name: 'Off Again' }).expect(200);
+        await wait(300);
+        expect(socket.connected).toBe(true); // a rename changes nothing
+        await admin.patch(`/api/staff/${id.off}`, { active: false }).expect(200);
+        await dropped;
+      });
+
+      it('when Student Affairs sets a new password', async () => {
+        const { dropped } = await staff('pwd');
+        await admin.patch(`/api/staff/${id.pwd}`, { password: 'temp-pass-2' }).expect(200);
+        await dropped;
+      });
+
+      it('when they sign out of all devices', async () => {
+        const { token, dropped } = await staff('out');
+        await client(app, token).post('/api/auth/sign-out-everywhere').expect(201);
+        await dropped;
+      });
+
+      it('when they reset a forgotten password', async () => {
+        const { dropped } = await staff('rst');
+        await request(app.getHttpServer()).post('/api/auth/password/forgot').send({ email: 'rst@msg.eg' }).expect(201);
+        const code = app.get(EmailService).last('rst@msg.eg')!.text.match(/\b(\d{6})\b/)![1];
+        await request(app.getHttpServer()).post('/api/auth/password/reset').send({ email: 'rst@msg.eg', code, password: 'temp-pass-3' }).expect(201);
+        await dropped;
+      });
     });
   });
 

@@ -17,6 +17,7 @@
 #include <mutex>
 #include <vector>
 #include <time.h>
+#include <sightings.h>
 #include "config.h"
 #include "ca_cert.h"
 
@@ -32,16 +33,12 @@ WiFiClientSecure tlsClient;
 WiFiClient plainClient;
 PubSubClient mqtt;
 
-struct Heard {
-  int rssi;          // loudest in the current window
-  uint64_t at;       // ms since epoch when it was loudest
-  int battery;       // -1 if unknown
-};
-
 // Loudest reading per strap in the current window, and reports waiting to be sent.
-std::map<std::string, Heard> window;
+// What is done with them (keeping the loudest, the battery, the prefix, the backlog cap)
+// lives in lib/sightings so it can be tested on a computer.
+sightings::Window window;
 std::mutex windowLock;  // the BLE callback runs on the NimBLE task
-std::vector<std::pair<std::string, Heard>> backlog;
+sightings::Backlog backlog;
 
 uint64_t nowMs() {
   struct timeval tv;
@@ -51,33 +48,26 @@ uint64_t nowMs() {
 
 bool clockSet() { return time(nullptr) > 1700000000; }
 
-// Eddystone-TLM carries the battery voltage; map roughly 2.0 V–3.0 V to 0–100 %.
+// Eddystone-TLM carries the battery voltage (see sightings::batteryPercent).
 int batteryFromTlm(NimBLEAdvertisedDevice* dev) {
   if (!dev->haveServiceData()) return -1;
   std::string data = dev->getServiceData(NimBLEUUID((uint16_t)0xFEAA));
   if (data.size() < 4 || (uint8_t)data[0] != 0x20) return -1;
   int mv = ((uint8_t)data[2] << 8) | (uint8_t)data[3];
-  if (mv <= 0) return -1;
-  return constrain((mv - 2000) / 10, 0, 100);
+  return sightings::batteryPercent(mv);
 }
 
 class ScanCallbacks : public NimBLEAdvertisedDeviceCallbacks {
   void onResult(NimBLEAdvertisedDevice* dev) override {
     std::string mac = dev->getAddress().toString();
     for (auto& c : mac) c = toupper(c);
-    if (cfg.macPrefix.length() && mac.rfind(cfg.macPrefix.c_str(), 0) != 0) return;
+    if (!sightings::macAllowed(mac, cfg.macPrefix.c_str())) return;
     int rssi = dev->getRSSI();
     if (rssi < cfg.minRssi) return;
     int battery = batteryFromTlm(dev);
     uint64_t at = clockSet() ? nowMs() : 0;
     std::lock_guard<std::mutex> guard(windowLock);
-    auto it = window.find(mac);
-    if (it == window.end()) {
-      window[mac] = {rssi, at, battery};
-    } else {
-      if (rssi > it->second.rssi) { it->second.rssi = rssi; it->second.at = at; }
-      if (battery >= 0) it->second.battery = battery;
-    }
+    sightings::hear(window, mac, rssi, at, battery);
   }
 };
 
@@ -132,13 +122,12 @@ bool connectMqtt() {
 
 // Moves the current window into the backlog (dropping the oldest if full).
 void closeWindow() {
-  std::map<std::string, Heard> taken;
+  sightings::Window taken;
   {
     std::lock_guard<std::mutex> guard(windowLock);
     taken.swap(window);
   }
-  for (auto& kv : taken) backlog.push_back(kv);
-  if (backlog.size() > MAX_BUFFERED) backlog.erase(backlog.begin(), backlog.begin() + (backlog.size() - MAX_BUFFERED));
+  sightings::addToBacklog(backlog, taken, MAX_BUFFERED);
 }
 
 // Sends the backlog in chunks; keeps whatever couldn't be sent.

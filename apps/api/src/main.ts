@@ -1,15 +1,19 @@
 import 'reflect-metadata';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
-import { IoAdapter } from '@nestjs/platform-socket.io';
+import helmet from 'helmet';
 import { AppModule } from './app.module';
+import { allowedOrigins } from './common/cors';
+import { SocketAdapter } from './messaging/socket-adapter';
 
 export function configureApp(app: INestApplication) {
   app.setGlobalPrefix('api');
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
-  app.enableCors();
-  // Live chat: the socket server shares the HTTP server.
-  app.useWebSocketAdapter(new IoAdapter(app));
+  // Crests and photos are fetched by the dashboard from another origin, so they stay readable cross-origin.
+  app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
+  app.enableCors({ origin: allowedOrigins() });
+  // Live chat: the socket server shares the HTTP server and the origin rule.
+  app.useWebSocketAdapter(new SocketAdapter(app));
   return app;
 }
 

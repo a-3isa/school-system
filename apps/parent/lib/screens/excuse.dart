@@ -38,7 +38,7 @@ class _ExcusesScreenState extends State<ExcusesScreen> {
       final items = (await widget.api.excuses(widget.child['id'] as String)).cast<Map<String, dynamic>>();
       if (mounted) setState(() => _items = items);
     } catch (e) {
-      if (mounted) setState(() => _error = e.toString());
+      if (mounted) setState(() => _error = S.of(context).apiError(e));
     }
   }
 
@@ -173,7 +173,7 @@ class _ExcuseScreenState extends State<ExcuseScreen> {
       await widget.api.sendExcuse(widget.child['id'] as String, from: _from, to: _to, reason: _reason, note: _note.text, fileName: _fileName, fileBytes: _fileBytes);
       if (mounted) setState(() => _sent = true);
     } catch (e) {
-      if (mounted) setState(() => _error = e.toString());
+      if (mounted) setState(() => _error = S.of(context).apiError(e));
     } finally {
       if (mounted) setState(() => _busy = false);
     }

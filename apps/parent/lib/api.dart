@@ -35,6 +35,9 @@ class Api {
 
   Future<void> signOut() => _prefs.remove(_tokenKey);
 
+  /// Ends every sign-in this parent has, on every device. This phone signs out afterwards.
+  Future<void> signOutEverywhere() => post('/auth/sign-out-everywhere');
+
   Future<dynamic> _send(String method, String path, [Object? body]) async {
     final uri = Uri.parse('$apiUrl$path');
     final headers = {

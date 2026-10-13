@@ -1,6 +1,6 @@
 import { INestApplication } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
-import { Client, kid, login, ownerClient, startApp } from './helpers';
+import { addDays, Client, kid, login, ownerClient, pastSunday, startApp, wideYear } from './helpers';
 import { ActivitiesService } from '../src/activities/activities';
 import { zonedTime } from '../src/common/time';
 
@@ -31,7 +31,7 @@ describe('Activities: clubs (e2e)', () => {
     t1 = await login(app, 't1@act.eg', 'staff-pass');
     t2 = await login(app, 't2@act.eg', 'staff-pass');
     // A school year wide enough that "now" is always inside it.
-    await admin.post('/api/school/years', { name: '2025/2099', startsOn: '2025-01-01', endsOn: '2099-12-31' }).expect(201);
+    await admin.post('/api/school/years', wideYear()).expect(201);
 
     id.g4 = (await admin.post('/api/grades', { name: 'Grade 4', order: 4 })).body.id;
     id.g5 = (await admin.post('/api/grades', { name: 'Grade 5', order: 5 })).body.id;
@@ -223,7 +223,7 @@ describe('Activities: clubs (e2e)', () => {
     });
 
     it('takes attendance on a day the club meets, not on one it doesn’t, nor on a closed or future day', async () => {
-      const sunday = '2026-10-11';
+      const sunday = pastSunday();
       const marks = { [id.inChess]: true };
       const res = (await t1.put(`/api/activities/${id.chess}/attendance`, { date: sunday, present: marks }).expect(200)).body;
       expect(res.marked).toBe(1);
@@ -235,20 +235,20 @@ describe('Activities: clubs (e2e)', () => {
       await t1.put(`/api/activities/${id.chess}/attendance`, { date: sunday, present: { [id.inChess]: false } }).expect(200);
       expect(await prisma.activityAttendance.count({ where: { activityId: id.chess } })).toBe(1);
 
-      const monday = '2026-10-12';
+      const monday = addDays(sunday, 1);
       expect((await t1.put(`/api/activities/${id.chess}/attendance`, { date: monday, present: marks }).expect(400)).body.message).toBe('The club doesn’t meet that day.');
       expect((await t1.put(`/api/activities/${id.chess}/attendance`, { date: sunday, present: { [id.Omar]: true } }).expect(400)).body.message).toBe('Some of those students aren’t enrolled in this club.');
       await t2.put(`/api/activities/${id.chess}/attendance`, { date: sunday, present: marks }).expect(403);
       // Not yet come: checked with a pinned "now".
       const admin1 = { id: id.t1, role: 'TEACHER' } as any;
-      await expect(svc().markAttendance(admin1, schoolId, id.chess, { date: sunday, present: marks }, zonedTime('2026-10-04', '10:00', 'Africa/Cairo'))).rejects.toThrow('Attendance can’t be taken for a day that hasn’t come.');
+      await expect(svc().markAttendance(admin1, schoolId, id.chess, { date: sunday, present: marks }, zonedTime(addDays(sunday, -7), '10:00', 'Africa/Cairo'))).rejects.toThrow('Attendance can’t be taken for a day that hasn’t come.');
       const roster = (await t1.get(`/api/activities/${id.chess}/roster`).expect(200)).body;
       expect(roster.enrolled.find((r: any) => r.studentId === id.inChess).attendanceRate).toBe(0);
     });
 
     it('closes a day for the club when the school is closed', async () => {
-      await admin.post('/api/school/holidays', { name: 'Test holiday', fromDate: '2026-10-18', toDate: '2026-10-18' }).expect(201);
-      expect((await t1.put(`/api/activities/${id.chess}/attendance`, { date: '2026-10-18', present: { [id.inChess]: true } }).expect(400)).body.message).toBe('The school is closed that day.');
+      await admin.post('/api/school/holidays', { name: 'Test holiday', fromDate: addDays(pastSunday(), 7), toDate: addDays(pastSunday(), 7) }).expect(201);
+      expect((await t1.put(`/api/activities/${id.chess}/attendance`, { date: addDays(pastSunday(), 7), present: { [id.inChess]: true } }).expect(400)).body.message).toBe('The school is closed that day.');
     });
   });
 

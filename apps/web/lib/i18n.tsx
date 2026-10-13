@@ -1,6 +1,6 @@
 'use client';
 import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { ar, en, Dict } from './strings';
+import { ar, arN, en, Dict } from './strings';
 
 export type Lang = 'en' | 'ar';
 const LANG_KEY = 'sp-lang';
@@ -25,6 +25,12 @@ export function isolateLatin(s: string): string {
  * Arabic, the known sentences are said again in Arabic; anything else is shown
  * as it came.
  */
+/** A module's name, as the API writes it, in Arabic (the English one if it is not a module we know). */
+const moduleAr = (name: string): string => {
+  const key = Object.keys(en.moduleNames).find((k) => en.moduleNames[k] === name);
+  return key ? ar.moduleNames[key] : name;
+};
+
 const SERVER_AR: [RegExp, (...m: string[]) => string][] = [
   [/^(.+) came in at (\d\d:\d\d) but hasn’t been in (\S+) (.+) in (.+) \(period (\d+)\)\.$/, (_, n, at, c, sub, room, p) => `${n}: وصول إلى المدرسة الساعة ${at}، دون حضور حصة ${sub} لفصل ${c} في ${room} (الحصة ${p}).`],
   [/^(.+) was in (\S+) (.+) \(period (\d+)\) for only (\d+)% of the lesson\.$/, (_, n, c, sub, p, pct) => `${n}: حضور ${pct}% فقط من حصة ${sub} لفصل ${c} (الحصة ${p}).`],
@@ -38,7 +44,8 @@ const SERVER_AR: [RegExp, (...m: string[]) => string][] = [
   [/^(.+) verified their mobile number, (\+\d+), (when signing up in the app|in the app)\.$/, (_, n, ph, how) => `${n}: تأكيد رقم الهاتف ${ph} ${how === 'in the app' ? 'من التطبيق' : 'عند التسجيل في التطبيق'}.`],
   [/^This isn’t part of this school’s subscription\.$/, () => 'هذه الخدمة ليست ضمن اشتراك المدرسة.'],
   [/^This comes with the subscription\. Ask the platform owner\.$/, () => 'هذه الخدمة جزء من الاشتراك. يُرجى التواصل مع مالك المنصة.'],
-  [/^(.+) isn’t switched on for this school\.$/, (_, m) => `خدمة «${m}» غير مفعّلة لهذه المدرسة.`],
+  [/^(.+) isn’t switched on( for this school)?\.$/, (_, m, school) => `خدمة «${moduleAr(m)}» غير مفعّلة${school ? ' لهذه المدرسة' : ''}.`],
+  [/^(.+) isn’t available yet\.$/, (_, m) => `خدمة «${moduleAr(m)}» غير متاحة بعد.`],
   [/^Choose at least one year group or class\.$/, () => 'يُرجى اختيار صف دراسي أو فصل واحد على الأقل.'],
   [/^Year group or class not found\.$/, () => 'لم يتم العثور على الصف الدراسي أو الفصل.'],
   // Messaging
@@ -198,6 +205,126 @@ const SERVER_AR: [RegExp, (...m: string[]) => string][] = [
       ['Teacher not found in this school.', 'لم يتم العثور على المعلم في هذه المدرسة.'],
       ['You can see only your own profile.', 'يمكنكم الاطلاع على ملفكم الشخصي فقط.'],
       ['Staff member not found.', 'لم يتم العثور على العضو.'],
+      // Sign-in and access
+      ['Sign in first.', 'يُرجى تسجيل الدخول أولًا.'],
+      ['Your session has expired. Sign in again.', 'انتهت جلستكم. يُرجى تسجيل الدخول مجددًا.'],
+      ['Your role can’t do this.', 'لا تتيح صلاحياتكم هذا الإجراء.'],
+      ['This action needs a school account.', 'يتطلّب هذا الإجراء حسابًا مدرسيًا.'],
+      ['Smart bands and readers (automatic attendance) aren’t part of this school’s subscription.', 'الأساور الذكية وأجهزة القراءة (الحضور التلقائي) ليست ضمن اشتراك المدرسة.'],
+      ['Automatic attendance comes with the subscription. Ask the platform owner.', 'الحضور التلقائي جزء من الاشتراك. يُرجى التواصل مع مالك المنصة.'],
+      ['Automatic attendance isn’t included in this school’s plan.', 'الحضور التلقائي غير مشمول في باقة المدرسة.'],
+      ['That code is wrong or has expired. Ask for a new one.', 'الرمز غير صحيح أو انتهت صلاحيته. يُرجى طلب رمز جديد.'],
+      ['Wrong email or password.', 'البريد الإلكتروني أو كلمة المرور غير صحيحة.'],
+      ['Too many codes. Try again in an hour.', 'تجاوزتم عدد الرموز المسموح به. يُرجى المحاولة بعد ساعة.'],
+      ['This mobile number is already used by another account.', 'رقم الهاتف هذا مستخدم في حساب آخر.'],
+      ['This mobile number belongs to another account.', 'رقم الهاتف هذا يخص حسابًا آخر.'],
+      ['Sign-up took too long. Start again.', 'استغرق التسجيل وقتًا طويلًا. يُرجى البدء من جديد.'],
+      // The wording of rules on forms
+      ['Add the student’s mother, father or guardian.', 'أضيفوا أحد والدَي الطالب أو ولي أمره.'],
+      ['Choose a password of at least 8 characters.', 'اختاروا كلمة مرور من 8 أحرف على الأقل.'],
+      ['Choose boy or girl.', 'اختاروا ذكرًا أو أنثى.'],
+      ['Choose the nationality.', 'اختاروا الجنسية.'],
+      ['Enter a valid email address.', 'أدخلوا عنوان بريد إلكتروني صحيحًا.'],
+      ['Enter the date of birth.', 'أدخلوا تاريخ الميلاد.'],
+      ['Enter the parent’s email: they sign up in the app with it.', 'أدخلوا البريد الإلكتروني لولي الأمر؛ إذ يُنشئ به حسابه في التطبيق.'],
+      ['Name the year like 2026/2027.', 'سمّوا العام الدراسي بصيغة مثل 2026/2027.'],
+      ['The code has 6 digits.', 'يتكوّن الرمز من 6 أرقام.'],
+      ['serial may use letters, digits and dashes (4–40)', 'يمكن أن يتكوّن الرقم التسلسلي من حروف وأرقام وشرطات (من 4 إلى 40 خانة).'],
+      ['Enter the mobile number with its country code, like +201001234567.', 'أدخلوا رقم الهاتف مع رمز الدولة، مثل +201001234567.'],
+      ['This email belongs to another account.', 'هذا البريد الإلكتروني يخص حسابًا آخر.'],
+      ['A user with this email already exists.', 'يوجد مستخدم بهذا البريد الإلكتروني بالفعل.'],
+      ['Someone already uses this email or phone number.', 'هذا البريد الإلكتروني أو رقم الهاتف مستخدم بالفعل.'],
+      ['Unknown staff role.', 'الدور الوظيفي غير معروف.'],
+      ['You can’t deactivate your own account.', 'لا يمكنكم إيقاف حسابكم بأنفسكم.'],
+      ['School not found.', 'لم يتم العثور على المدرسة.'],
+      ['Core is always on.', 'الخدمة الأساسية مفعّلة دائمًا.'],
+      // Records
+      ['Not found.', 'لم يتم العثور على العنصر المطلوب.'],
+      ['It’s still in use, or it refers to something that doesn’t exist.', 'لا يزال قيد الاستخدام، أو يشير إلى عنصر غير موجود.'],
+      ['This already exists.', 'هذا العنصر موجود بالفعل.'],
+      ['Child not found.', 'لم يتم العثور على الطالب.'],
+      ['Parent not found.', 'لم يتم العثور على ولي الأمر.'],
+      ['File not found.', 'لم يتم العثور على الملف.'],
+      ['Notification not found.', 'لم يتم العثور على الإشعار.'],
+      ['Lesson not found.', 'لم يتم العثور على الحصة في الجدول.'],
+      ['Period not found.', 'لم يتم العثور على موعد الحصة.'],
+      ['Holiday not found.', 'لم يتم العثور على الإجازة.'],
+      ['Exception not found.', 'لم يتم العثور على المتابعة.'],
+      ['Excuse not found.', 'لم يتم العثور على العذر.'],
+      ['Gateway not found.', 'لم يتم العثور على جهاز القراءة.'],
+      ['Strap not found.', 'لم يتم العثور على السوار الذكي.'],
+      ['Student not found in this school.', 'لم يتم العثور على الطالب في هذه المدرسة.'],
+      // Attendance
+      ['Choose a subject.', 'اختاروا المادة.'],
+      ['A student in the list isn’t in this class.', 'يوجد في القائمة طالب ليس من هذا الفصل.'],
+      ['Automatic attendance is on, so a manual mark needs a reason.', 'الحضور التلقائي مفعّل، لذا يلزم ذكر سبب عند التسجيل اليدوي.'],
+      ['Only the homeroom teacher or an admin can mark this class away.', 'لا يسجّل الفصل خارج المدرسة إلا رائد الفصل أو شؤون الطلبة.'],
+      ['Past days can only be corrected by an admin.', 'لا يصحّح الأيام السابقة إلا شؤون الطلبة.'],
+      ['This is from an earlier day. An admin has to resolve it.', 'هذه المتابعة من يوم سابق، ولا يغلقها إلا شؤون الطلبة.'],
+      // Excuses
+      ['The last day can’t be before the first day.', 'لا يمكن أن يسبق آخر يوم أول يوم.'],
+      ['You already sent an excuse for some of these days. The school hasn’t answered yet.', 'سبق أن أرسلتم عذرًا عن بعض هذه الأيام، ولم ترد المدرسة بعد.'],
+      ['Some of these days are already excused.', 'بعض هذه الأيام معتذَر عنها بالفعل.'],
+      ['There is nothing to answer for that day.', 'لا يوجد ما يستوجب الرد في ذلك اليوم.'],
+      ['This excuse has no attachment.', 'لا يوجد مرفق لهذا العذر.'],
+      ['Say why the excuse is rejected: the parent will read it.', 'يُرجى ذكر سبب رفض العذر؛ فسيطّلع عليه ولي الأمر.'],
+      ['This excuse has already been decided.', 'سبق البتّ في هذا العذر.'],
+      ['Unknown status.', 'الحالة غير معروفة.'],
+      // Messaging
+      ['Attach the file as “file”.', 'أرفقوا الملف في الحقل «file».'],
+      ['Only urgent messages need confirming.', 'التأكيد مطلوب للرسائل العاجلة فقط.'],
+      ['Unknown priority.', 'درجة الأولوية غير معروفة.'],
+      ['You can write to your child’s teachers and Student Affairs only.', 'يمكنكم مراسلة معلمي أبنائكم وشؤون الطلبة فقط.'],
+      ['Unknown scope.', 'النطاق غير معروف.'],
+      ['That time has passed.', 'انقضى هذا الموعد.'],
+      ['You already have a meeting with this teacher that day.', 'لديكم مقابلة مع هذا المعلم في اليوم نفسه بالفعل.'],
+      ['Someone has just booked this time. Please choose another.', 'حُجز هذا الموعد للتو. يُرجى اختيار موعد آخر.'],
+      ['It’s too late to cancel online. Please call the school.', 'فات وقت الإلغاء عبر التطبيق. يُرجى الاتصال بالمدرسة.'],
+      ['This poll has closed.', 'أُغلق هذا الاستطلاع.'],
+      ['Choose one of the answers listed.', 'يُرجى اختيار إحدى الإجابات المعروضة.'],
+      ['Choose one answer.', 'يُرجى اختيار إجابة واحدة.'],
+      // School set-up
+      ['A period must end after it starts.', 'يجب أن تنتهي الحصة بعد بدايتها.'],
+      ['The year must end after it starts.', 'يجب أن ينتهي العام الدراسي بعد بدايته.'],
+      ['The second term must start inside the year.', 'يجب أن يبدأ الفصل الدراسي الثاني ضمن العام الدراسي.'],
+      ['Give the mid-year break both a first and a last day.', 'حدّدوا لإجازة منتصف العام أول يوم وآخر يوم.'],
+      ['The mid-year break must be inside the year, and end after it starts.', 'يجب أن تقع إجازة منتصف العام ضمن العام الدراسي، وأن تنتهي بعد بدايتها.'],
+      ['Only secondary classes have a stream (science, mathematics or literary).', 'الشعبة (علمي علوم أو علمي رياضة أو أدبي) خاصة بفصول المرحلة الثانوية فقط.'],
+      ['This school has no crest yet.', 'ليس للمدرسة شعار بعد.'],
+      ['Attach the crest as “file”.', 'أرفقوا الشعار في الحقل «file».'],
+      ['Please use a PNG, JPG or WebP image for the crest.', 'يُرجى استخدام صورة بصيغة PNG أو JPG أو WebP للشعار.'],
+      ['A holiday must end on or after the day it starts.', 'يجب ألا تنتهي الإجازة قبل يوم بدايتها.'],
+      ['A grade with this name already exists.', 'يوجد صف دراسي بهذا الاسم بالفعل.'],
+      ['A class with this name already exists.', 'يوجد فصل بهذا الاسم بالفعل.'],
+      ['A room with this name already exists.', 'توجد قاعة بهذا الاسم بالفعل.'],
+      ['Give a roomId or a classId.', 'حدّدوا قاعة أو فصلًا.'],
+      ['“at” must be a date and time.', 'يجب أن يكون «at» تاريخًا ووقتًا.'],
+      // Smart bands and readers
+      ['A room gateway needs a room.', 'يلزم تحديد قاعة لجهاز القراءة الخاص بالقاعة.'],
+      ['No gateway has this claim code. Check the label on the device.', 'لا يوجد جهاز قراءة بهذا الرمز. يُرجى مراجعة الملصق على الجهاز.'],
+      ['This gateway belongs to another school.', 'جهاز القراءة هذا يخص مدرسة أخرى.'],
+      ['That isn’t a valid strap address (12 hex digits, like DC:0D:30:AA:4A:11).', 'عنوان السوار غير صالح (12 خانة سداسية عشرية، مثل DC:0D:30:AA:4A:11).'],
+      ['Those rules are out of range.', 'القيم المحدَّدة خارج النطاق المسموح.'],
+      ['This strap is already registered, or the student already has a strap.', 'هذا السوار مسجّل بالفعل، أو أن للطالب سوارًا بالفعل.'],
+      ['This student already has a strap. Unassign it first.', 'لدى الطالب سوار بالفعل. يُرجى إلغاء ربطه أولًا.'],
+      // Students and their papers
+      ['Attach the photo or scan as “file”.', 'أرفقوا الصورة أو المستند الممسوح في الحقل «file».'],
+      ['Choose what this paper is.', 'يُرجى تحديد نوع هذا المستند.'],
+      ['Use a photo (JPG, PNG or WebP) or a PDF. Phone photos in HEIC can be saved as JPG first.', 'استخدموا صورة (JPG أو PNG أو WebP) أو ملف PDF. ويمكن حفظ صور الهاتف بصيغة HEIC بصيغة JPG أولًا.'],
+      ['The student’s photo must be an image, not a PDF.', 'يجب أن تكون صورة الطالب صورة وليست ملف PDF.'],
+      ['Some photos weren’t uploaded. Add them again.', 'تعذّر رفع بعض الصور. يُرجى إضافتها مجددًا.'],
+      ['Only the school admin can open this paper.', 'لا يفتح هذا المستند إلا شؤون الطلبة.'],
+      ['This paper is required. Upload a new one before removing this.', 'هذا المستند مطلوب. يُرجى رفع مستند جديد قبل حذف الحالي.'],
+      ['That file isn’t an Excel workbook (.xlsx).', 'هذا الملف ليس ملف Excel بصيغة xlsx.'],
+      ['The workbook has no sheets.', 'ملف Excel لا يحتوي على أي ورقة.'],
+      ['Import at most 5,000 students at a time.', 'يمكن استيراد 5,000 طالب كحدٍّ أقصى في المرة الواحدة.'],
+      ['Attach the Excel file as “file”.', 'أرفقوا ملف Excel في الحقل «file».'],
+      ['Enter the student’s national number (14 digits, on the birth certificate).', 'أدخلوا الرقم القومي للطالب (14 رقمًا، كما في شهادة الميلاد).'],
+      ['The national number should be 14 digits, as on the birth certificate.', 'يجب أن يتكوّن الرقم القومي من 14 رقمًا كما في شهادة الميلاد.'],
+      ['Another student already has this national number.', 'الرقم القومي هذا مسجّل بالفعل لطالب آخر.'],
+      ['This parent is already linked to the student.', 'ولي الأمر هذا مرتبط بالطالب بالفعل.'],
+      ['This parent isn’t linked to the student.', 'ولي الأمر هذا غير مرتبط بالطالب.'],
+      ['A student needs at least one parent or guardian. Add another before removing this one.', 'يلزم أن يكون للطالب ولي أمر واحد على الأقل. يُرجى إضافة آخر قبل حذف هذا.'],
     ] as [string, string][]
   ).map(([en, ar]): [RegExp, () => string] => [new RegExp(`^${en.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`), () => ar]),
   [/^Points for (praise|concern|incident) notes must be between (-?\d+) and (-?\d+)\.$/, (_, _k, a, b) => `يجب أن تكون النقاط بين ${a} و${b}.`],
@@ -212,6 +339,46 @@ const SERVER_AR: [RegExp, (...m: string[]) => string][] = [
   [/^(.+) is already on the list\.$/, (_, n) => `تم تسجيل ${n} في القائمة بالفعل.`],
   [/^(.+) isn’t in this club\.$/, (_, n) => `${n} غير مشترك في هذا النادي.`],
   [/^This club isn’t open to (.+)’s year group\.$/, (_, n) => `هذا النادي غير مفتوح لطلاب الصف الدراسي الذي يدرس فيه ${n}.`],
+  // Sentences with a name, a number or a time in them
+  [/^There’s no school that day: (.+)\.$/, (_, why) => `لا توجد دراسة في هذا اليوم: ${why}.`],
+  [/^Too many wrong passwords\. Try again in (\d+) minutes?\.$/, (_, n) => `تجاوزتم عدد المحاولات المسموح به. يُرجى المحاولة بعد ${arN(+n, 'دقيقة واحدة', 'دقيقتين', 'دقائق', 'دقيقة')}.`],
+  [/^Gateway (.+) is already registered\.$/, (_, serial) => `جهاز القراءة ${serial} مسجّل بالفعل.`],
+  [/^An excuse can be sent up to (\d+) days after the absence\. For an older one, please contact the school\.$/, (_, n) => `يمكن إرسال العذر خلال ${arN(+n, 'يوم واحد', 'يومين', 'أيام', 'يومًا')} من الغياب. وللأعذار الأقدم، يُرجى التواصل مع المدرسة.`],
+  [/^An excuse can be sent up to (\d+) days ahead\.$/, (_, n) => `يمكن إرسال العذر قبل الغياب بما يصل إلى ${arN(+n, 'يوم واحد', 'يومين', 'أيام', 'يومًا')}.`],
+  [/^One excuse can cover at most (\d+) days\.$/, (_, n) => `لا يغطي العذر الواحد أكثر من ${arN(+n, 'يوم واحد', 'يومين', 'أيام', 'يومًا')}.`],
+  [/^There is no module called “(.+)”\.$/, (_, k) => `لا توجد خدمة باسم «${k}».`],
+  [/^Unknown feature: (.+)\.$/, (_, f) => `ميزة غير معروفة: ${f}.`],
+  [/^Turn off (.+) first\. It needs (.+)\.$/, (_, a, b) => {
+    const off = a.split(' and ').map((n: string) => `«${moduleAr(n)}»`);
+    return `يُرجى إيقاف ${off.length === 1 ? 'خدمة' : 'الخدمات'} ${off.join(' و')} أولًا، فهي تحتاج إلى خدمة «${moduleAr(b)}».`;
+  }],
+  [/^Overlaps period (\d+) \((.+)–(.+)\)\.$/, (_, n, from, to) => `تتداخل مع الحصة ${n} (من ${from} إلى ${to}).`],
+  [/^It overlaps the year (.+)\.$/, (_, name) => `يتداخل مع العام الدراسي ${name}.`],
+  [/^The year (.+) already exists\.$/, (_, name) => `العام الدراسي ${name} موجود بالفعل.`],
+  [/^Period (\d+) already exists\.$/, (_, n) => `الحصة ${n} موجودة بالفعل.`],
+  [/^(.+) not found in this school\.$/, (_, what) => `لم يتم العثور على ${({ Grade: 'الصف الدراسي', Teacher: 'المعلم', Class: 'الفصل', Room: 'القاعة', Subject: 'المادة', Period: 'الحصة', Student: 'الطالب' } as Record<string, string>)[what] ?? `«${what}»`} في هذه المدرسة.`],
+  [/^Add the (.+)\.$/, (_, what) => `يُرجى إضافة ${what.replace('student’s photo', 'صورة الطالب').replace('birth certificate', 'شهادة الميلاد').replace(' and ', ' و')}.`],
+  [/^The first row needs a “(.+)” column\. Download the template to see the layout\.$/, (_, col) => `يجب أن يتضمن الصف الأول عمود «${col}». يُرجى تنزيل النموذج للاطلاع على التنسيق.`],
+  [/^Check the date of birth: the student would be (\d+) years old\.$/, (_, n) => `يُرجى مراجعة تاريخ الميلاد؛ فعمر الطالب وفقه ${arN(+n, 'سنة واحدة', 'سنتان', 'سنوات', 'سنة')}.`],
+  [/^The national number says the student was born on (.+)\. Check the date of birth or the number\.$/, (_, d) => `تاريخ الميلاد وفق الرقم القومي هو ${d}. يُرجى مراجعة تاريخ الميلاد أو الرقم.`],
+  [/^The national number is a (boy|girl)’s\. Check the gender or the number\.$/, (_, g) => `الرقم القومي يدل على أن النوع ${g === 'boy' ? 'ذكر' : 'أنثى'}. يُرجى مراجعة النوع أو الرقم.`],
+  [/^Student (.+) already has this national number\.$/, (_, code) => `الرقم القومي هذا مسجّل بالفعل للطالب ${code}.`],
+  [/^This student already has a (mother|father|guardian)\.$/, (_, r) => `تم تسجيل ${({ mother: 'أم', father: 'أب', guardian: 'ولي أمر' } as Record<string, string>)[r]} لهذا الطالب بالفعل.`],
+  [/^Student code (.+) is already used\.$/, (_, code) => `كود الطالب ${code} مستخدم بالفعل.`],
+  [/^(\w+) must look like (.+)$/, (_, field, example) => `يجب كتابة «${field}» بصيغة مثل ${example}.`],
+  // What staff read in their notifications on Today
+  [/^URGENT: (.+) isn’t at school and the parents don’t know where$/, (_, n) => `عاجل: ${n} غير موجود في المدرسة، ولا يعلم أولياء الأمور مكان وجوده`],
+  [/^(.+) sent an excuse for (.+)$/, (_, parent, child) => `عذر غياب جديد من ${parent} عن ${child}`],
+  [/^(.+) booked a meeting about (.+)$/, (_, parent, child) => `طلب حجز مقابلة من ${parent} بخصوص ${child}`],
+  [/^(.+) cancelled the meeting on (.+) at (.+)$/, (_, parent, day, time) => `إلغاء مقابلة يوم ${day} الساعة ${time} من ${parent}`],
+  // The bodies of what staff are told: a parent's excuse, a meeting, an early departure, the urgent absence
+  [/^(.+?)(?: \((.+?)\))?: (sick|appointment|family|other), (\d{4}-\d{2}-\d{2})(?: to (\d{4}-\d{2}-\d{2}))?\.(?: (“.*”))?$/, (_, who, cls, why, from, to, note) => `${who}${cls ? ` (${cls})` : ''}: ${ar.excuses.reason[why.toUpperCase()]}، ${to ? `من ${from} إلى ${to}` : from}.${note ? ` ${note}` : ''}`],
+  [/^(\d{4}-\d{2}-\d{2}) at (\d\d:\d\d), (.*?)\.(?: (“.*”))?$/, (_, day, time, place, note) => `يوم ${day} الساعة ${time}، ${place}.${note ? ` ${note}` : ''}`],
+  [/^The time is free again\.$/, () => 'أصبح هذا الموعد متاحًا من جديد.'],
+  [/^(.+) left early$/, (_, who) => `انصراف مبكر: ${who}`],
+  [/^Went out through the gate at (\d\d:\d\d) without a dismissal\.$/, (_, at) => `انصراف من البوابة الساعة ${at} دون إذن انصراف.`],
+  [/^New message from (.+) about (.+)$/, (_, sender, child) => `رسالة جديدة من ${sender} بخصوص ${child}`],
+  [/^(.+?)(?: \((.+?)\))? didn’t come to school and the parents (said they don’t know where the child is|didn’t answer within (\d+) minutes)\. Call the parents to find out where (.+?) is: (.+)\.$/, (_, who, cls, _why, mins, first, calls) => `${who}${cls ? ` (${cls})` : ''}: غياب عن المدرسة، ${mins ? `ولم يرد أولياء الأمور خلال ${arN(+mins, 'دقيقة واحدة', 'دقيقتين', 'دقائق', 'دقيقة')}` : 'وأفاد أولياء الأمور بأنهم لا يعلمون مكان وجود الطالب'}. يُرجى الاتصال بأولياء الأمور لمعرفة مكان وجود ${first}: ${calls === 'no number on file' ? 'لا يوجد رقم مسجّل' : calls}.`],
 ];
 export function serverTextAr(s: string): string {
   for (const [re, f] of SERVER_AR) {

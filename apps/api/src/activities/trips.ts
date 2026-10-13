@@ -162,17 +162,22 @@ export class TripsService {
       include: { classes: { select: { classId: true, class: { select: { id: true, name: true } } } }, leader: { select: leaderSelect }, consents: { select: { decision: true, paidAt: true } } },
       orderBy: [{ date: 'desc' }, { departTime: 'asc' }],
     });
-    return Promise.all(
-      trips.map(async ({ consents, classes, ...t }) => {
-        const going = await this.prisma.student.count({ where: { schoolId, active: true, classId: { in: classes.map((c) => c.classId) } } });
-        const given = consents.filter((c) => c.decision === 'GIVEN').length;
-        const declined = consents.filter((c) => c.decision === 'DECLINED').length;
-        return {
-          ...t, classes: classes.map((c) => c.class),
-          counts: { students: going, given, declined, waiting: Math.max(0, going - given - declined), paid: consents.filter((c) => c.decision === 'GIVEN' && c.paidAt).length },
-        };
-      }),
-    );
+    // Students per class, read once for all the trips.
+    const perClass = new Map<string, number>();
+    const classIds = [...new Set(trips.flatMap((t) => t.classes.map((c) => c.classId)))];
+    if (classIds.length) {
+      const rows = await this.prisma.student.groupBy({ by: ['classId'], where: { schoolId, active: true, classId: { in: classIds } }, _count: true });
+      for (const r of rows) if (r.classId) perClass.set(r.classId, r._count);
+    }
+    return trips.map(({ consents, classes, ...t }) => {
+      const going = classes.reduce((sum, c) => sum + (perClass.get(c.classId) ?? 0), 0);
+      const given = consents.filter((c) => c.decision === 'GIVEN').length;
+      const declined = consents.filter((c) => c.decision === 'DECLINED').length;
+      return {
+        ...t, classes: classes.map((c) => c.class),
+        counts: { students: going, given, declined, waiting: Math.max(0, going - given - declined), paid: consents.filter((c) => c.decision === 'GIVEN' && c.paidAt).length },
+      };
+    });
   }
 
   async create(user: AuthUser, schoolId: string, dto: TripDto, now = new Date()) {

@@ -7,10 +7,13 @@ import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications';
 import { AuditService } from '../audit/audit';
-import { isModuleKey, MODULES } from '../platform/registry';
+import { isModuleKey, ModuleKey, MODULES, visibleFeatures } from '../platform/registry';
 import { AuthUser, CurrentUser, Public, Roles } from './auth.decorators';
 import { EmailService } from './email';
-import { LoginThrottle } from './login-throttle';
+import { ChatGateway } from '../messaging/chat.gateway';
+import { ChatGatewayModule } from '../messaging/chat-gateway.module';
+import { LoginThrottleService } from './login-throttle';
+import { SESSION_DAYS } from './session';
 import { WhatsAppService } from './whatsapp';
 
 const PHONE = /^\+\d{8,15}$/;
@@ -106,26 +109,26 @@ export class AuthService {
     private readonly whatsapp: WhatsAppService,
     private readonly notifications: NotificationsService,
     private readonly audit: AuditService,
+    private readonly throttle: LoginThrottleService,
+    private readonly chat: ChatGateway,
   ) {}
 
-  private async issue(user: { id: string; schoolId: string | null; role: string; name: string }) {
-    const token = await this.jwt.signAsync({ sub: user.id, schoolId: user.schoolId, role: user.role });
+  private async issue(user: { id: string; schoolId: string | null; role: string; name: string; sessionVersion: number }) {
+    const token = await this.jwt.signAsync({ sub: user.id, schoolId: user.schoolId, role: user.role, sv: user.sessionVersion }, { expiresIn: `${SESSION_DAYS(user.role)}d` });
     return { token, user: { id: user.id, name: user.name, role: user.role, schoolId: user.schoolId } };
   }
 
   /** Everyone signs in with their email and password. */
-  private readonly throttle = new LoginThrottle();
-
   async login(login: string, password: string, address = 'unknown') {
     const email = login.trim().toLowerCase();
-    this.throttle.check(email, address);
+    await this.throttle.check(email, address);
     const user = await this.prisma.user.findFirst({ where: { email, active: true } });
     const ok = user?.passwordHash ? await bcrypt.compare(password, user.passwordHash) : false;
     if (!user || !ok) {
-      this.throttle.fail(email, address);
+      await this.throttle.fail(email, address);
       throw new UnauthorizedException('Wrong email or password.');
     }
-    this.throttle.succeed(email, address);
+    await this.throttle.succeed(email, address);
     return this.issue(user);
   }
 
@@ -298,7 +301,23 @@ export class AuthService {
     await this.useCode(email, CodePurpose.RESET, code);
     const user = await this.prisma.user.findUnique({ where: { email } });
     if (!user?.active || !user.passwordHash) throw wrongCode();
-    return this.issue(await this.prisma.user.update({ where: { id: user.id }, data: { passwordHash: await hashPassword(password) } }));
+    // A new password ends every sign-in made before it; the one issued here is made under the new number and stays.
+    const updated = await this.prisma.user.update({ where: { id: user.id }, data: { passwordHash: await hashPassword(password), sessionVersion: { increment: 1 } } });
+    await this.dropConnections(user.id);
+    return this.issue(updated);
+  }
+
+  /** Ends every sign-in this person has, on every device. */
+  async signOutEverywhere(auth: AuthUser) {
+    await this.prisma.user.update({ where: { id: auth.id }, data: { sessionVersion: { increment: 1 } } });
+    await this.dropConnections(auth.id);
+    return { signedOut: true };
+  }
+
+  /** After the sign-ins are ended: close the open chat, and stop pushing to the phones, which no longer have a login to ask for anything. */
+  private async dropConnections(userId: string) {
+    this.chat.disconnectUser(userId);
+    await this.prisma.deviceToken.deleteMany({ where: { userId } });
   }
 
   // ---- a parent changing their mobile ----------------------------------------
@@ -325,13 +344,12 @@ export class AuthService {
       },
     });
     const rows = auth.schoolId ? await this.prisma.schoolModule.findMany({ where: { schoolId: auth.schoolId, enabled: true } }) : [];
-    const modules = rows.map((m) => m.key);
+    // Only modules that are built, so screens never offer what doesn't exist yet.
+    const built = rows.filter((m) => isModuleKey(m.key) && MODULES[m.key].available);
+    const modules = built.map((m) => m.key);
     // Each enabled module's feature switches, so screens can hide what a school doesn't have.
     const features: Record<string, Record<string, boolean>> = {};
-    for (const m of rows) {
-      const def = isModuleKey(m.key) ? MODULES[m.key].features : {};
-      features[m.key] = { ...def, ...((m.features as Record<string, boolean> | null) ?? {}) };
-    }
+    for (const m of built) features[m.key] = visibleFeatures(m.key as ModuleKey, m.features as Record<string, boolean> | null);
     // The school subscribes to automatic attendance: straps, gateways and tracking.
     const straps = !!features.attendance?.automatic;
     const { school, ...rest } = user;
@@ -406,20 +424,28 @@ export class AuthController {
   me(@CurrentUser() user: AuthUser) {
     return this.auth.me(user);
   }
+
+  /** "Sign out of all devices": every sign-in made before now stops working. */
+  @Post('sign-out-everywhere')
+  signOutEverywhere(@CurrentUser() user: AuthUser) {
+    return this.auth.signOutEverywhere(user);
+  }
 }
 
 @Module({
   imports: [
+    ChatGatewayModule,
     JwtModule.registerAsync({
       global: true,
       useFactory: () => ({
         secret: SECRET(),
-        signOptions: { expiresIn: '30d' },
+        // Every token states its own lifetime (see issue()); this is only the safe default.
+        signOptions: { expiresIn: '7d' },
       }),
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, EmailService, WhatsAppService],
+  providers: [AuthService, EmailService, WhatsAppService, LoginThrottleService],
   exports: [EmailService, WhatsAppService],
 })
 export class AuthModule {}

@@ -7,12 +7,12 @@ import { Client, kid, login, ownerClient, PNG, startApp } from './helpers';
 describe('Egyptian school structure (e2e)', () => {
   let app: INestApplication;
   const prisma = new PrismaClient();
-  let admin: Client, worker: Client;
+  let admin: Client, worker: Client, owner: Client;
   let yearId: string;
 
   beforeAll(async () => {
     app = await startApp();
-    const owner = await ownerClient(app, prisma, 'eg');
+    owner = await ownerClient(app, prisma, 'eg');
     await owner.post('/api/owner/schools', { name: 'Egypt School', plan: 'ESSENTIALS', admin: { name: 'Admin', email: 'admin@eg.eg', password: 'admin-pass' } }).expect(201);
     admin = await login(app, 'admin@eg.eg', 'admin-pass');
     // Sunday to Thursday, as most Egyptian schools.
@@ -94,6 +94,18 @@ describe('Egyptian school structure (e2e)', () => {
     expect((await admin.get('/api/auth/me').expect(200)).body.schoolLogo).toBe(true);
     const crest = await worker.get('/api/school/logo').expect(200);
     expect(crest.headers['content-type']).toBe('image/png');
+    expect(Buffer.compare(crest.body, PNG)).toBe(0);
+  });
+
+  it('never sends the crest’s bytes with the school’s details', async () => {
+    const school = (await admin.get('/api/school').expect(200)).body;
+    expect(school).not.toHaveProperty('logo');
+    expect(school.logoMime).toBe('image/png');
+    const rows = (await owner.get('/api/owner/schools').expect(200)).body;
+    expect(rows.length).toBeGreaterThan(0);
+    for (const row of rows) expect(row).not.toHaveProperty('logo');
+    const created = await owner.post('/api/owner/schools', { name: 'No Crest', plan: 'ESSENTIALS', admin: { name: 'A', email: 'nocrest@eg.eg', password: 'admin-pass' } }).expect(201);
+    expect(created.body).not.toHaveProperty('logo');
   });
 
   it('addresses staff by their title', async () => {

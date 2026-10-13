@@ -44,7 +44,7 @@ class _BehaviourScreenState extends State<BehaviourScreen> {
         widget.api.readBehaviourNote(id, n['id'] as String).catchError((_) {});
       }
     } catch (e) {
-      if (mounted) setState(() => _error = e.toString());
+      if (mounted) setState(() => _error = S.of(context).apiError(e));
     }
   }
 

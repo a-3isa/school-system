@@ -195,12 +195,61 @@ describe('Automatic attendance (e2e)', () => {
     expect(res.body.status).toBe('RESOLVED');
   });
 
-  it('answers the MQTT broker’s login and topic checks', async () => {
-    const hook = (path: string, body: object) => request(app.getHttpServer()).post(`/api/gateway/mqtt/${path}`).send(body).expect(200);
-    expect((await hook('auth', { username: gw.GATE.serial, password: gw.GATE.secret })).body.result).toBe('allow');
-    expect((await hook('auth', { username: gw.GATE.serial, password: 'nope' })).body.result).toBe('deny');
-    expect((await hook('acl', { username: gw.GATE.serial, topic: `gw/${gw.GATE.serial}/sightings`, action: 'publish' })).body.result).toBe('allow');
-    expect((await hook('acl', { username: gw.GATE.serial, topic: `gw/${gw.R204.serial}/sightings`, action: 'publish' })).body.result).toBe('deny');
+  describe('the MQTT broker’s login and topic checks', () => {
+    const SECRET = 'broker-hook-secret-for-tests';
+    const env = { ...process.env };
+    const hook = (path: string, body: object, secret?: string) => {
+      const r = request(app.getHttpServer()).post(`/api/gateway/mqtt/${path}`);
+      return (secret ? r.set('x-hook-secret', secret) : r).send(body).expect(200);
+    };
+    const asBroker = (path: string, body: object) => hook(path, body, SECRET);
+
+    beforeEach(() => {
+      process.env.MQTT_HOOK_SECRET = SECRET;
+    });
+    afterEach(() => {
+      for (const k of ['MQTT_HOOK_SECRET', 'MQTT_USERNAME', 'MQTT_PASSWORD', 'NODE_ENV']) {
+        if (env[k] === undefined) delete process.env[k];
+        else process.env[k] = env[k];
+      }
+    });
+
+    it('lets a gateway in and keeps it to its own topics', async () => {
+      expect((await asBroker('auth', { username: gw.GATE.serial, password: gw.GATE.secret })).body.result).toBe('allow');
+      expect((await asBroker('auth', { username: gw.GATE.serial, password: 'nope' })).body.result).toBe('deny');
+      expect((await asBroker('acl', { username: gw.GATE.serial, topic: `gw/${gw.GATE.serial}/sightings`, action: 'publish' })).body.result).toBe('allow');
+      expect((await asBroker('acl', { username: gw.GATE.serial, topic: `gw/${gw.R204.serial}/sightings`, action: 'publish' })).body.result).toBe('deny');
+    });
+
+    it('answers only a broker that knows the hook secret', async () => {
+      const login = { username: gw.GATE.serial, password: gw.GATE.secret };
+      const topic = { username: gw.GATE.serial, topic: `gw/${gw.GATE.serial}/sightings`, action: 'publish' };
+      expect((await hook('auth', login)).body.result).toBe('deny'); // no header
+      expect((await hook('auth', login, 'wrong-secret')).body.result).toBe('deny');
+      expect((await hook('acl', topic)).body.result).toBe('deny');
+      expect((await hook('acl', topic, 'wrong-secret')).body.result).toBe('deny');
+      expect((await hook('auth', login, SECRET)).body.result).toBe('allow');
+    });
+
+    it('without a secret, allows hooks while developing and denies them in production', async () => {
+      delete process.env.MQTT_HOOK_SECRET;
+      const login = { username: gw.GATE.serial, password: gw.GATE.secret };
+      expect((await hook('auth', login)).body.result).toBe('allow');
+      process.env.NODE_ENV = 'production';
+      expect((await hook('auth', login)).body.result).toBe('deny');
+      expect((await hook('auth', login, 'anything')).body.result).toBe('deny');
+    });
+
+    it('knows the API’s own broker account only when both its name and password are set', async () => {
+      process.env.MQTT_USERNAME = 'api-service';
+      expect((await asBroker('auth', { username: 'api-service' })).body.result).toBe('deny'); // no password set at all
+      expect((await asBroker('auth', { username: 'api-service', password: '' })).body.result).toBe('deny');
+      process.env.MQTT_PASSWORD = 'service-pass';
+      expect((await asBroker('auth', { username: 'api-service', password: 'service-pass' })).body.result).toBe('allow');
+      expect((await asBroker('auth', { username: 'api-service', password: 'service-pasx' })).body.result).toBe('deny');
+      expect((await asBroker('auth', { username: 'api-service' })).body.result).toBe('deny');
+      expect((await asBroker('acl', { username: 'api-service', topic: 'gw/any/sightings', action: 'subscribe' })).body.result).toBe('allow');
+    });
   });
 
   it('validates detection rules', async () => {

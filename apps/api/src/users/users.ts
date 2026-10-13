@@ -6,6 +6,8 @@ import { AuditService } from '../audit/audit';
 import { AuthUser, CurrentUser, Roles, SchoolId } from '../auth/auth.decorators';
 import { hashPassword } from '../auth/auth';
 import { mapPrismaError } from '../common/validation';
+import { ChatGateway } from '../messaging/chat.gateway';
+import { ChatGatewayModule } from '../messaging/chat-gateway.module';
 
 /** Titles staff are addressed by. */
 export const HONORIFICS = ['MR', 'MS', 'MRS', 'DR'] as const;
@@ -35,7 +37,7 @@ const publicUser = { id: true, name: true, honorific: true, email: true, phone: 
 @Roles(Role.SCHOOL_ADMIN)
 @Controller('staff')
 export class StaffController {
-  constructor(private readonly prisma: PrismaService, private readonly audit: AuditService) {}
+  constructor(private readonly prisma: PrismaService, private readonly audit: AuditService, private readonly chat: ChatGateway) {}
 
   @Get()
   list(@SchoolId() schoolId: string, @Query('role') role?: Role) {
@@ -102,13 +104,22 @@ export class StaffController {
     if (target.id === user.id && dto.active === false) throw new BadRequestException('You can’t deactivate your own account.');
     const updated = await this.prisma.user.update({
       where: { id },
-      data: { name: dto.name, honorific: dto.honorific, active: dto.active, passwordHash: dto.password ? await hashPassword(dto.password) : undefined },
+      data: {
+        name: dto.name,
+        honorific: dto.honorific,
+        active: dto.active,
+        passwordHash: dto.password ? await hashPassword(dto.password) : undefined,
+        // A new password, or switching the account off, ends the person's sign-ins everywhere.
+        sessionVersion: dto.password || dto.active === false ? { increment: 1 } : undefined,
+      },
       select: publicUser,
     });
+    // Their open chat closes now, not when the phone next asks for something.
+    if (dto.password || dto.active === false) this.chat.disconnectUser(id);
     await this.audit.log(user, 'staff.update', 'user', id, { name: dto.name, honorific: dto.honorific, active: dto.active, passwordChanged: !!dto.password });
     return updated;
   }
 }
 
-@Module({ controllers: [StaffController] })
+@Module({ imports: [ChatGatewayModule], controllers: [StaffController] })
 export class UsersModule {}

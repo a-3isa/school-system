@@ -6,7 +6,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit';
 import { AuthUser, CurrentUser, Roles, SchoolId } from '../auth/auth.decorators';
 import { hashPassword } from '../auth/auth';
-import { isModuleKey, isSubscriptionFeature, MODULE_KEYS, ModuleKey, MODULES, PLAN_FEATURES, PLAN_MODULES, planFeatures, toggleModule } from './registry';
+import { AVAILABLE_KEYS, isModuleKey, isSubscriptionFeature, MODULE_KEYS, ModuleKey, MODULES, PLAN_FEATURES, PLAN_MODULES, planFeatures, toggleModule, visibleFeatures } from './registry';
 
 class AdminDto {
   @IsString() name: string;
@@ -40,11 +40,11 @@ export class ModulesService {
     private readonly audit: AuditService,
   ) {}
 
-  /** All modules with their state for one school, in catalog order. */
+  /** The modules that are built, with their state for one school, in catalog order. */
   async list(schoolId: string) {
     const rows = await this.prisma.schoolModule.findMany({ where: { schoolId } });
     const byKey = new Map(rows.map((r) => [r.key, r]));
-    return MODULE_KEYS.map((key) => {
+    return AVAILABLE_KEYS.map((key) => {
       const def = MODULES[key];
       const row = byKey.get(key);
       return {
@@ -52,7 +52,7 @@ export class ModulesService {
         name: def.name,
         requires: def.requires,
         enabled: key === 'core' || !!row?.enabled,
-        features: { ...def.features, ...((row?.features as Record<string, boolean>) ?? {}) },
+        features: visibleFeatures(key, row?.features as Record<string, boolean> | null),
       };
     });
   }
@@ -65,10 +65,10 @@ export class ModulesService {
   /**
    * Writes a full set of enabled modules for a school. With a plan, the plan's
    * subscription features (e.g. chat for Complete) are set too; everything else
-   * a school has chosen stays as it is.
+   * a school has chosen stays as it is. Only modules that are built switch on.
    */
   async apply(schoolId: string, enabled: ModuleKey[], tx: Prisma.TransactionClient = this.prisma, plan?: Plan) {
-    const on = new Set<ModuleKey>([...enabled, 'core']);
+    const on = new Set<ModuleKey>([...enabled.filter((k) => MODULES[k].available), 'core']);
     for (const key of MODULE_KEYS) {
       const presets = plan ? PLAN_FEATURES[plan][key] : undefined;
       const saved = presets ? await tx.schoolModule.findUnique({ where: { schoolId_key: { schoolId, key } } }) : null;
@@ -85,6 +85,7 @@ export class ModulesService {
 
   async toggle(actor: AuthUser, schoolId: string, key: string, enabled: boolean) {
     if (!isModuleKey(key)) throw new NotFoundException(`There is no module called “${key}”.`);
+    if (!MODULES[key].available) throw new BadRequestException(`${MODULES[key].name} isn’t available yet.`);
     await this.requireSchool(schoolId);
     const result = toggleModule(await this.enabledKeys(schoolId), key, enabled);
     if (!result.ok) throw new BadRequestException(result.reason);
@@ -95,7 +96,7 @@ export class ModulesService {
 
   async setFeatures(actor: AuthUser, schoolId: string, key: string, features: Record<string, boolean>) {
     if (!isModuleKey(key)) throw new NotFoundException(`There is no module called “${key}”.`);
-    const known = Object.keys(MODULES[key].features);
+    const known = Object.keys(visibleFeatures(key));
     const unknown = Object.keys(features).filter((f) => !known.includes(f));
     if (unknown.length) throw new BadRequestException(`Unknown feature: ${unknown.join(', ')}.`);
     if (actor.role !== Role.OWNER && Object.keys(features).some((f) => isSubscriptionFeature(key, f))) {
@@ -176,7 +177,11 @@ export class OwnerController {
       orderBy: { createdAt: 'desc' },
       include: { _count: { select: { students: true } }, modules: { where: { enabled: true }, select: { key: true } } },
     });
-    return schools.map(({ modules, _count, ...s }) => ({ ...s, students: _count.students, modules: modules.map((m) => m.key) }));
+    return schools.map(({ modules, _count, ...s }) => ({
+      ...s,
+      students: _count.students,
+      modules: modules.map((m) => m.key).filter((k) => isModuleKey(k) && MODULES[k].available),
+    }));
   }
 
   @Post()

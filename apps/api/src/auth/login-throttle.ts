@@ -1,4 +1,5 @@
-import { HttpException, HttpStatus } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
 
 const WINDOW_MS = 15 * 60_000;
 /** Wrong passwords allowed per account from one address in a window. */
@@ -8,37 +9,46 @@ export const MAX_PER_ACCOUNT = 50;
 
 /**
  * Slows password guessing. Counts wrong passwords per account+address and per
- * account, in memory (a restart clears it, and each server counts for itself).
+ * account, in the database so that every server counts the same tries.
  * Locking an account on a few failures would let anyone lock a parent out, so
  * the per-account limit is much higher than the per-address one.
  */
-export class LoginThrottle {
-  private readonly failures = new Map<string, number[]>();
+@Injectable()
+export class LoginThrottleService {
+  constructor(private readonly prisma: PrismaService) {}
 
   private recent(key: string, now: number) {
-    const live = (this.failures.get(key) ?? []).filter((t) => now - t < WINDOW_MS);
-    if (live.length) this.failures.set(key, live);
-    else this.failures.delete(key);
-    return live;
+    return { key, at: { gt: new Date(now - WINDOW_MS) } };
   }
 
   /** Throws 429 when this account (from this address) has had too many wrong passwords lately. */
-  check(account: string, address: string, now = Date.now()) {
-    const byAddress = this.recent(`${address}|${account}`, now);
-    const byAccount = this.recent(account, now);
-    if (byAddress.length >= MAX_PER_ADDRESS || byAccount.length >= MAX_PER_ACCOUNT) {
-      const oldest = Math.min(byAddress.length >= MAX_PER_ADDRESS ? byAddress[0] : Infinity, byAccount.length >= MAX_PER_ACCOUNT ? byAccount[0] : Infinity);
-      const minutes = Math.max(1, Math.ceil((oldest + WINDOW_MS - now) / 60_000));
+  async check(account: string, address: string, now = new Date()) {
+    const t = now.getTime();
+    const limits = [
+      { key: `${address}|${account}`, max: MAX_PER_ADDRESS },
+      { key: account, max: MAX_PER_ACCOUNT },
+    ];
+    let oldest = Infinity;
+    for (const { key, max } of limits) {
+      const where = this.recent(key, t);
+      if ((await this.prisma.loginFailure.count({ where })) >= max) {
+        const first = await this.prisma.loginFailure.findFirst({ where, orderBy: { at: 'asc' } });
+        oldest = Math.min(oldest, first?.at.getTime() ?? t);
+      }
+    }
+    if (oldest !== Infinity) {
+      const minutes = Math.max(1, Math.ceil((oldest + WINDOW_MS - t) / 60_000));
       throw new HttpException(`Too many wrong passwords. Try again in ${minutes} minute${minutes === 1 ? '' : 's'}.`, HttpStatus.TOO_MANY_REQUESTS);
     }
   }
 
-  fail(account: string, address: string, now = Date.now()) {
-    for (const key of [`${address}|${account}`, account]) this.failures.set(key, [...this.recent(key, now), now]);
+  async fail(account: string, address: string, now = new Date()) {
+    await this.prisma.loginFailure.createMany({ data: [{ key: `${address}|${account}`, at: now }, { key: account, at: now }] });
+    await this.prisma.loginFailure.deleteMany({ where: { at: { lt: new Date(now.getTime() - WINDOW_MS) } } });
   }
 
   /** A right password clears this address's count, not the account's. */
-  succeed(account: string, address: string) {
-    this.failures.delete(`${address}|${account}`);
+  async succeed(account: string, address: string) {
+    await this.prisma.loginFailure.deleteMany({ where: { key: `${address}|${account}` } });
   }
 }

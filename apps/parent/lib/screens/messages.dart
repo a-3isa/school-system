@@ -89,7 +89,7 @@ class _MessagesTabState extends State<MessagesTab> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _error = e.toString();
+          _error = S.of(context).apiError(e);
           _loaded = true;
         });
       }
@@ -331,7 +331,7 @@ class _PollCardState extends State<_PollCard> {
       await widget.api.vote(widget.poll['id'] as String, _chosen.toList());
       await widget.onVoted();
     } catch (e) {
-      if (mounted) setState(() => _error = e.toString());
+      if (mounted) setState(() => _error = S.of(context).apiError(e));
     }
     if (mounted) setState(() => _busy = false);
   }
@@ -525,7 +525,7 @@ class _NewChatScreenState extends State<NewChatScreen> {
       if (!mounted) return;
       await Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => ChatScreen(api: widget.api, data: widget.data, threadId: thread['id'] as String)));
     } catch (e) {
-      if (mounted) setState(() => _error = e.toString());
+      if (mounted) setState(() => _error = S.of(context).apiError(e));
     }
   }
 
@@ -554,7 +554,7 @@ class _NewChatScreenState extends State<NewChatScreen> {
           FutureBuilder<Map<String, dynamic>>(
             future: _contacts,
             builder: (context, snap) {
-              if (snap.hasError) return ErrorBox(snap.error.toString());
+              if (snap.hasError) return ErrorBox(S.of(context).apiError(snap.error!));
               if (!snap.hasData) return const Center(child: CircularProgressIndicator());
               final list = (snap.data!['contacts'] as List).cast<Map<String, dynamic>>();
               if (list.isEmpty) return Text(s.noContacts, style: TextStyle(color: c.ink2, fontSize: 15));
@@ -673,7 +673,7 @@ class _ChatScreenState extends State<ChatScreen> {
       });
       widget.api.readThread(_id).catchError((_) {});
     } catch (e) {
-      if (mounted) setState(() => _error = e.toString());
+      if (mounted) setState(() => _error = S.of(context).apiError(e));
     }
   }
 
@@ -718,7 +718,7 @@ class _ChatScreenState extends State<ChatScreen> {
         _fileBytes = null;
       });
     } catch (e) {
-      if (mounted) setState(() => _error = e.toString());
+      if (mounted) setState(() => _error = S.of(context).apiError(e));
     }
     if (mounted) setState(() => _busy = false);
   }

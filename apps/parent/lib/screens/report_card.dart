@@ -30,7 +30,7 @@ class _ReportCardScreenState extends State<ReportCardScreen> {
     widget.api.reportCard(widget.childId, widget.cardId).then((c) {
       if (mounted) setState(() => _card = c);
     }).catchError((Object e) {
-      if (mounted) setState(() => _error = e.toString());
+      if (mounted) setState(() => _error = S.of(context).apiError(e));
     });
   }
 

@@ -22,6 +22,29 @@ export interface Reach {
 
 const unique = (ids: string[] | undefined) => [...new Set(ids ?? [])];
 
+/** What decides whether one parent is in an audience: where their unrestricted children are. */
+export interface ParentContext {
+  hasChildren: boolean;
+  classIds: Set<string>;
+  gradeIds: Set<string>;
+  activityIds: Set<string>;
+}
+
+/** Is a parent with these children in the audience? The same answer as the database gives, with no query. */
+export function matchesAudience(a: AudienceDto, ctx: ParentContext): boolean {
+  const ids = unique(a.ids);
+  switch (a.kind) {
+    case 'SCHOOL':
+      return ctx.hasChildren;
+    case 'GRADES':
+      return ids.some((id) => ctx.gradeIds.has(id));
+    case 'CLASSES':
+      return ids.some((id) => ctx.classIds.has(id));
+    case 'ACTIVITY':
+      return ids.some((id) => ctx.activityIds.has(id));
+  }
+}
+
 @Injectable()
 export class AudienceService {
   constructor(private readonly prisma: PrismaService) {}
@@ -87,6 +110,21 @@ export class AudienceService {
       parentIds: [...new Set(pairs.map((p) => p.parentId))],
       pairs,
     };
+  }
+
+  /** A parent's active, unrestricted children: their classes, year groups and clubs, in one query. */
+  async parentContext(schoolId: string, parentId: string): Promise<ParentContext> {
+    const children = await this.prisma.student.findMany({
+      where: { schoolId, active: true, guardians: { some: { userId: parentId, restricted: false } } },
+      select: { classId: true, class: { select: { gradeId: true } }, activityEnrolments: { where: { status: 'ENROLLED' }, select: { activityId: true } } },
+    });
+    const ctx: ParentContext = { hasChildren: children.length > 0, classIds: new Set(), gradeIds: new Set(), activityIds: new Set() };
+    for (const c of children) {
+      if (c.classId) ctx.classIds.add(c.classId);
+      if (c.class) ctx.gradeIds.add(c.class.gradeId);
+      for (const e of c.activityEnrolments) ctx.activityIds.add(e.activityId);
+    }
+    return ctx;
   }
 
   /** Is one of this parent's children (not restricted) in the audience? */

@@ -5,15 +5,22 @@ import { Role } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { MODULES, ModuleKey } from '../platform/registry';
 import { AuthUser, IS_PUBLIC, REQUIRES_FEATURE, REQUIRES_MODULE, ROLES } from './auth.decorators';
+import { SESSION_DAYS } from './session';
 
 /**
  * The account behind a login token's subject, if it is still active. Role and
  * school come from the database, not the token, so a deactivated account or a
  * changed role takes effect on the next request.
  */
-export async function loadActiveUser(prisma: PrismaService, sub: string): Promise<AuthUser | null> {
-  const row = await prisma.user.findUnique({ where: { id: sub }, select: { id: true, schoolId: true, role: true, active: true } });
-  return row?.active ? { id: row.id, schoolId: row.schoolId, role: row.role } : null;
+export async function loadActiveUser(prisma: PrismaService, claims: { sub: string; iat?: number; sv?: number }, now = Date.now()): Promise<AuthUser | null> {
+  const row = await prisma.user.findUnique({ where: { id: claims.sub }, select: { id: true, schoolId: true, role: true, active: true, sessionVersion: true } });
+  if (!row?.active) return null;
+  // Every sign-in was ended since this one was made ("sign out of all devices", a new password). Older tokens carry no number: 0.
+  if ((claims.sv ?? 0) !== row.sessionVersion) return null;
+  // However long the token says it lasts, a member of staff's sign-in is over after the week their role allows. This
+  // also ends the 30-day sign-ins made before staff sign-ins were shortened.
+  if (claims.iat !== undefined && now / 1000 - claims.iat > SESSION_DAYS(row.role) * 86400) return null;
+  return { id: row.id, schoolId: row.schoolId, role: row.role };
 }
 
 /** Does the school have this module switched on and, if given, this feature of it? */
@@ -44,13 +51,13 @@ export class AccessGuard implements CanActivate {
     const token = header?.startsWith('Bearer ') ? header.slice(7) : undefined;
     if (!token) throw new UnauthorizedException('Sign in first.');
 
-    let sub: string;
+    let claims: { sub: string; iat?: number; sv?: number };
     try {
-      sub = (await this.jwt.verifyAsync<{ sub: string }>(token)).sub;
+      claims = await this.jwt.verifyAsync<{ sub: string; iat?: number; sv?: number }>(token);
     } catch {
       throw new UnauthorizedException('Your session has expired. Sign in again.');
     }
-    const user = await loadActiveUser(this.prisma, sub);
+    const user = await loadActiveUser(this.prisma, claims);
     if (!user) throw new UnauthorizedException('Your session has expired. Sign in again.');
     req.user = user;
 

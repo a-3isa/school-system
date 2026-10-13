@@ -1,13 +1,15 @@
 import { INestApplication } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
-import { Client, kid, login, ownerClient, startApp } from './helpers';
+import { Client, kid, login, ownerClient, schoolWeek, startApp, wideYear } from './helpers';
 import { TripsService } from '../src/activities/trips';
+import { PrismaService } from '../src/prisma/prisma.service';
 import { AttendanceJobs } from '../src/attendance/attendance';
 import { zonedTime } from '../src/common/time';
 
-// One fixed school day far ahead (a Tuesday), so "the deadline is still to come" holds whenever this runs.
-const DAY = '2030-03-05';
-const CONSENT_BY = '2030-03-03T10:00:00.000Z';
+// A school week far enough ahead that "the deadline is still to come" holds whenever this runs.
+const W = schoolWeek();
+const DAY = W.tue;
+const CONSENT_BY = `${W.sun}T10:00:00.000Z`;
 
 describe('Activities: trips and permission slips (e2e)', () => {
   let app: INestApplication;
@@ -34,7 +36,7 @@ describe('Activities: trips and permission slips (e2e)', () => {
     leader = await login(app, 'leader@trip.eg', 'staff-pass');
     homeroom = await login(app, 'homeroom@trip.eg', 'staff-pass');
     stranger = await login(app, 'stranger@trip.eg', 'staff-pass');
-    await admin.post('/api/school/years', { name: '2025/2099', startsOn: '2025-01-01', endsOn: '2099-12-31' }).expect(201);
+    await admin.post('/api/school/years', wideYear()).expect(201);
 
     const grade = (await admin.post('/api/grades', { name: 'Grade 4', order: 4 })).body.id;
     id.classA = (await admin.post('/api/classes', { name: '4-A', gradeId: grade })).body.id;
@@ -79,12 +81,12 @@ describe('Activities: trips and permission slips (e2e)', () => {
 
     it('refuses a closed day, bad times, half a period range, a deadline in the past or after departure, and strangers’ classes', async () => {
       const msg = async (extra: object) => (await admin.post('/api/trips', trip(extra)).expect(400)).body.message;
-      expect(await msg({ date: '2030-03-08' })).toBe('The school is closed that day.'); // a Friday
+      expect(await msg({ date: W.fri })).toBe('The school is closed that day.'); // a Friday
       expect(await msg({ departTime: '15:00' })).toBe('The trip must leave before it returns.');
       expect(await msg({ fromPeriod: 2, toPeriod: undefined })).toBe('Give both fromPeriod and toPeriod, or neither for the whole day.');
       expect(await msg({ fromPeriod: 3, toPeriod: 1 })).toBe('toPeriod must not be before fromPeriod.');
       expect(await msg({ consentBy: '2020-01-01T00:00:00.000Z' })).toBe('The answer deadline must be in the future.');
-      expect(await msg({ consentBy: '2030-03-05T09:00:00.000Z' })).toBe('The answer deadline must be before the trip leaves.'); // 11:00 Cairo, after 08:00 departure
+      expect(await msg({ consentBy: `${W.tue}T09:00:00.000Z` })).toBe('The answer deadline must be before the trip leaves.'); // 11:00 Cairo, after 08:00 departure
       expect(await msg({ classIds: ['nope'] })).toBe('Class not found in this school.');
       expect(await msg({ leaderId: 'nope' })).toBe('Trip leader not found in this school.');
       await admin.post('/api/trips', trip({ classIds: [] })).expect(400);
@@ -145,7 +147,7 @@ describe('Activities: trips and permission slips (e2e)', () => {
     });
 
     it('closes the answers at the deadline', async () => {
-      const afterDeadline = zonedTime('2030-03-04', '12:30', 'Africa/Cairo');
+      const afterDeadline = zonedTime(W.mon, '12:30', 'Africa/Cairo');
       const parent = { id: id.p1, role: 'PARENT' } as any;
       await expect(svc().consent(parent, id.Ali, id.trip, { decision: 'GIVEN', signedName: 'Rania Hassan' } as any, afterDeadline)).rejects.toThrow('The deadline for this permission slip has passed. Please contact the school.');
       const list = (await p1.get(`/api/parent/children/${id.Ali}/trips`).expect(200)).body;
@@ -237,10 +239,10 @@ describe('Activities: trips and permission slips (e2e)', () => {
 
   describe('the reminder', () => {
     it('goes once, to the parents who have not answered, a day before the deadline', async () => {
-      const t2 = (await admin.post('/api/trips', trip({ title: 'Museum', destination: 'Cairo', date: '2030-03-06', consentBy: '2030-03-05T09:00:00.000Z' })).expect(201)).body.id;
+      const t2 = (await admin.post('/api/trips', trip({ title: 'Museum', destination: 'Cairo', date: W.wed, consentBy: `${W.tue}T09:00:00.000Z` })).expect(201)).body.id;
       await admin.post(`/api/trips/${t2}/open`).expect(201);
       await answer(p1, id.Ali, t2, sign('GIVEN')).expect(201);
-      const before = new Date('2030-03-05T09:00:00.000Z').getTime();
+      const before = new Date(`${W.tue}T09:00:00.000Z`).getTime();
       const early = new Date(before - 30 * 3600_000);
       expect(await svc().remind(early)).toBe(0); // 30 hours away: too soon
       const sent = await svc().remind(new Date(before - 23.5 * 3600_000));
@@ -255,15 +257,31 @@ describe('Activities: trips and permission slips (e2e)', () => {
     });
 
     it('is run by the minute tick, and skipped when trips are switched off for the school', async () => {
-      const t3 = (await admin.post('/api/trips', trip({ title: 'Park', destination: 'Zoo', date: '2030-03-07', consentBy: '2030-03-06T09:00:00.000Z' })).expect(201)).body.id;
+      const t3 = (await admin.post('/api/trips', trip({ title: 'Park', destination: 'Zoo', date: W.thu, consentBy: `${W.wed}T09:00:00.000Z` })).expect(201)).body.id;
       await admin.post(`/api/trips/${t3}/open`).expect(201);
       await owner.patch(`/api/owner/schools/${schoolId}/modules/activities/features`, { features: { trips: false } }).expect(200);
-      const at = new Date(new Date('2030-03-06T09:00:00.000Z').getTime() - 23.5 * 3600_000);
+      const at = new Date(new Date(`${W.wed}T09:00:00.000Z`).getTime() - 23.5 * 3600_000);
       await app.get(AttendanceJobs).tick(at);
       expect((await prisma.trip.findUniqueOrThrow({ where: { id: t3 } })).remindedAt).toBeNull();
       await owner.patch(`/api/owner/schools/${schoolId}/modules/activities/features`, { features: { trips: true } }).expect(200);
       await app.get(AttendanceJobs).tick(at);
       expect((await prisma.trip.findUniqueOrThrow({ where: { id: t3 } })).remindedAt).not.toBeNull();
+    });
+  });
+
+  describe('the list', () => {
+    it('counts the students of every trip with one query, however many trips there are', async () => {
+      expect((await admin.get('/api/trips').expect(200)).body.length).toBeGreaterThan(2);
+      const prisma2 = app.get(PrismaService);
+      const counts = jest.spyOn(prisma2.student, 'count');
+      const groups = jest.spyOn(prisma2.student, 'groupBy');
+      try {
+        await admin.get('/api/trips').expect(200);
+        expect(counts.mock.calls.length + groups.mock.calls.length).toBe(1);
+      } finally {
+        counts.mockRestore();
+        groups.mockRestore();
+      }
     });
   });
 

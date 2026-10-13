@@ -1,10 +1,11 @@
 import { INestApplication } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
-import { Client, kid, login, ownerClient, startApp } from './helpers';
+import { addDays, Client, kid, login, ownerClient, startApp, todayCairo } from './helpers';
 
-// One long school year (2000–2099, term 2 from 2050) so that "today" is always in term 1 and the
-// scenarios stay on fixed dates: assessments on 1–2 Oct 2026, exams far in the future.
+// One long school year (2000–2099) whose term 2 starts ten years from today, so that "today" is always in
+// term 1 and the scenarios stay on fixed dates: assessments on 1–2 Oct 2026, exams far in the future.
 const d = (s: string) => new Date(`${s}T00:00:00Z`);
+const TERM2 = addDays(todayCairo(), 3650);
 
 describe('Academics (e2e)', () => {
   let app: INestApplication;
@@ -30,7 +31,7 @@ describe('Academics (e2e)', () => {
     }
     [t1, t2, t3, social] = await Promise.all(['t1', 't2', 't3', 'sw'].map((k) => login(app, `${k}@acad.eg`, 'staff-pass')));
 
-    await prisma.academicYear.create({ data: { schoolId, name: '2000-2099', startsOn: d('2000-01-01'), endsOn: d('2099-12-31'), term2StartsOn: d('2050-01-01') } });
+    await prisma.academicYear.create({ data: { schoolId, name: '2000-2099', startsOn: d('2000-01-01'), endsOn: d('2099-12-31'), term2StartsOn: d(TERM2) } });
     const grade = (await admin.post('/api/grades', { name: 'Grade 4', order: 4 })).body;
     id.classA = (await admin.post('/api/classes', { name: '4-A', gradeId: grade.id, homeroomTeacherId: id.t2 })).body.id;
     id.classB = (await admin.post('/api/classes', { name: '4-B', gradeId: grade.id })).body.id;
@@ -82,7 +83,7 @@ describe('Academics (e2e)', () => {
       expect(a).toEqual(expect.objectContaining({ kind: 'QUIZ', title: 'Unit 1 quiz', term: 1, maxScore: 20, weight: 1, date: '2026-10-01', markedCount: 0, studentCount: 2, publishedAt: null }));
       id.a1 = a.id;
       expect((await create(t1, { kind: 'PROJECT', title: 'Poster', date: '2026-10-02' }).expect(201)).body.weight).toBe(2); // the default for a project
-      expect((await create(t1, { title: 'Next term', date: '2050-02-01' }).expect(201)).body.term).toBe(2);
+      expect((await create(t1, { title: 'Next term', date: addDays(TERM2, 31) }).expect(201)).body.term).toBe(2);
     });
 
     it('refuses another subject, another class, a date outside every year, and the social worker', async () => {

@@ -32,7 +32,8 @@ class HomeData extends ChangeNotifier {
   Uint8List? crest;
   List<Map<String, dynamic>> children = [];
   List<Map<String, dynamic>> notifications = [];
-  String? error;
+  /// What went wrong loading, kept as it came so the screen can say it in the app's language.
+  Object? error;
   bool loaded = false;
   /// The child every tab is showing.
   String? childId;
@@ -99,7 +100,7 @@ class HomeData extends ChangeNotifier {
       if (child(childId) == null) childId = children.isEmpty ? null : children.first['id'] as String;
       error = null;
     } catch (e) {
-      error = e.toString();
+      error = e;
     }
     // An urgent message stays on top until it is confirmed; not being able to ask never blocks the rest.
     if (has('messaging')) {

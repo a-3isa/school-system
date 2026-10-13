@@ -208,8 +208,10 @@ export class ChatService {
     // Someone who isn't connected hears about it as a notification.
     const me = await this.prisma.user.findUniqueOrThrow({ where: { id: user.id }, select: { name: true, honorific: true } });
     const sender = user.role === Role.PARENT ? me.name : titled(me);
+    const offline: string[] = [];
+    for (const id of others) if (!(await this.gateway.isOnline(id))) offline.push(id);
     await this.notifications.notify(
-      others.filter((id) => !this.gateway.isOnline(id)).map((userId) => ({
+      offline.map((userId) => ({
         schoolId: thread.schoolId, userId, type: 'message.new',
         title: `New message from ${sender} about ${thread.student.firstName}`, body: excerpt(body || '📎'),
         data: { threadId, studentId: thread.studentId, from: sender },

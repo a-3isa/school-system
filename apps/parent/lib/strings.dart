@@ -401,6 +401,10 @@ class S {
   String get language => _('Language', 'اللغة');
   String get langName => _('English', 'العربية');
   String get signOut => _('Sign out', 'تسجيل الخروج');
+  String get signOutAll => _('Sign out of all devices', 'تسجيل الخروج من جميع الأجهزة');
+  String get signOutAllAsk => _('You will be signed out of every device where you are signed in, including this one. You can sign in again at any time.', 'سيتم تسجيل خروجكم من كل جهاز سجّلتم الدخول منه، بما في ذلك هذا الجهاز. ويمكنكم تسجيل الدخول مجددًا في أي وقت.');
+  String get staySignedIn => _('Stay signed in', 'البقاء متصلين');
+  String get yesSignOutAll => _('Yes, sign out everywhere', 'نعم، تسجيل الخروج من الجميع');
   String get newMobileSub => _('We will send a WhatsApp code to the new number.', 'سنرسل رمز تأكيد عبر واتساب إلى الرقم الجديد.');
   String get newMobile => _('New mobile number', 'رقم الهاتف الجديد');
   String get confirm => _('Confirm', 'تأكيد');
@@ -496,30 +500,99 @@ class S {
   String get eventPhotos => _('Photos', 'الصور');
   String get photoOpen => _('Open the photo', 'فتح الصورة');
 
-  /// The server's English sentence, in Arabic when the app is, for the few a parent can meet.
+  /// What went wrong, in the app's language. The server answers in English; in Arabic each sentence a parent
+  /// can meet is said again in Arabic, and one we don't know is never shown as English: it becomes a polite
+  /// "please try again". A network failure is "we can't reach the school".
   String apiError(Object e) {
     final m = e.toString();
+    final kind = e.runtimeType.toString();
+    if (kind.contains('ClientException') || kind.contains('SocketException') || kind.contains('TimeoutException') || kind.contains('HandshakeException')) return offline;
     if (!isAr) return m;
-    const known = {
-      'Sign-up for this club is closed.': 'التسجيل في هذا النادي مغلق.',
-      'Club not found.': 'لم يتم العثور على النادي.',
-      'Child not found.': 'لم يتم العثور على الطالب.',
-      'Trip not found.': 'لم يتم العثور على الرحلة.',
-      'Event not found.': 'لم يتم العثور على الفعالية.',
-      'This trip has been cancelled.': 'تم إلغاء هذه الرحلة.',
-      'Type your full name to sign.': 'اكتبوا اسمكم الكامل للتوقيع.',
-      'The deadline for this permission slip has passed. Please contact the school.': 'انقضى الموعد النهائي للرد على طلب الموافقة. يُرجى التواصل مع المدرسة.',
-    };
-    final hit = known[m];
+    if (RegExp(r'[؀-ۿ]').hasMatch(m)) return m;
+    final hit = _knownErrors[m];
     if (hit != null) return hit;
+
     final onList = RegExp(r'^(.+) is already on the list\.$').firstMatch(m);
     if (onList != null) return 'تم تسجيل ${onList[1]} في القائمة بالفعل.';
     final grade = RegExp(r'^This club isn’t open to (.+)’s year group\.$').firstMatch(m);
     if (grade != null) return 'هذا النادي غير مفتوح للصف الدراسي الذي يدرس فيه ${grade[1]}.';
     final notIn = RegExp(r'^(.+) isn’t in this club\.$').firstMatch(m);
     if (notIn != null) return '${notIn[1]} غير مشترك في هذا النادي.';
-    return m;
+    final minutes = RegExp(r'^Too many wrong passwords\. Try again in (\d+) minutes?\.$').firstMatch(m);
+    if (minutes != null) return 'تجاوزتم عدد المحاولات المسموح به. يُرجى المحاولة بعد ${_arCount(int.parse(minutes[1]!), 'دقيقة واحدة', 'دقيقتين', 'دقائق', 'دقيقة')}.';
+    final after = RegExp(r'^An excuse can be sent up to (\d+) days after the absence\. For an older one, please contact the school\.$').firstMatch(m);
+    if (after != null) return 'يمكن إرسال العذر خلال ${_arCount(int.parse(after[1]!), 'يوم واحد', 'يومين', 'أيام', 'يومًا')} من الغياب. وللأعذار الأقدم، يُرجى التواصل مع المدرسة.';
+    final ahead = RegExp(r'^An excuse can be sent up to (\d+) days ahead\.$').firstMatch(m);
+    if (ahead != null) return 'يمكن إرسال العذر قبل الغياب بما يصل إلى ${_arCount(int.parse(ahead[1]!), 'يوم واحد', 'يومين', 'أيام', 'يومًا')}.';
+    final most = RegExp(r'^One excuse can cover at most (\d+) days\.$').firstMatch(m);
+    if (most != null) return 'لا يغطي العذر الواحد أكثر من ${_arCount(int.parse(most[1]!), 'يوم واحد', 'يومين', 'أيام', 'يومًا')}.';
+    if (RegExp(r'^.+ isn’t switched on for this school\.$').hasMatch(m)) return 'هذه الخدمة غير مفعّلة لهذه المدرسة.';
+    return 'تعذّر إتمام الطلب. يُرجى المحاولة مرة أخرى.';
   }
+
+  static const _knownErrors = <String, String>{
+    // Signing in, signing up, passwords and the mobile number
+    'Wrong email or password.': 'البريد الإلكتروني أو كلمة المرور غير صحيحة.',
+    'That code is wrong or has expired. Ask for a new one.': 'الرمز غير صحيح أو انتهت صلاحيته. يُرجى طلب رمز جديد.',
+    'Too many codes. Try again in an hour.': 'تجاوزتم عدد الرموز المسموح به. يُرجى المحاولة بعد ساعة.',
+    'Sign-up took too long. Start again.': 'استغرق التسجيل وقتًا طويلًا. يُرجى البدء من جديد.',
+    'This mobile number is already used by another account.': 'رقم الهاتف هذا مستخدم في حساب آخر.',
+    'This mobile number belongs to another account.': 'رقم الهاتف هذا يخص حسابًا آخر.',
+    'Enter the mobile number with its country code, like +201001234567.': 'أدخلوا رقم الهاتف مع رمز الدولة، مثل +201001234567.',
+    'Choose a password of at least 8 characters.': 'اختاروا كلمة مرور من 8 أحرف على الأقل.',
+    'Enter a valid email address.': 'أدخلوا عنوان بريد إلكتروني صحيحًا.',
+    'The code has 6 digits.': 'يتكوّن الرمز من 6 أرقام.',
+    'Sign in first.': 'يُرجى تسجيل الدخول أولًا.',
+    'Your session has expired. Sign in again.': 'انتهت جلستكم. يُرجى تسجيل الدخول مجددًا.',
+    'Your role can’t do this.': 'لا تتيح صلاحياتكم هذا الإجراء.',
+    'This isn’t part of this school’s subscription.': 'هذه الخدمة ليست ضمن اشتراك المدرسة.',
+    // Excuses
+    'The last day can’t be before the first day.': 'لا يمكن أن يسبق آخر يوم أول يوم.',
+    'Attach a photo (JPG, PNG or WebP) or a PDF.': 'أرفقوا صورة (JPG أو PNG أو WebP) أو ملف PDF.',
+    'There is nothing to answer for that day.': 'لا يوجد ما يستوجب الرد في ذلك اليوم.',
+    'You already sent an excuse for some of these days. The school hasn’t answered yet.': 'سبق أن أرسلتم عذرًا عن بعض هذه الأيام، ولم ترد المدرسة بعد.',
+    'Some of these days are already excused.': 'بعض هذه الأيام معتذَر عنها بالفعل.',
+    'Excuse not found.': 'لم يتم العثور على العذر.',
+    // Meetings
+    'That time has passed.': 'انقضى هذا الموعد.',
+    'You already have a meeting with this teacher that day.': 'لديكم مقابلة مع هذا المعلم في اليوم نفسه بالفعل.',
+    'Someone has just booked this time. Please choose another.': 'حُجز هذا الموعد للتو. يُرجى اختيار موعد آخر.',
+    'It’s too late to cancel online. Please call the school.': 'فات وقت الإلغاء عبر التطبيق. يُرجى الاتصال بالمدرسة.',
+    'Meeting time not found.': 'لم يتم العثور على موعد المقابلة.',
+    'This time isn’t booked.': 'هذا الموعد غير محجوز.',
+    // Polls and messages
+    'Poll not found.': 'لم يتم العثور على الاستطلاع.',
+    'This poll has closed.': 'أُغلق هذا الاستطلاع.',
+    'Choose one of the answers listed.': 'يُرجى اختيار إحدى الإجابات المعروضة.',
+    'Choose one answer.': 'يُرجى اختيار إجابة واحدة.',
+    'You can write to your child’s teachers and Student Affairs only.': 'يمكنكم مراسلة معلمي أبنائكم وشؤون الطلبة فقط.',
+    'Conversation not found.': 'لم يتم العثور على المحادثة.',
+    'This conversation is closed.': 'هذه المحادثة مغلقة.',
+    'Write a message first.': 'اكتبوا رسالة أولًا.',
+    'No attachment.': 'لا يوجد مرفق.',
+    'Teacher not found.': 'لم يتم العثور على المعلم.',
+    'Announcement not found.': 'لم يتم العثور على الإعلان.',
+    'Only urgent messages need confirming.': 'التأكيد مطلوب للرسائل العاجلة فقط.',
+    'Notification not found.': 'لم يتم العثور على الإشعار.',
+    // Grades and report cards
+    'Choose term 1 or 2.': 'اختاروا الفصل الدراسي الأول أو الثاني.',
+    'Choose a subject.': 'اختاروا المادة.',
+    'Report card not found.': 'لم يتم العثور على الشهادة.',
+    // Clubs, trips, events and the calendar
+    'Sign-up for this club is closed.': 'التسجيل في هذا النادي مغلق.',
+    'Club not found.': 'لم يتم العثور على النادي.',
+    'Child not found.': 'لم يتم العثور على الطالب.',
+    'Trip not found.': 'لم يتم العثور على الرحلة.',
+    'Event not found.': 'لم يتم العثور على الفعالية.',
+    'Photo not found.': 'لم يتم العثور على الصورة.',
+    'This trip has been cancelled.': 'تم إلغاء هذه الرحلة.',
+    'Type your full name to sign.': 'اكتبوا اسمكم الكامل للتوقيع.',
+    'The deadline for this permission slip has passed. Please contact the school.': 'انقضى الموعد النهائي للرد على طلب الموافقة. يُرجى التواصل مع المدرسة.',
+    'The end of the range is before its start.': 'نهاية الفترة تسبق بدايتها.',
+    'Ask for about three months at a time.': 'اطلبوا نحو ثلاثة أشهر في كل مرة.',
+    'Dates must look like 2026-09-30.': 'يجب كتابة التاريخ بصيغة مثل 2026-09-30.',
+    'Not found.': 'لم يتم العثور على العنصر المطلوب.',
+  };
 
   // excuses
   String get excusesTitle => _('Excuses', 'الأعذار');

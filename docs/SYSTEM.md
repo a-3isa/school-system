@@ -56,6 +56,7 @@ This describes every part that exists in the code today. Phase 1 is attendance. 
   - **Essentials:** core, attendance and messaging
   - **Smart:** adds transport, canteen and payments
   - **Complete:** everything
+  - Only the modules that are built can be switched on today: core, attendance, messaging, activities, academics and behaviour. Transport, canteen, payments, homework, admissions and reports are not listed anywhere yet, and the owner is told "… isn’t available yet" if they try. A plan switches on only what is built, so Smart and Complete give the same modules as Essentials plus whatever of theirs exists. The clinic switch inside Behaviour stays hidden until clinic visits are built.
   - Messaging comes in two sizes: **Essentials and Smart** get announcements and the emergency message; **Complete** adds parent–teacher chat, polls and meetings. Changing a school's plan sets these for it.
 - **Module switches:** turn any module on or off per school, and the features that come with the subscription: **automatic attendance (straps)** inside Attendance, and **chat, polls and meetings** inside Messaging. A school's own admin can't switch these; they see "In your subscription" or "Not in your subscription".
   - Other features (for example, trips or merit points) are the school's own to switch in **School settings**.
@@ -397,6 +398,9 @@ The platform is made for Egypt's private, language and international schools, an
   - The detection numbers (−70 / −85 dBm, 70%, 10 minutes) need tuning in real rooms.
 - **Sending for real:**
   - **Push notifications:** connected to Firebase (project `school-platform-eg`), but not yet tried on a real phone. Android should work once the server has its key (`FIREBASE_SERVICE_ACCOUNT`); iPhones need an Apple APNs key uploaded in the Firebase console and the Push Notifications capability in Xcode. Tapping a push (or a notification in the list) opens what it is about; on the web it only opens the app. The web build gets browser push too. See `docs/PUSH.md`.
+  - **Broker checks:** the MQTT broker asks the API to check gateway logins and topics; it must send `MQTT_HOOK_SECRET` in the `x-hook-secret` header, or the API refuses (in production). See `firmware/gateway/README.md`.
+  - **Browser access:** `CORS_ORIGINS` lists the dashboard and parent web addresses (comma-separated). In production the API refuses to start without it; in development any page on localhost is allowed.
+  - **Sign-ins:** staff and the owner stay signed in for 7 days, parents for 30. “Sign out of all devices” (dashboard side bar, parent app Account) ends every sign-in a person has, closes their open chat, and (for a parent) stops pushes to their phones; a new password does the same, and so does switching an account off.
   - **Email:** needs an email account to send from (`SMTP_URL` in `apps/api/.env`). Until then, sign-up and password codes are written in the server log.
   - **WhatsApp:** needs a WhatsApp Business account with an approved code template (`WHATSAPP_*` in `apps/api/.env`). Until then, mobile codes are written in the server log.
   - **School emails to parents:** announcements reach parents as app notifications only. Emailed newsletters aren't built.
