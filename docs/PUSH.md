@@ -34,6 +34,7 @@ The server sends with a **service account** that can only send messages (`school
 - **iPhone push needs Apple.** In the Firebase console (Project settings › Cloud Messaging) upload an **APNs authentication key** from your Apple developer account. On a Mac, open `apps/parent/ios/Runner.xcworkspace` in Xcode and add the **Push Notifications** capability to the Runner target. Without these, iPhones get no push (Android works without them).
 - **Android needs a real phone or emulator to try.** Install the app, sign in, and press a notification trigger (for example mark a child absent). The Android toolchain on this machine still needs `flutter doctor --android-licenses`.
 - **Production.** Put `FIREBASE_SERVICE_ACCOUNT` on the production server when it exists.
+- **Restrict the app keys** in the Google Cloud console so only the real apps can use them. The steps are in `docs/OPERATIONS.md`.
 
 ## Tapping a push
 
