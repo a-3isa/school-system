@@ -529,7 +529,7 @@ export const en = {
 export type Dict = typeof en;
 
 /** Arabic counts: the noun changes with the number (طالب واحد، طالبان، 3 طلاب، 11 طالبًا). */
-function arN(n: number, one: string, two: string, few: string, many: string, single = one): string {
+export function arN(n: number, one: string, two: string, few: string, many: string, single = one): string {
   const r = n % 100;
   if (n === 0) return `0 ${single}`;
   if (n === 1) return one;

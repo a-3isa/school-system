@@ -137,7 +137,7 @@ export class StudentsService {
   private async checkIdentity(schoolId: string, next: { id?: string; nationality?: string | null; nationalId?: string | null; dateOfBirth?: Date | null; gender?: Gender | null }) {
     if (next.dateOfBirth) {
       const age = (Date.now() - next.dateOfBirth.getTime()) / YEAR;
-      if (age < 2 || age > 25) throw new BadRequestException('Check the date of birth: the student would be ' + Math.floor(age) + ' years old.');
+      if (age < 2 || age > 25) throw new BadRequestException(`Check the date of birth: the student would be ${Math.floor(age)} years old.`);
     }
     if (next.nationality === 'EG' && !next.nationalId) {
       throw new BadRequestException('Enter the student’s national number (14 digits, on the birth certificate).');
