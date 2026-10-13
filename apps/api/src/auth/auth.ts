@@ -304,15 +304,21 @@ export class AuthService {
     if (!user?.active || !user.passwordHash) throw wrongCode();
     // A new password ends every other sign-in; the one issued here is made in the same second and stays.
     const updated = await this.prisma.user.update({ where: { id: user.id }, data: { passwordHash: await hashPassword(password), sessionsValidAfter: new Date() } });
-    this.chat.disconnectUser(user.id);
+    await this.dropConnections(user.id);
     return this.issue(updated);
   }
 
   /** Ends every sign-in this person has, on every device. */
   async signOutEverywhere(auth: AuthUser) {
     await this.prisma.user.update({ where: { id: auth.id }, data: { sessionsValidAfter: new Date() } });
-    this.chat.disconnectUser(auth.id);
+    await this.dropConnections(auth.id);
     return { signedOut: true };
+  }
+
+  /** After the sign-ins are ended: close the open chat, and stop pushing to the phones, which no longer have a login to ask for anything. */
+  private async dropConnections(userId: string) {
+    this.chat.disconnectUser(userId);
+    await this.prisma.deviceToken.deleteMany({ where: { userId } });
   }
 
   // ---- a parent changing their mobile ----------------------------------------

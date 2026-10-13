@@ -8,6 +8,7 @@ Set these in the server's environment (or `apps/api/.env`). Names are the same a
 
 | Setting | What to put | If it is missing |
 |---|---|---|
+| `NODE_ENV` | `production`. The checks below that refuse to start, and the broker's secret, only apply when this is set. | The API runs in development mode: it starts without them, and answers the broker's checks without a secret. |
 | `JWT_SECRET` | A random value of at least 32 characters. Keep it secret and never change it casually: changing it signs everyone out. | The API refuses to start in production. |
 | `CORS_ORIGINS` | The web addresses of the dashboard and the parent web app, comma-separated, for example `https://school.example.com,https://parents.example.com`. | The API refuses to start in production. |
 | `DATABASE_URL` | The production Postgres. | Nothing works. |

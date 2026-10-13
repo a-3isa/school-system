@@ -77,6 +77,25 @@ describe('Sign-in hardening (e2e)', () => {
     expect(await status(reset.body.token)).toBe(200); // the new sign-in from the reset itself
   });
 
+  it('stops a parent’s phones ringing when they sign out of all devices, or reset their password', async () => {
+    const phone = (n: number) => ({ token: `fcm-token-sec-${n}-`.padEnd(40, 'x'), platform: 'android', lang: 'en' });
+    const parent = await signIn('dalia@sec.eg', 'parent-pass-1');
+    const me = client(app, parent.token);
+    await me.post('/api/notifications/devices', phone(1)).expect(201);
+    await me.post('/api/notifications/devices', phone(2)).expect(201);
+    expect(await prisma.deviceToken.count({ where: { userId: parent.user.id } })).toBe(2);
+    await me.post('/api/auth/sign-out-everywhere').expect(201);
+    expect(await prisma.deviceToken.count({ where: { userId: parent.user.id } })).toBe(0);
+
+    // A new password does the same.
+    const again = await signIn('dalia@sec.eg', 'parent-pass-1');
+    await client(app, again.token).post('/api/notifications/devices', phone(3)).expect(201);
+    await http().post('/api/auth/password/forgot').send({ email: 'dalia@sec.eg' }).expect(201);
+    const code = app.get(EmailService).last('dalia@sec.eg')!.text.match(/\b(\d{6})\b/)![1];
+    await http().post('/api/auth/password/reset').send({ email: 'dalia@sec.eg', code, password: 'parent-pass-2' }).expect(201);
+    expect(await prisma.deviceToken.count({ where: { userId: parent.user.id } })).toBe(0);
+  });
+
   it('lets only the dashboard and the parent app’s own origins call the API from a browser', async () => {
     const preflight = (origin: string) => http().options('/api/auth/login').set('Origin', origin).set('Access-Control-Request-Method', 'POST');
     expect((await preflight('http://localhost:3001')).headers['access-control-allow-origin']).toBe('http://localhost:3001');
