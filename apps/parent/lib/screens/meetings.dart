@@ -40,7 +40,7 @@ class _MeetingsScreenState extends State<MeetingsScreen> {
         });
       }
     } catch (e) {
-      if (mounted) setState(() => _error = e.toString());
+      if (mounted) setState(() => _error = S.of(context).apiError(e));
     }
   }
 
@@ -56,7 +56,7 @@ class _MeetingsScreenState extends State<MeetingsScreen> {
       await widget.api.bookMeeting(_childId!, slot['id'] as String, note: note);
       if (mounted) setState(() => _notice = s.meetingBooked);
     } catch (e) {
-      if (mounted) setState(() => _error = e.toString());
+      if (mounted) setState(() => _error = S.of(context).apiError(e));
     }
     await _load();
   }
@@ -66,7 +66,7 @@ class _MeetingsScreenState extends State<MeetingsScreen> {
       await widget.api.cancelMeeting(slot['id'] as String);
       if (mounted) setState(() => _notice = S.of(context).meetingCancelled);
     } catch (e) {
-      if (mounted) setState(() => _error = e.toString());
+      if (mounted) setState(() => _error = S.of(context).apiError(e));
     }
     await _load();
   }

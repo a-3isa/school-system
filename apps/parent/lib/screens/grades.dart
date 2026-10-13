@@ -53,7 +53,7 @@ class _GradesScreenState extends State<GradesScreen> {
         }).catchError((_) {}); // a missing line is not worth an error
       }
     } catch (e) {
-      if (mounted && round == _round) setState(() => _error = e.toString());
+      if (mounted && round == _round) setState(() => _error = S.of(context).apiError(e));
     }
   }
 

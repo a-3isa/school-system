@@ -1257,7 +1257,8 @@ void main() {
       expect(S.ar.apiError(ApiException(400, 'Sign-up for this club is closed.')), 'التسجيل في هذا النادي مغلق.');
       expect(S.ar.apiError(ApiException(400, 'Salma is already on the list.')), 'تم تسجيل Salma في القائمة بالفعل.');
       expect(S.ar.apiError(ApiException(400, 'This club isn’t open to Salma’s year group.')), 'هذا النادي غير مفتوح للصف الدراسي الذي يدرس فيه Salma.');
-      expect(S.ar.apiError(ApiException(400, 'Something else entirely.')), 'Something else entirely.');
+      // A sentence nobody translated is not shown in English to an Arabic reader.
+      expect(S.ar.apiError(ApiException(400, 'Something else entirely.')), 'تعذّر إتمام الطلب. يُرجى المحاولة مرة أخرى.');
       expect(S.en.apiError(ApiException(400, 'Sign-up for this club is closed.')), 'Sign-up for this club is closed.');
     });
   });
@@ -1474,6 +1475,72 @@ void main() {
         expect(find.text('Notifications'), findsWidgets);
         await tester.pumpWidget(const SizedBox());
       });
+    });
+  });
+
+  group('what went wrong, in the parent’s language', () {
+    // Sentences the server sends in English, and how a parent should read them in Arabic.
+    const table = {
+      'Wrong email or password.': 'البريد الإلكتروني أو كلمة المرور غير صحيحة.',
+      'That code is wrong or has expired. Ask for a new one.': 'الرمز غير صحيح أو انتهت صلاحيته. يُرجى طلب رمز جديد.',
+      'Choose a password of at least 8 characters.': 'اختاروا كلمة مرور من 8 أحرف على الأقل.',
+      'This mobile number is already used by another account.': 'رقم الهاتف هذا مستخدم في حساب آخر.',
+      'Too many wrong passwords. Try again in 1 minute.': 'تجاوزتم عدد المحاولات المسموح به. يُرجى المحاولة بعد دقيقة واحدة.',
+      'Too many wrong passwords. Try again in 14 minutes.': 'تجاوزتم عدد المحاولات المسموح به. يُرجى المحاولة بعد 14 دقيقة.',
+      'An excuse can be sent up to 7 days after the absence. For an older one, please contact the school.': 'يمكن إرسال العذر خلال 7 أيام من الغياب. وللأعذار الأقدم، يُرجى التواصل مع المدرسة.',
+      'It’s too late to cancel online. Please call the school.': 'فات وقت الإلغاء عبر التطبيق. يُرجى الاتصال بالمدرسة.',
+      'This poll has closed.': 'أُغلق هذا الاستطلاع.',
+      'You can write to your child’s teachers and Student Affairs only.': 'يمكنكم مراسلة معلمي أبنائكم وشؤون الطلبة فقط.',
+      'Messaging isn’t switched on for this school.': 'هذه الخدمة غير مفعّلة لهذه المدرسة.',
+      // Said already in Arabic before: kept.
+      'Club not found.': 'لم يتم العثور على النادي.',
+    };
+
+    test('says each sentence a parent can meet in Arabic', () {
+      for (final e in table.entries) {
+        expect(S.ar.apiError(ApiException(400, e.key)), e.value, reason: e.key);
+      }
+    });
+
+    test('leaves English as it is in English', () {
+      expect(S.en.apiError(ApiException(401, 'Wrong email or password.')), 'Wrong email or password.');
+    });
+
+    test('never shows English to an Arabic reader: a sentence nobody translated becomes a polite “please try again”', () {
+      expect(S.ar.apiError(ApiException(500, 'Something went wrong (500).')), 'تعذّر إتمام الطلب. يُرجى المحاولة مرة أخرى.');
+      expect(S.ar.apiError(ApiException(400, 'A brand new sentence.')), 'تعذّر إتمام الطلب. يُرجى المحاولة مرة أخرى.');
+    });
+
+    test('says a sentence that is already Arabic as it is', () {
+      expect(S.ar.apiError(ApiException(400, 'رسالة جاهزة.')), 'رسالة جاهزة.');
+    });
+
+    test('says “we can’t reach the school” when the network fails, in either language', () {
+      expect(S.ar.apiError(http.ClientException('Failed to fetch')), S.ar.offline);
+      expect(S.en.apiError(http.ClientException('Failed to fetch')), S.en.offline);
+    });
+
+    testWidgets('a wrong password reads in Arabic on the sign-in screen', (tester) async {
+      final client = MockClient((req) async => http.Response('{"message":"Wrong email or password."}', 401, headers: {'content-type': 'application/json; charset=utf-8'}));
+      await start(tester, {'lang': 'ar'}, client);
+      await tester.enterText(find.byType(TextField).at(0), 'dina@example.com');
+      await tester.enterText(find.byType(TextField).at(1), 'not-the-password');
+      await tester.tap(find.widgetWithText(FilledButton, 'تسجيل الدخول'));
+      await tester.pumpAndSettle();
+      expect(find.text('البريد الإلكتروني أو كلمة المرور غير صحيحة.'), findsOneWidget);
+      expect(find.text('Wrong email or password.'), findsNothing);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('a wrong password reads in English on the sign-in screen', (tester) async {
+      final client = MockClient((req) async => http.Response('{"message":"Wrong email or password."}', 401, headers: {'content-type': 'application/json; charset=utf-8'}));
+      await start(tester, {'lang': 'en'}, client);
+      await tester.enterText(find.byType(TextField).at(0), 'dina@example.com');
+      await tester.enterText(find.byType(TextField).at(1), 'not-the-password');
+      await tester.tap(find.widgetWithText(FilledButton, 'Sign in'));
+      await tester.pumpAndSettle();
+      expect(find.text('Wrong email or password.'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
     });
   });
 }

@@ -67,7 +67,7 @@ class _DayTabState extends State<DayTab> {
         _loadedAt = DateTime.now();
       });
     } catch (e) {
-      if (mounted) setState(() => _error = e.toString());
+      if (mounted) setState(() => _error = S.of(context).apiError(e));
     }
   }
 
@@ -159,7 +159,7 @@ class _DayTabState extends State<DayTab> {
           await _load();
         }
       } catch (e) {
-        if (mounted) setState(() => _error = e.toString());
+        if (mounted) setState(() => _error = S.of(context).apiError(e));
       }
     }
 
