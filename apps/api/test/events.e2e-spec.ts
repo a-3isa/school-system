@@ -1,5 +1,6 @@
 import { INestApplication } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
+import { PrismaService } from '../src/prisma/prisma.service';
 import { addDays, cairoAt, Client, PNG, kid, login, ownerClient, schoolWeek, startApp, wideYear } from './helpers';
 
 // A school week far ahead, so every date here is a school day (or a Friday) whenever the suite runs.
@@ -173,6 +174,18 @@ describe('Activities: events, photos and the calendar (e2e)', () => {
       const salma = (await calendar(p2)).items;
       expect(salma.map((i: any) => [i.date, i.kind])).toEqual([[TUESDAY, 'EXAM'], [SUNDAY, 'CLUB'], [THURSDAY, 'HOLIDAY']].sort((a, b) => (a[0] as string).localeCompare(b[0] as string)));
       expect(salma.find((i: any) => i.kind === 'EXAM')).toEqual(expect.objectContaining({ title: 'Math: Midterm', titleAr: 'الرياضيات: Midterm', start: '09:00', end: '10:30', studentId: id.Salma }));
+    });
+
+    it('decides which events are for the parent without a query for each event', async () => {
+      const prisma2 = app.get(PrismaService);
+      const counts = jest.spyOn(prisma2.student, 'count');
+      try {
+        const items = (await calendar(p1)).items;
+        expect(items.filter((i: any) => i.kind === 'EVENT').length).toBeGreaterThan(0);
+        expect(counts).not.toHaveBeenCalled();
+      } finally {
+        counts.mockRestore();
+      }
     });
 
     it('can be narrowed to one child, and refuses a child who is not theirs or a parent who is restricted', async () => {

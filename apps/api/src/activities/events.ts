@@ -8,7 +8,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit';
 import { schoolHas } from '../auth/access.guard';
 import { AuthUser, CurrentUser, RequiresFeature, RequiresModule, Roles, SchoolId, STAFF } from '../auth/auth.decorators';
-import { AudienceDto, AudienceService } from '../common/audience';
+import { AudienceDto, AudienceService, matchesAudience } from '../common/audience';
 import { DATE_RE, dbDate, isoDate, weekday } from '../common/dates';
 import { localParts } from '../common/time';
 import { defined } from '../common/validation';
@@ -238,8 +238,10 @@ export class EventsService {
     // Published events for the parent's audience.
     if (await schoolHas(this.prisma, schoolId, 'activities', 'events')) {
       const events = await this.prisma.event.findMany({ where: { schoolId, publishedAt: { not: null }, startsAt: { lt: after }, endsAt: { gte: rangeStart } }, orderBy: { startsAt: 'asc' } });
+      // Where this parent's children are, read once; each event is then matched in memory.
+      const mine = events.length ? await this.audience.parentContext(schoolId, user.id) : null;
       for (const e of events) {
-        if (!(await this.audience.includesParent(schoolId, e.audience as unknown as AudienceDto, user.id))) continue;
+        if (!matchesAudience(e.audience as unknown as AudienceDto, mine!)) continue;
         const s = localParts(e.startsAt, school.timezone);
         const f = localParts(e.endsAt, school.timezone);
         items.push({ kind: 'EVENT', date: s.date, ...(f.date > s.date ? { until: f.date } : {}), ...(e.allDay ? {} : { start: s.time, end: f.time }), title: e.title, id: e.id });

@@ -1,5 +1,5 @@
 import { PrismaService } from '../prisma/prisma.service';
-import { AudienceService } from './audience';
+import { AudienceService, matchesAudience, ParentContext } from './audience';
 
 function service(over: Record<string, unknown> = {}) {
   const prisma = {
@@ -75,5 +75,45 @@ describe('AudienceService', () => {
     expect(prisma.student.count.mock.calls[0][0].where.guardians).toEqual({ some: { userId: 'p1', restricted: false } });
     prisma.student.count.mockResolvedValue(0);
     await expect(svc.includesParent('s1', { kind: 'SCHOOL' }, 'p1')).resolves.toBe(false);
+  });
+
+  it('reads a parent’s unrestricted children, their classes, year groups and clubs, in one query', async () => {
+    const { svc, prisma } = service();
+    prisma.student.findMany.mockResolvedValue([
+      { classId: 'c1', class: { gradeId: 'g1' }, activityEnrolments: [{ activityId: 'a1' }] },
+      { classId: 'c2', class: { gradeId: 'g1' }, activityEnrolments: [] },
+      { classId: null, class: null, activityEnrolments: [] },
+    ]);
+    const ctx = await svc.parentContext('s1', 'p1');
+    expect(prisma.student.findMany).toHaveBeenCalledTimes(1);
+    expect(prisma.student.findMany.mock.calls[0][0].where).toEqual({ schoolId: 's1', active: true, guardians: { some: { userId: 'p1', restricted: false } } });
+    expect(ctx).toEqual({ hasChildren: true, classIds: new Set(['c1', 'c2']), gradeIds: new Set(['g1']), activityIds: new Set(['a1']) });
+  });
+});
+
+describe('audience matching', () => {
+  const ctx = (over: Partial<ParentContext> = {}): ParentContext => ({ hasChildren: true, classIds: new Set(['c1']), gradeIds: new Set(['g1']), activityIds: new Set(['a1']), ...over });
+  const none: ParentContext = { hasChildren: false, classIds: new Set(), gradeIds: new Set(), activityIds: new Set() };
+
+  it('reaches every parent who has a child at the school when it is for the whole school', () => {
+    expect(matchesAudience({ kind: 'SCHOOL' }, ctx())).toBe(true);
+    expect(matchesAudience({ kind: 'SCHOOL' }, ctx({ classIds: new Set(), gradeIds: new Set() }))).toBe(true); // a child not yet in a class
+    expect(matchesAudience({ kind: 'SCHOOL' }, none)).toBe(false);
+  });
+
+  it('reaches a parent through a child’s class, year group or club', () => {
+    expect(matchesAudience({ kind: 'CLASSES', ids: ['c9', 'c1'] }, ctx())).toBe(true);
+    expect(matchesAudience({ kind: 'CLASSES', ids: ['c9'] }, ctx())).toBe(false);
+    expect(matchesAudience({ kind: 'GRADES', ids: ['g1'] }, ctx())).toBe(true);
+    expect(matchesAudience({ kind: 'GRADES', ids: ['g2'] }, ctx())).toBe(false);
+    expect(matchesAudience({ kind: 'ACTIVITY', ids: ['a1'] }, ctx())).toBe(true);
+    expect(matchesAudience({ kind: 'ACTIVITY', ids: ['a2'] }, ctx())).toBe(false);
+  });
+
+  it('reaches nobody when a list audience names nothing', () => {
+    for (const kind of ['CLASSES', 'GRADES', 'ACTIVITY'] as const) {
+      expect(matchesAudience({ kind }, ctx())).toBe(false);
+      expect(matchesAudience({ kind, ids: [] }, ctx())).toBe(false);
+    }
   });
 });

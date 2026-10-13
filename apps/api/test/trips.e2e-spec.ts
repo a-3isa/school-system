@@ -2,6 +2,7 @@ import { INestApplication } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import { Client, kid, login, ownerClient, schoolWeek, startApp, wideYear } from './helpers';
 import { TripsService } from '../src/activities/trips';
+import { PrismaService } from '../src/prisma/prisma.service';
 import { AttendanceJobs } from '../src/attendance/attendance';
 import { zonedTime } from '../src/common/time';
 
@@ -265,6 +266,22 @@ describe('Activities: trips and permission slips (e2e)', () => {
       await owner.patch(`/api/owner/schools/${schoolId}/modules/activities/features`, { features: { trips: true } }).expect(200);
       await app.get(AttendanceJobs).tick(at);
       expect((await prisma.trip.findUniqueOrThrow({ where: { id: t3 } })).remindedAt).not.toBeNull();
+    });
+  });
+
+  describe('the list', () => {
+    it('counts the students of every trip with one query, however many trips there are', async () => {
+      expect((await admin.get('/api/trips').expect(200)).body.length).toBeGreaterThan(2);
+      const prisma2 = app.get(PrismaService);
+      const counts = jest.spyOn(prisma2.student, 'count');
+      const groups = jest.spyOn(prisma2.student, 'groupBy');
+      try {
+        await admin.get('/api/trips').expect(200);
+        expect(counts.mock.calls.length + groups.mock.calls.length).toBe(1);
+      } finally {
+        counts.mockRestore();
+        groups.mockRestore();
+      }
     });
   });
 
