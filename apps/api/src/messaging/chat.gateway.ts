@@ -43,6 +43,11 @@ export class ChatGateway implements OnGatewayConnection {
     return (await this.server.in(room(userId)).fetchSockets()).length > 0;
   }
 
+  /** Closes this person's open chat connections on every server (they lost access or signed out). */
+  disconnectUser(userId: string) {
+    this.server?.in(room(userId)).disconnectSockets(true);
+  }
+
   /** Tells these users, wherever they are connected. */
   emit(userIds: string[], event: 'message' | 'read', payload: unknown) {
     if (!userIds.length || !this.server) return;

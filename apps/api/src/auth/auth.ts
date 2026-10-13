@@ -10,6 +10,8 @@ import { AuditService } from '../audit/audit';
 import { isModuleKey, ModuleKey, MODULES, visibleFeatures } from '../platform/registry';
 import { AuthUser, CurrentUser, Public, Roles } from './auth.decorators';
 import { EmailService } from './email';
+import { ChatGateway } from '../messaging/chat.gateway';
+import { ChatGatewayModule } from '../messaging/chat-gateway.module';
 import { LoginThrottleService } from './login-throttle';
 import { WhatsAppService } from './whatsapp';
 
@@ -109,6 +111,7 @@ export class AuthService {
     private readonly notifications: NotificationsService,
     private readonly audit: AuditService,
     private readonly throttle: LoginThrottleService,
+    private readonly chat: ChatGateway,
   ) {}
 
   private async issue(user: { id: string; schoolId: string | null; role: string; name: string }) {
@@ -300,12 +303,15 @@ export class AuthService {
     const user = await this.prisma.user.findUnique({ where: { email } });
     if (!user?.active || !user.passwordHash) throw wrongCode();
     // A new password ends every other sign-in; the one issued here is made in the same second and stays.
-    return this.issue(await this.prisma.user.update({ where: { id: user.id }, data: { passwordHash: await hashPassword(password), sessionsValidAfter: new Date() } }));
+    const updated = await this.prisma.user.update({ where: { id: user.id }, data: { passwordHash: await hashPassword(password), sessionsValidAfter: new Date() } });
+    this.chat.disconnectUser(user.id);
+    return this.issue(updated);
   }
 
   /** Ends every sign-in this person has, on every device. */
   async signOutEverywhere(auth: AuthUser) {
     await this.prisma.user.update({ where: { id: auth.id }, data: { sessionsValidAfter: new Date() } });
+    this.chat.disconnectUser(auth.id);
     return { signedOut: true };
   }
 
@@ -423,6 +429,7 @@ export class AuthController {
 
 @Module({
   imports: [
+    ChatGatewayModule,
     JwtModule.registerAsync({
       global: true,
       useFactory: () => ({
