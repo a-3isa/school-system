@@ -29,6 +29,12 @@ jobs:
       - run: npm ci
       - run: npx prisma generate
         working-directory: apps/api
+      # The migrations must build exactly the schema in schema.prisma: a schema change without its migration fails here.
+      - name: Migrations match the schema
+        working-directory: apps/api
+        run: |
+          PGPASSWORD=school psql -h localhost -U school -d school_test -c 'CREATE DATABASE school_shadow'
+          npx prisma migrate diff --from-migrations prisma/migrations --to-schema-datamodel prisma/schema.prisma --shadow-database-url postgresql://school:school@localhost:5432/school_shadow --exit-code
       - run: npx tsc --noEmit -p tsconfig.json
         working-directory: apps/api
       - run: npm test -w apps/api

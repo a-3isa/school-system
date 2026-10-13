@@ -100,6 +100,16 @@ npm run build -w apps/web                     # the dashboard compiles
 cd apps/parent && flutter analyze && flutter test && cd ../..
 ```
 
+CI also checks that the migrations build exactly the schema in `schema.prisma`, so a schema change cannot ship without its migration. To run that check yourself, use a throwaway database that is only ever used for this, never `school_dev`:
+
+```bash
+psql -U school -d school_test -c "CREATE DATABASE school_shadow"      # once
+cd apps/api
+npx prisma migrate diff --from-migrations prisma/migrations --to-schema-datamodel prisma/schema.prisma --shadow-database-url postgresql://school:school@localhost:5432/school_shadow --exit-code
+```
+
+It should say “No difference detected.” Anything else means a migration is missing.
+
 Everything should pass. If a test fails, keep its output and send it over.
 
 ## 7. Start everything
