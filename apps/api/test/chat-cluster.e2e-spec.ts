@@ -3,6 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import { AddressInfo } from 'net';
 import { io, Socket } from 'socket.io-client';
 import request from 'supertest';
+import { ChatGateway } from '../src/messaging/chat.gateway';
 import { Client, kid, login, ownerClient, startApp } from './helpers';
 
 const next = <T = any>(socket: Socket, event: string, ms = 5000) =>
@@ -54,6 +55,16 @@ describe('Live chat across servers (e2e)', () => {
     threadId = (await parentB.post(`/api/parent/children/${studentId}/threads`, { staffId: teacherId }).expect(201)).body.id;
   });
 
+  // A server learns who else is running from their heartbeats (every 5 seconds), so right after start-up it may
+  // still look only at its own sockets. In production that costs a redundant push at worst; the test waits for it.
+  const knowEachOther = async () => {
+    for (const app of [a, b]) {
+      const adapter = app.get(ChatGateway).server.of('/').adapter as unknown as { serverCount(): Promise<number> };
+      for (let i = 0; i < 100 && (await adapter.serverCount()) < 2; i++) await wait(100);
+      expect(await adapter.serverCount()).toBe(2);
+    }
+  };
+
   afterAll(async () => {
     delete process.env.CHAT_ADAPTER;
     await prisma.$disconnect();
@@ -64,6 +75,7 @@ describe('Live chat across servers (e2e)', () => {
   const notified = () => prisma.notification.count({ where: { userId: parentId, type: 'message.new' } });
 
   it('delivers a message sent through one server to a phone connected to the other', async () => {
+    await knowEachOther();
     const parentToken = (await request(a.getHttpServer()).post('/api/auth/login').send({ login: 'rania@cluster.eg', password: 'parent-pass' }).expect(201)).body.token as string;
     const socket = connect(portA, parentToken);
     await next(socket, 'connect');
