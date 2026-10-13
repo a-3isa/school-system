@@ -24,6 +24,8 @@ describe('Live chat across servers (e2e)', () => {
   let portA: number;
   let teacherB: Client, parentB: Client;
   let teacherId: string, parentId: string, threadId: string;
+  /** Has each server heard of the other? Started the moment the second one is up, so it times start-up, not the setup below. */
+  let heardOfEachOther: Promise<boolean[]>;
 
   const listen = async (app: INestApplication) => {
     await app.listen(0);
@@ -37,6 +39,13 @@ describe('Live chat across servers (e2e)', () => {
     b = await startApp();
     portA = await listen(a);
     await listen(b);
+    heardOfEachOther = Promise.all(
+      [a, b].map(async (app) => {
+        const adapter = app.get(ChatGateway).server.of('/').adapter as unknown as { serverCount(): Promise<number> };
+        for (const until = Date.now() + 2000; Date.now() < until; await wait(50)) if ((await adapter.serverCount()) >= 2) return true;
+        return false;
+      }),
+    );
     const owner = await ownerClient(a, prisma, 'cluster');
     await owner.post('/api/owner/schools', { name: 'Cluster School', plan: 'COMPLETE', admin: { name: 'Admin', email: 'admin@cluster.eg', password: 'admin-pass' } }).expect(201);
     const admin = await login(a, 'admin@cluster.eg', 'admin-pass');
@@ -55,16 +64,6 @@ describe('Live chat across servers (e2e)', () => {
     threadId = (await parentB.post(`/api/parent/children/${studentId}/threads`, { staffId: teacherId }).expect(201)).body.id;
   });
 
-  // A server learns who else is running from their heartbeats (every 5 seconds), so right after start-up it may
-  // still look only at its own sockets. In production that costs a redundant push at worst; the test waits for it.
-  const knowEachOther = async () => {
-    for (const app of [a, b]) {
-      const adapter = app.get(ChatGateway).server.of('/').adapter as unknown as { serverCount(): Promise<number> };
-      for (let i = 0; i < 100 && (await adapter.serverCount()) < 2; i++) await wait(100);
-      expect(await adapter.serverCount()).toBe(2);
-    }
-  };
-
   afterAll(async () => {
     delete process.env.CHAT_ADAPTER;
     await prisma.$disconnect();
@@ -74,8 +73,11 @@ describe('Live chat across servers (e2e)', () => {
 
   const notified = () => prisma.notification.count({ where: { userId: parentId, type: 'message.new' } });
 
+  it('has each server hear of the other within moments of starting, not at the next heartbeat', async () => {
+    expect(await heardOfEachOther).toEqual([true, true]);
+  });
+
   it('delivers a message sent through one server to a phone connected to the other', async () => {
-    await knowEachOther();
     const parentToken = (await request(a.getHttpServer()).post('/api/auth/login').send({ login: 'rania@cluster.eg', password: 'parent-pass' }).expect(201)).body.token as string;
     const socket = connect(portA, parentToken);
     await next(socket, 'connect');
