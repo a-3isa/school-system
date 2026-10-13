@@ -51,6 +51,7 @@ pio device monitor      # serial console at 115200
 
 ## Before production
 
+- Point the broker's login and topic checks at the API, and have it send a shared secret. With EMQX this is the HTTP authentication and authorisation sources: `POST https://<api>/api/gateway/mqtt/auth` and `.../mqtt/acl`, with the header `x-hook-secret: <the value of MQTT_HOOK_SECRET in apps/api/.env>`. The API refuses these checks without that header in production, so nobody else can ask it which gateway secrets are right. The API's own broker account (`MQTT_USERNAME` and `MQTT_PASSWORD`) is recognised only when both are set.
 - The gateway checks the broker's certificate against `src/ca_cert.h` (Let's Encrypt roots by default). If the broker's certificate comes from another authority, put that authority's root there. Plain MQTT (`mqttTls off`) only works in a development build made with `-DALLOW_PLAIN_MQTT`.
 - Check the FSC-BP107D's MAC prefix and set `prefix` to match (default `DC:0D:30`).
 - Tune `minRssi` and the report interval against real rooms.

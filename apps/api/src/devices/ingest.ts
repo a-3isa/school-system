@@ -34,6 +34,29 @@ export class MqttAuthDto {
 
 const DAY = 86_400_000;
 
+const sameText = (a: string, b: string) => {
+  const x = Buffer.from(a);
+  const y = Buffer.from(b);
+  return x.length === y.length && timingSafeEqual(x, y);
+};
+
+/**
+ * The broker's login and topic checks are public routes, so they must know who is asking:
+ * the broker sends MQTT_HOOK_SECRET in the x-hook-secret header. Without a secret set they
+ * work in development and refuse everyone in production.
+ */
+function fromBroker(req: { headers: Record<string, string | string[] | undefined> }) {
+  const secret = process.env.MQTT_HOOK_SECRET;
+  if (!secret) return process.env.NODE_ENV !== 'production';
+  const given = req.headers['x-hook-secret'];
+  return typeof given === 'string' && sameText(given, secret);
+}
+
+/** The API's own account on the broker, only if both its name and password are set. */
+function isServiceAccount(username: string) {
+  return !!process.env.MQTT_USERNAME && !!process.env.MQTT_PASSWORD && sameText(username, process.env.MQTT_USERNAME);
+}
+
 @Injectable()
 export class IngestService {
   constructor(
@@ -171,9 +194,10 @@ export class GatewayController {
   /** MQTT broker hook (EMQX HTTP auth): lets a gateway connect with its serial and secret. */
   @Post('mqtt/auth')
   @HttpCode(200)
-  async mqttAuth(@Body() dto: MqttAuthDto) {
-    if (process.env.MQTT_USERNAME && dto.username === process.env.MQTT_USERNAME) {
-      return { result: dto.password === process.env.MQTT_PASSWORD ? 'allow' : 'deny' };
+  async mqttAuth(@Req() req: any, @Body() dto: MqttAuthDto) {
+    if (!fromBroker(req)) return { result: 'deny' };
+    if (isServiceAccount(dto.username)) {
+      return { result: sameText(dto.password ?? '', process.env.MQTT_PASSWORD!) ? 'allow' : 'deny' };
     }
     const gw = await this.ingest.authenticate(dto.username, dto.password ?? '');
     return { result: gw ? 'allow' : 'deny' };
@@ -182,8 +206,9 @@ export class GatewayController {
   /** MQTT broker hook (EMQX HTTP authorisation): a gateway may only publish to its own topics. */
   @Post('mqtt/acl')
   @HttpCode(200)
-  async mqttAcl(@Body() dto: MqttAuthDto) {
-    if (process.env.MQTT_USERNAME && dto.username === process.env.MQTT_USERNAME) return { result: 'allow' };
+  async mqttAcl(@Req() req: any, @Body() dto: MqttAuthDto) {
+    if (!fromBroker(req)) return { result: 'deny' };
+    if (isServiceAccount(dto.username)) return { result: 'allow' };
     const ownTopic = dto.topic?.startsWith(`gw/${dto.username}/`);
     const exists = await this.prisma.gateway.findUnique({ where: { serial: dto.username } });
     return { result: exists && ownTopic && dto.action === 'publish' ? 'allow' : 'deny' };
