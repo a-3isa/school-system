@@ -22,7 +22,10 @@ export const en = {
     timetable: 'Timetable', structure: 'School structure & year', devices: 'Smart band readers', modules: 'School settings', audit: 'Activity log',
     schools: 'Schools', gateways: 'Readers',
   },
-  shell: { signOut: 'Sign out', withStraps: 'Smart bands', withoutStraps: 'Manual register' },
+  shell: {
+    signOut: 'Sign out', withStraps: 'Smart bands', withoutStraps: 'Manual register',
+    signOutAll: 'Sign out of all devices', signOutAllConfirm: 'Sign out of every device where you are signed in, including this one?',
+  },
   inbox: {
     sub: 'Messages between parents and teachers', mine: 'Mine', school: 'Whole school',
     none: 'No conversations yet', noneSub: 'When a parent writes to you, the conversation appears here.',
@@ -556,7 +559,10 @@ export const ar: Dict = {
     timetable: 'الجدول', structure: 'هيكل المدرسة والعام الدراسي', devices: 'أجهزة قراءة الأساور', modules: 'إعدادات المدرسة', audit: 'سجل النشاط',
     schools: 'المدارس', gateways: 'أجهزة القراءة',
   },
-  shell: { signOut: 'تسجيل الخروج', withStraps: 'الأساور الذكية', withoutStraps: 'كشف يدوي' },
+  shell: {
+    signOut: 'تسجيل الخروج', withStraps: 'الأساور الذكية', withoutStraps: 'كشف يدوي',
+    signOutAll: 'تسجيل الخروج من جميع الأجهزة', signOutAllConfirm: 'هل تودّون تسجيل الخروج من كل جهاز سجّلتم الدخول منه، بما في ذلك هذا الجهاز؟',
+  },
   inbox: {
     sub: 'الرسائل بين أولياء الأمور والمعلمين', mine: 'محادثاتي', school: 'المدرسة كلها',
     none: 'لا توجد محادثات بعد', noneSub: 'عندما يراسلكم أحد أولياء الأمور تظهر المحادثة هنا.',

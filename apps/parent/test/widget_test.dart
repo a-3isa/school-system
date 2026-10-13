@@ -1318,6 +1318,46 @@ void main() {
       await tester.pumpWidget(const SizedBox());
     });
 
+    testWidgets('signing out of all devices asks first, tells the server, then signs out', (tester) async {
+      clock = () => DateTime.utc(2026, 10, 1, 7);
+      addTearDown(() => clock = DateTime.now);
+      final log = <String>[];
+      await start(tester, {'lang': 'en', 'token': 't'}, school(log: log, more: {'/auth/sign-out-everywhere': {'signedOut': true}}));
+      await tester.tap(find.text('Account'));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Sign out of all devices'));
+      await tester.tap(find.text('Sign out of all devices'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Stay signed in'));
+      await tester.pumpAndSettle();
+      expect(log.where((l) => l.contains('sign-out-everywhere')), isEmpty);
+      expect(find.text('Sign out of all devices'), findsOneWidget); // still on the Account screen
+      await tester.tap(find.text('Sign out of all devices'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Yes, sign out everywhere'));
+      await tester.pumpAndSettle();
+      expect(log.where((l) => l.startsWith('POST /auth/sign-out-everywhere')), hasLength(1));
+      expect(push.stopped, 1);
+      expect(find.text('Sign in'), findsWidgets);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('stays signed in, and says so, when the server could not sign the other devices out', (tester) async {
+      clock = () => DateTime.utc(2026, 10, 1, 7);
+      addTearDown(() => clock = DateTime.now);
+      await start(tester, {'lang': 'en', 'token': 't'}, school()); // this server has no such route
+      await tester.tap(find.text('Account'));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Sign out of all devices'));
+      await tester.tap(find.text('Sign out of all devices'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Yes, sign out everywhere'));
+      await tester.pumpAndSettle();
+      expect(find.text('Sign in'), findsNothing);
+      expect(find.text('Not found'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+    });
+
     testWidgets('a push that arrives while the app is open refreshes what it shows', (tester) async {
       clock = () => DateTime.utc(2026, 10, 1, 7);
       addTearDown(() => clock = DateTime.now);

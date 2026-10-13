@@ -401,6 +401,10 @@ class S {
   String get language => _('Language', 'اللغة');
   String get langName => _('English', 'العربية');
   String get signOut => _('Sign out', 'تسجيل الخروج');
+  String get signOutAll => _('Sign out of all devices', 'تسجيل الخروج من جميع الأجهزة');
+  String get signOutAllAsk => _('You will be signed out of every device where you are signed in, including this one. You can sign in again at any time.', 'سيتم تسجيل خروجكم من كل جهاز سجّلتم الدخول منه، بما في ذلك هذا الجهاز. ويمكنكم تسجيل الدخول مجددًا في أي وقت.');
+  String get staySignedIn => _('Stay signed in', 'البقاء متصلين');
+  String get yesSignOutAll => _('Yes, sign out everywhere', 'نعم، تسجيل الخروج من الجميع');
   String get newMobileSub => _('We will send a WhatsApp code to the new number.', 'سنرسل رمز تأكيد عبر واتساب إلى الرقم الجديد.');
   String get newMobile => _('New mobile number', 'رقم الهاتف الجديد');
   String get confirm => _('Confirm', 'تأكيد');

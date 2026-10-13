@@ -103,7 +103,7 @@ const OWNER_NAV: { group: NavKey; items: NavItem[] }[] = [
 ];
 
 export function Shell({ children }: { children: ReactNode }) {
-  const { me, logout } = useSession();
+  const { me, logout, logoutEverywhere } = useSession();
   const { t, lang, staff } = useI18n();
   const pathname = usePathname();
   const router = useRouter();
@@ -174,6 +174,7 @@ export function Shell({ children }: { children: ReactNode }) {
           </div>
           <LangSwitch />
           <button type="button" className="signout" onClick={logout}>{t.shell.signOut}</button>
+          <button type="button" className="signout" onClick={() => confirm(t.shell.signOutAllConfirm) && void logoutEverywhere()}>{t.shell.signOutAll}</button>
         </div>
       </aside>
       <main className="main">

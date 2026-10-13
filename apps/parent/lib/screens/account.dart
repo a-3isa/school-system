@@ -20,6 +20,8 @@ class AccountTab extends StatefulWidget {
 class _AccountTabState extends State<AccountTab> {
   late String? _phone = widget.me['phone'] as String?;
   late bool _checked = widget.me['phoneVerifiedAt'] != null;
+  String? _error;
+  bool _busy = false;
 
   Future<void> _changeMobile() async {
     final phone = await Navigator.of(context).push<String>(MaterialPageRoute(builder: (_) => ChangeMobile(api: widget.api)));
@@ -28,6 +30,34 @@ class _AccountTabState extends State<AccountTab> {
         _phone = phone;
         _checked = true;
       });
+    }
+  }
+
+  Future<void> _signOutEverywhere() async {
+    final s = S.of(context);
+    final sure = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        content: Text(s.signOutAllAsk),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: Text(s.staySignedIn)),
+          TextButton(onPressed: () => Navigator.of(ctx).pop(true), child: Text(s.yesSignOutAll)),
+        ],
+      ),
+    );
+    if (sure != true || !mounted) return;
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      await widget.api.signOutEverywhere();
+      widget.onSignOut();
+    } catch (e) {
+      // Stay signed in: saying "signed out" when the other devices were not would be untrue.
+      if (mounted) setState(() => _error = s.apiError(e));
+    } finally {
+      if (mounted) setState(() => _busy = false);
     }
   }
 
@@ -82,10 +112,16 @@ class _AccountTabState extends State<AccountTab> {
               ),
               const Spacer(),
               const SizedBox(height: 24),
+              if (_error != null) Padding(padding: const EdgeInsets.only(bottom: 10), child: Text(_error!, style: TextStyle(color: c.aFg, fontSize: 14))),
               OutlinedButton(
                 onPressed: widget.onSignOut,
                 style: OutlinedButton.styleFrom(foregroundColor: c.aFg),
                 child: Text(s.signOut),
+              ),
+              const SizedBox(height: 8),
+              OutlinedButton(
+                onPressed: _busy ? null : _signOutEverywhere,
+                child: Text(s.signOutAll),
               ),
             ]),
           ),

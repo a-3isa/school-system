@@ -1,7 +1,7 @@
 'use client';
 import { createContext, ReactNode, useContext, useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { api, getToken, setToken } from './api';
+import { api, getToken, post, setToken } from './api';
 import { useI18n } from './i18n';
 
 export interface Me {
@@ -29,7 +29,7 @@ export function has(me: Pick<Me, 'modules' | 'features'>, module: string, featur
   return me.modules.includes(module) && (!feature || !!me.features?.[module]?.[feature]);
 }
 
-const SessionContext = createContext<{ me: Me; refresh: () => Promise<void>; logout: () => void } | null>(null);
+const SessionContext = createContext<{ me: Me; refresh: () => Promise<void>; logout: () => void; logoutEverywhere: () => Promise<void> } | null>(null);
 
 export function useSession() {
   const s = useContext(SessionContext);
@@ -79,6 +79,15 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     router.replace('/login');
   };
 
+  /** Ends every sign-in this person has, on every device, then signs this one out too. */
+  const logoutEverywhere = async () => {
+    try {
+      await post('/auth/sign-out-everywhere');
+    } finally {
+      logout();
+    }
+  };
+
   if (!me) return <div className="loading">{t.common.loading}</div>;
-  return <SessionContext.Provider value={{ me, refresh, logout }}>{children}</SessionContext.Provider>;
+  return <SessionContext.Provider value={{ me, refresh, logout, logoutEverywhere }}>{children}</SessionContext.Provider>;
 }
