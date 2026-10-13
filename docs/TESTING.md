@@ -96,6 +96,7 @@ npm test -w apps/api                          # API unit tests
 npm run test:e2e -w apps/api                  # API tests against school_test
 #   If your database user isn't school:school, point the tests at it first:
 #   TEST_DATABASE_URL=postgresql://USER:PASSWORD@localhost:5432/school_test
+npm test -w apps/web                          # dashboard tests (words in both languages, set-up guide, copy week…)
 npm run build -w apps/web                     # the dashboard compiles
 cd apps/parent && flutter analyze && flutter test && cd ../..
 ```
@@ -109,6 +110,8 @@ npx prisma migrate diff --from-migrations prisma/migrations --to-schema-datamode
 ```
 
 It should say “No difference detected.” Anything else means a migration is missing.
+
+The gateway firmware's logic (what it keeps of what it hears) is tested on a computer, with no board: `cd firmware/gateway && pio test -e native`. CI runs it before building the firmware. This needs PlatformIO and a C++ compiler on your computer.
 
 Everything should pass. If a test fails, keep its output and send it over.
 
