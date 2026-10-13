@@ -1354,3 +1354,14 @@ model EventPhoto {
 
   @@index([eventId])
 }
+
+// A wrong password at sign-in, kept briefly so every server counts the same tries.
+// key is "address|account" or just the account.
+model LoginFailure {
+  id  String   @id @default(cuid())
+  key String
+  at  DateTime @default(now())
+
+  @@index([key, at])
+  @@index([at])
+}

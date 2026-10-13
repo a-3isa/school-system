@@ -98,4 +98,17 @@ describe('Sign-in hardening (e2e)', () => {
     expect(res.headers['cross-origin-resource-policy']).toBe('cross-origin');
     expect(res.headers['x-powered-by']).toBeUndefined();
   });
+
+  it('counts wrong passwords across servers, so a guesser cannot spread the tries', async () => {
+    const second = await startApp();
+    try {
+      const wrong = (a: INestApplication) => request(a.getHttpServer()).post('/api/auth/login').send({ login: 'spread@sec.eg', password: 'nope' });
+      for (let i = 0; i < 10; i++) await wrong(i % 2 ? second : app).expect(401);
+      const blocked = await wrong(second).expect(429);
+      expect(blocked.body.message).toMatch(/^Too many wrong passwords\. Try again in \d+ minutes?\.$/);
+      await wrong(app).expect(429);
+    } finally {
+      await second.close();
+    }
+  });
 });

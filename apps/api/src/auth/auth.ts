@@ -10,7 +10,7 @@ import { AuditService } from '../audit/audit';
 import { isModuleKey, ModuleKey, MODULES, visibleFeatures } from '../platform/registry';
 import { AuthUser, CurrentUser, Public, Roles } from './auth.decorators';
 import { EmailService } from './email';
-import { LoginThrottle } from './login-throttle';
+import { LoginThrottleService } from './login-throttle';
 import { WhatsAppService } from './whatsapp';
 
 const PHONE = /^\+\d{8,15}$/;
@@ -108,6 +108,7 @@ export class AuthService {
     private readonly whatsapp: WhatsAppService,
     private readonly notifications: NotificationsService,
     private readonly audit: AuditService,
+    private readonly throttle: LoginThrottleService,
   ) {}
 
   private async issue(user: { id: string; schoolId: string | null; role: string; name: string }) {
@@ -116,18 +117,16 @@ export class AuthService {
   }
 
   /** Everyone signs in with their email and password. */
-  private readonly throttle = new LoginThrottle();
-
   async login(login: string, password: string, address = 'unknown') {
     const email = login.trim().toLowerCase();
-    this.throttle.check(email, address);
+    await this.throttle.check(email, address);
     const user = await this.prisma.user.findFirst({ where: { email, active: true } });
     const ok = user?.passwordHash ? await bcrypt.compare(password, user.passwordHash) : false;
     if (!user || !ok) {
-      this.throttle.fail(email, address);
+      await this.throttle.fail(email, address);
       throw new UnauthorizedException('Wrong email or password.');
     }
-    this.throttle.succeed(email, address);
+    await this.throttle.succeed(email, address);
     return this.issue(user);
   }
 
@@ -434,7 +433,7 @@ export class AuthController {
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, EmailService, WhatsAppService],
+  providers: [AuthService, EmailService, WhatsAppService, LoginThrottleService],
   exports: [EmailService, WhatsAppService],
 })
 export class AuthModule {}
