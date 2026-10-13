@@ -77,6 +77,41 @@ describe('Sign-in hardening (e2e)', () => {
     expect(await status(reset.body.token)).toBe(200); // the new sign-in from the reset itself
   });
 
+  it('ends every sign-in at once, the one asking included, with no wait for the next second', async () => {
+    await admin.post('/api/staff', { name: 'Sami', role: 'SOCIAL_WORKER', email: 'sami@sec.eg', password: 'worker-pass-1' }).expect(201);
+    const first = await signIn('sami@sec.eg', 'worker-pass-1');
+    const second = await signIn('sami@sec.eg', 'worker-pass-1'); // another device, in the same second
+    expect(await status(second.token)).toBe(200);
+    await client(app, first.token).post('/api/auth/sign-out-everywhere').expect(201);
+    expect(await status(first.token)).toBe(401);
+    expect(await status(second.token)).toBe(401);
+    expect(await status((await signIn('sami@sec.eg', 'worker-pass-1')).token)).toBe(200);
+  });
+
+  it('ends a sign-in made a moment before a password reset, and keeps the one the reset gives', async () => {
+    const before = await signIn('hala@sec.eg', 'teacher-pass-3');
+    await http().post('/api/auth/password/forgot').send({ email: 'hala@sec.eg' }).expect(201);
+    const code = app.get(EmailService).last('hala@sec.eg')!.text.match(/\b(\d{6})\b/)![1];
+    const reset = await http().post('/api/auth/password/reset').send({ email: 'hala@sec.eg', code, password: 'teacher-pass-4' }).expect(201);
+    expect(await status(before.token)).toBe(401);
+    expect(await status(reset.body.token)).toBe(200);
+  });
+
+  it('refuses a staff sign-in older than 7 days whatever expiry it carries, and a parent’s older than 30', async () => {
+    await admin.post('/api/staff', { name: 'Lina', role: 'TEACHER', email: 'lina@sec.eg', password: 'teacher-pass-1' }).expect(201);
+    await admin.post('/api/students', { ...(await kid(admin)), code: 'SEC2', firstName: 'Omar', lastName: 'Fahmy', parent: { relation: 'FATHER', name: 'Hany', email: 'hany@sec.eg' } }).expect(201);
+    await prisma.user.update({ where: { email: 'hany@sec.eg' }, data: { passwordHash: await bcrypt.hash('parent-pass-1', 10) } });
+    // Signed in n days ago, under the old rule of 30 days for everyone.
+    const aged = async (email: string, daysAgo: number) => {
+      const u = await prisma.user.findUniqueOrThrow({ where: { email } });
+      return app.get(JwtService).signAsync({ sub: u.id, schoolId: u.schoolId, role: u.role, iat: Math.floor(Date.now() / 1000) - daysAgo * 86400 }, { expiresIn: '30d' });
+    };
+    expect(await status(await aged('lina@sec.eg', 6))).toBe(200);
+    expect(await status(await aged('lina@sec.eg', 8))).toBe(401);
+    expect(await status(await aged('hany@sec.eg', 20))).toBe(200);
+    expect(await status(await aged('hany@sec.eg', 31))).toBe(401);
+  });
+
   it('stops a parent’s phones ringing when they sign out of all devices, or reset their password', async () => {
     const phone = (n: number) => ({ token: `fcm-token-sec-${n}-`.padEnd(40, 'x'), platform: 'android', lang: 'en' });
     const parent = await signIn('dalia@sec.eg', 'parent-pass-1');

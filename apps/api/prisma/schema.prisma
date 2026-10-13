@@ -176,8 +176,9 @@ model User {
   phoneVerifiedAt DateTime?
   // When the email was proved by a code sent to it (parents sign up in the app).
   emailVerifiedAt DateTime?
-  // Sign-ins issued before this moment no longer work ("sign out of all devices", a new password).
-  sessionsValidAfter DateTime?
+  // Counts the times every sign-in was ended ("sign out of all devices", a new password). A sign-in carries the
+  // number it was made under and stops working when the person's number moves on.
+  sessionVersion Int @default(0)
   createdAt    DateTime @default(now())
 
   school      School?           @relation(fields: [schoolId], references: [id], onDelete: Cascade)

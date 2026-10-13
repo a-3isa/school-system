@@ -27,8 +27,8 @@ export class ChatGateway implements OnGatewayConnection {
     try {
       const token = client.handshake.auth?.token;
       if (typeof token !== 'string' || !token) throw new Error('no token');
-      const { sub, iat } = await this.jwt.verifyAsync<{ sub: string; iat?: number }>(token);
-      const user = await loadActiveUser(this.prisma, sub, iat);
+      const claims = await this.jwt.verifyAsync<{ sub: string; iat?: number; sv?: number }>(token);
+      const user = await loadActiveUser(this.prisma, claims);
       if (!user?.schoolId || !(await schoolHas(this.prisma, user.schoolId, 'messaging', 'chat'))) throw new Error('not allowed');
       await client.join(room(user.id));
     } catch (e) {

@@ -110,7 +110,7 @@ export class StaffController {
         active: dto.active,
         passwordHash: dto.password ? await hashPassword(dto.password) : undefined,
         // A new password, or switching the account off, ends the person's sign-ins everywhere.
-        sessionsValidAfter: dto.password || dto.active === false ? new Date() : undefined,
+        sessionVersion: dto.password || dto.active === false ? { increment: 1 } : undefined,
       },
       select: publicUser,
     });
