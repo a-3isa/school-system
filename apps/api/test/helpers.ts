@@ -8,6 +8,8 @@ import { PrismaClient, Role } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
+import { dbDate, isoDate, weekday } from '../src/common/dates';
+import { localParts, zonedTime } from '../src/common/time';
 import { configureApp } from '../src/main';
 
 export type Client = ReturnType<typeof client>;
@@ -67,3 +69,41 @@ export async function kid(c: { upload: Client['upload'] }) {
   for (const kind of ['PHOTO', 'BIRTH_CERTIFICATE']) files.push((await c.upload('/api/students/files', { kind }, PNG).expect(201)).body.id);
   return { ...KID, files };
 }
+
+// ---- dates -------------------------------------------------------------------
+// Suites must pass on any day and at any hour, so none of them names a calendar date: they
+// ask for a week that lies ahead of the real clock, or one that is already over.
+
+const DAY_MS = 86_400_000;
+
+/** A date (YYYY-MM-DD) `n` days after another; `n` may be negative. */
+export const addDays = (date: string, n: number) => isoDate(new Date(dbDate(date).getTime() + n * DAY_MS));
+
+/** Today's date in Cairo. */
+export const todayCairo = () => localParts(new Date(), 'Africa/Cairo').date;
+
+/** The instant a Cairo wall-clock time falls on (daylight saving included), as an ISO string. */
+export const cairoAt = (date: string, hhmm: string) => zonedTime(date, hhmm, 'Africa/Cairo').toISOString();
+
+/**
+ * A school week, Sunday to Saturday, that starts on the first Sunday at least `daysAhead`
+ * days from today in Cairo. Sunday to Thursday are school days; Friday and Saturday are not.
+ */
+export function schoolWeek(daysAhead = 60) {
+  const from = addDays(todayCairo(), daysAhead);
+  const sun = addDays(from, (7 - weekday(from)) % 7);
+  return { sun, mon: addDays(sun, 1), tue: addDays(sun, 2), wed: addDays(sun, 3), thu: addDays(sun, 4), fri: addDays(sun, 5), sat: addDays(sun, 6) };
+}
+
+/** A Sunday between 7 and 13 days ago. */
+export function pastSunday() {
+  const back = addDays(todayCairo(), -7);
+  return addDays(back, -weekday(back));
+}
+
+/** One school year that covers every date a suite uses: from 2025 to 50 years from now. */
+export function wideYear(extra: object = {}) {
+  const end = addDays(todayCairo(), 365 * 50);
+  return { name: `2025/${end.slice(0, 4)}`, startsOn: '2025-01-01', endsOn: end, ...extra };
+}
+

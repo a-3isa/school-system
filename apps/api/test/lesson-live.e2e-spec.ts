@@ -7,10 +7,18 @@ import { AttendanceEvaluator } from '../src/devices/evaluator';
 
 const MIN = 60_000;
 
+const now = Date.now();
+const start = new Date(now - 15 * MIN);
+const end = new Date(now + 30 * MIN);
+const local = localParts(start, 'Africa/Cairo');
+// The lesson must not cross midnight in Cairo. Everything here, from Karim's arrival an hour ago to the
+// end of the lesson, must be on one Cairo day. Near midnight the suite is skipped, and the run says so.
+const fits = local.date === localParts(end, 'Africa/Cairo').date && local.date === localParts(new Date(now - 60 * MIN), 'Africa/Cairo').date;
+
 // A lesson that started 15 minutes ago and ends in 30 (Cairo time). The
 // teacher signs in and sees it; the parents of a child who came in through the
 // gate but isn't in the room hear about it at once.
-describe('The lesson happening now (e2e)', () => {
+(fits ? describe : describe.skip)('The lesson happening now (e2e)', () => {
   let app: INestApplication;
   const prisma = new PrismaClient();
   let admin: Client, teacher: Client, salmaParent: Client, omarParent: Client, karimParent: Client;
@@ -18,20 +26,12 @@ describe('The lesson happening now (e2e)', () => {
   const gw: Record<string, { serial: string; secret: string }> = {};
   const ids: Record<string, string> = {};
   const mac = (n: number) => `DC:0D:30:00:02:${String(n).padStart(2, '0')}`;
-  const now = Date.now();
-  const start = new Date(now - 15 * MIN);
-  const end = new Date(now + 30 * MIN);
-  const local = localParts(start, 'Africa/Cairo');
-  // The lesson must not cross midnight in Cairo.
-  // Everything here, from Karim's arrival an hour ago to the end of the lesson, must be on one Cairo day.
-  const fits = local.date === localParts(end, 'Africa/Cairo').date && local.date === localParts(new Date(now - 60 * MIN), 'Africa/Cairo').date;
   const send = (key: string, sightings: object[]) =>
     request(app.getHttpServer()).post('/api/gateway/sightings').auth(gw[key].serial, gw[key].secret).send({ sightings }).expect(200);
   const titles = async (c: Client) => (await c.get('/api/notifications').expect(200)).body.map((n: any) => n.title);
 
   beforeAll(async () => {
     app = await startApp();
-    if (!fits) return;
     const owner = await ownerClient(app, prisma, 'live');
     schoolId = (await owner.post('/api/owner/schools', { name: 'Live School', plan: 'SMART', admin: { name: 'Admin', email: 'admin@live.eg', password: 'admin-pass' } }).expect(201)).body.id;
     admin = await login(app, 'admin@live.eg', 'admin-pass');
@@ -78,13 +78,11 @@ describe('The lesson happening now (e2e)', () => {
   });
 
   it('opens on the teacher’s lesson right now', async () => {
-    if (!fits) return;
     const res = await teacher.get('/api/attendance/now').expect(200);
     expect(res.body.now).toEqual(expect.objectContaining({ classId, periodId, subject: 'Math', room: 'Room 204' }));
   });
 
   it('shows the teacher who is in the room and where the others are', async () => {
-    if (!fits) return;
     const res = await teacher.get(`/api/attendance/classes/${classId}/periods/${periodId}?date=${local.date}`).expect(200);
     expect(res.body.lessonState).toBe('now');
     expect(res.body.gatewayWorking).toBe(true);
@@ -96,7 +94,6 @@ describe('The lesson happening now (e2e)', () => {
   });
 
   it('tells the parents of a child at school but not in the lesson, once', async () => {
-    if (!fits) return;
     const evaluator = app.get(AttendanceEvaluator);
     const school = await prisma.school.findUniqueOrThrow({ where: { id: schoolId } });
     await evaluator.evaluateSchool(school, new Date());
@@ -113,7 +110,6 @@ describe('The lesson happening now (e2e)', () => {
   });
 
   it('lets the teacher mark a child present, which tells the parents again', async () => {
-    if (!fits) return;
     await teacher
       .put(`/api/attendance/classes/${classId}/periods/${periodId}`, {
         date: local.date,
