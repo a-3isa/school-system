@@ -464,6 +464,10 @@ export const en = {
     loudest: 'A band detected by several readers is placed with the strongest signal, so classrooms do not count students through the wall.',
     saveRules: 'Save settings', rulesSaved: 'Detection settings saved',
   },
+  moduleNames: {
+    core: 'Core', attendance: 'Attendance', transport: 'Transport', canteen: 'Canteen & wallet', payments: 'Payments & fees', activities: 'Activities & clubs',
+    academics: 'Academics', homework: 'Homework', behavior: 'Behaviour & notes', messaging: 'Messaging', admissions: 'Admissions', reports: 'Reports & analytics',
+  } as Record<string, string>,
   modules: {
     sub: 'How this school uses the platform', auto: 'Automatic attendance (smart bands)', inSub: 'In your subscription', notInSub: 'Not in your subscription',
     autoOn: 'The register fills itself from the smart bands. Teachers only correct a forgotten band.', autoOff: 'Teachers take the register on the classroom PC.',
@@ -1001,6 +1005,10 @@ export const ar: Dict = {
     rGate: 'المسافة من جهاز البوابة', rRoom: 'المسافة من جهاز الفصل', rSignalHelp: 'قوة الإشارة اللازمة لاحتساب السوار. كلما اقتربت من الصفر كانت المسافة أقرب.',
     loudest: 'السوار الذي ترصده عدة أجهزة يُنسب إلى أقواها إشارة، فلا يُحتسب الطالب في فصل مجاور من خلف الجدار.',
     saveRules: 'حفظ الإعدادات', rulesSaved: 'تم حفظ إعدادات الرصد',
+  },
+  moduleNames: {
+    core: 'الخدمات الأساسية', attendance: 'الحضور', transport: 'النقل المدرسي', canteen: 'المقصف والمحفظة', payments: 'المدفوعات والرسوم', activities: 'الأنشطة والأندية',
+    academics: 'الشؤون الأكاديمية', homework: 'الواجبات المنزلية', behavior: 'السلوك والملاحظات', messaging: 'المراسلات', admissions: 'القبول والتسجيل', reports: 'التقارير والتحليلات',
   },
   modules: {
     sub: 'كيف تستخدم المدرسة المنصة', auto: 'الحضور التلقائي (الأساور الذكية)', inSub: 'ضمن اشتراكك', notInSub: 'ليس ضمن اشتراكك',

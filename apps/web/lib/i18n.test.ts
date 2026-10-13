@@ -67,9 +67,33 @@ describe('serverTextAr, sentences with a number or a name in them', () => {
     expect(serverTextAr('fromDate must look like 2026-09-30')).toBe('يجب كتابة «fromDate» بصيغة مثل 2026-09-30.');
   });
 
-  it('says a switched-off service with or without the school', () => {
-    expect(serverTextAr('Messaging isn’t switched on for this school.')).toBe('خدمة «Messaging» غير مفعّلة لهذه المدرسة.');
-    expect(serverTextAr('Messaging isn’t switched on.')).toBe('خدمة «Messaging» غير مفعّلة.');
+  it('says a switched-off service with or without the school, by its Arabic name', () => {
+    expect(serverTextAr('Messaging isn’t switched on for this school.')).toBe('خدمة «المراسلات» غير مفعّلة لهذه المدرسة.');
+    expect(serverTextAr('Messaging isn’t switched on.')).toBe('خدمة «المراسلات» غير مفعّلة.');
+    expect(serverTextAr('Transport isn’t available yet.')).toBe('خدمة «النقل المدرسي» غير متاحة بعد.');
+    expect(serverTextAr('Turn off Canteen & wallet first. It needs Payments & fees.')).toBe('يُرجى إيقاف خدمة «المقصف والمحفظة» أولًا، فهي تحتاج إلى خدمة «المدفوعات والرسوم».');
+  });
+
+  it('says the body of a parent’s excuse, a meeting and an early departure for staff', () => {
+    expect(serverTextAr('Salma Gamal (4-A): sick, 2026-10-01.')).toBe('Salma Gamal (4-A): مرض، 2026-10-01.');
+    expect(serverTextAr('Salma Gamal: family, 2026-10-01 to 2026-10-03. “Travelling”')).toBe('Salma Gamal: ظرف عائلي، من 2026-10-01 إلى 2026-10-03. “Travelling”');
+    expect(serverTextAr('Salma Gamal (4-A): appointment, 2026-10-01.')).toBe('Salma Gamal (4-A): موعد، 2026-10-01.');
+    expect(serverTextAr('2026-10-20 at 14:20, Room A.')).toBe('يوم 2026-10-20 الساعة 14:20، Room A.');
+    expect(serverTextAr('2026-10-20 at 14:20, Room 2.1. “About the trip”')).toBe('يوم 2026-10-20 الساعة 14:20، Room 2.1. “About the trip”');
+    expect(serverTextAr('The time is free again.')).toBe('أصبح هذا الموعد متاحًا من جديد.');
+    expect(serverTextAr('Salma Gamal left early')).toBe('انصراف مبكر: Salma Gamal');
+    expect(serverTextAr('Went out through the gate at 10:15 without a dismissal.')).toBe('انصراف من البوابة الساعة 10:15 دون إذن انصراف.');
+    expect(serverTextAr('New message from Dina Farouk about Salma')).toBe('رسالة جديدة من Dina Farouk بخصوص Salma');
+  });
+
+  it('says the urgent absence, in both of its forms, without guessing anyone’s gender', () => {
+    const call = 'Call the parents to find out where Salma is: Dina +201005550192, Amr.';
+    expect(serverTextAr(`Salma Gamal (4-A) didn’t come to school and the parents said they don’t know where the child is. ${call}`)).toBe(
+      'Salma Gamal (4-A): غياب عن المدرسة، وأفاد أولياء الأمور بأنهم لا يعلمون مكان وجود الطالب. يُرجى الاتصال بأولياء الأمور لمعرفة مكان وجود Salma: Dina +201005550192, Amr.',
+    );
+    expect(serverTextAr('Salma Gamal didn’t come to school and the parents didn’t answer within 30 minutes. Call the parents to find out where Salma is: no number on file.')).toBe(
+      'Salma Gamal: غياب عن المدرسة، ولم يرد أولياء الأمور خلال 30 دقيقة. يُرجى الاتصال بأولياء الأمور لمعرفة مكان وجود Salma: لا يوجد رقم مسجّل.',
+    );
   });
 
   it('says what staff read in their notifications on Today, without guessing anyone’s gender', () => {

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { apiModuleNames } from './serverMessages';
 import { ar, en } from './strings';
 
 type Tree = { [key: string]: unknown };
@@ -36,6 +37,16 @@ describe('the dashboard’s words', () => {
       .filter((p) => (at(ar, p.path) as (...a: unknown[]) => unknown).length !== (p.node as (...a: unknown[]) => unknown).length)
       .map((p) => p.path);
     expect(different).toEqual([]);
+  });
+
+  it('names every module the API has, in both languages', () => {
+    const api = apiModuleNames();
+    expect(Object.keys(api).length).toBeGreaterThan(8);
+    for (const [key, name] of Object.entries(api)) {
+      expect(en.moduleNames[key], key).toBe(name);
+      expect(ar.moduleNames[key], key).toMatch(/[؀-ۿ]/);
+    }
+    expect(Object.keys(en.moduleNames).sort()).toEqual(Object.keys(api).sort());
   });
 
   it('has lists of the same length (weekdays, months)', () => {

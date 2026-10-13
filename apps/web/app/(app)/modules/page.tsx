@@ -110,9 +110,9 @@ export default function ModulesPage() {
       {modules.data?.map((m) => {
         const features = Object.entries(m.features as Record<string, boolean>).filter(([f]) => !(m.key === 'attendance' && f === 'automatic'));
         return (
-          <Section key={m.key} title={m.name} aside={m.key === 'core' ? t.modules.alwaysOn : m.enabled ? `✓ ${t.modules.inPlan}` : t.modules.notInPlan}>
+          <Section key={m.key} title={t.moduleNames[m.key] ?? m.name} aside={m.key === 'core' ? t.modules.alwaysOn : m.enabled ? `✓ ${t.modules.inPlan}` : t.modules.notInPlan}>
             <div className="panel" style={{ opacity: m.enabled ? 1 : 0.6 }}>
-              {m.requires.length > 0 && <div className="settings-row"><span><span>{t.modules.needs(m.requires.join(', '))}</span></span></div>}
+              {m.requires.length > 0 && <div className="settings-row"><span><span>{t.modules.needs(m.requires.map((k: string) => t.moduleNames[k] ?? k).join(t.tt.listSep))}</span></span></div>}
               {features.map(([f, on]) => (
                 <div key={f} className="settings-row">
                   <span><b>{feature(f)}</b></span>

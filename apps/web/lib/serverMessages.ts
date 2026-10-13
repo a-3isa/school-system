@@ -146,3 +146,12 @@ export function fillings(text: string): string[] {
   }
   return out;
 }
+
+/** The module names the API sends, by module key, read from its registry. */
+export function apiModuleNames(): Record<string, string> {
+  const src = readFileSync(join(API_SRC, 'platform', 'registry.ts'), 'utf8');
+  const names: Record<string, string> = {};
+  for (const m of src.matchAll(/key: '(\w+)',\s*name: '([^']+)'/g)) names[m[1]] = m[2];
+  return names;
+}
+

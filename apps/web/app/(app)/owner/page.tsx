@@ -113,8 +113,8 @@ export default function OwnerPage() {
               {modules.data?.map((m) => (
                 <div key={m.key}>
                   <div className="settings-row">
-                    <span><b>{m.name}</b></span>
-                    {m.key === 'core' ? <Pill tone="N">{t.modules.alwaysOn}</Pill> : <Switch on={m.enabled} label={m.name} disabled={act.busy} onChange={(v) => toggle(m.key, v)} />}
+                    <span><b>{t.moduleNames[m.key] ?? m.name}</b></span>
+                    {m.key === 'core' ? <Pill tone="N">{t.modules.alwaysOn}</Pill> : <Switch on={m.enabled} label={t.moduleNames[m.key] ?? m.name} disabled={act.busy} onChange={(v) => toggle(m.key, v)} />}
                   </div>
                   {m.key === 'attendance' && m.enabled && (
                     <div className="settings-row" style={{ paddingInlineStart: 36 }}>

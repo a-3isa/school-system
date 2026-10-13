@@ -25,6 +25,12 @@ export function isolateLatin(s: string): string {
  * Arabic, the known sentences are said again in Arabic; anything else is shown
  * as it came.
  */
+/** A module's name, as the API writes it, in Arabic (the English one if it is not a module we know). */
+const moduleAr = (name: string): string => {
+  const key = Object.keys(en.moduleNames).find((k) => en.moduleNames[k] === name);
+  return key ? ar.moduleNames[key] : name;
+};
+
 const SERVER_AR: [RegExp, (...m: string[]) => string][] = [
   [/^(.+) came in at (\d\d:\d\d) but hasn’t been in (\S+) (.+) in (.+) \(period (\d+)\)\.$/, (_, n, at, c, sub, room, p) => `${n}: وصول إلى المدرسة الساعة ${at}، دون حضور حصة ${sub} لفصل ${c} في ${room} (الحصة ${p}).`],
   [/^(.+) was in (\S+) (.+) \(period (\d+)\) for only (\d+)% of the lesson\.$/, (_, n, c, sub, p, pct) => `${n}: حضور ${pct}% فقط من حصة ${sub} لفصل ${c} (الحصة ${p}).`],
@@ -38,8 +44,8 @@ const SERVER_AR: [RegExp, (...m: string[]) => string][] = [
   [/^(.+) verified their mobile number, (\+\d+), (when signing up in the app|in the app)\.$/, (_, n, ph, how) => `${n}: تأكيد رقم الهاتف ${ph} ${how === 'in the app' ? 'من التطبيق' : 'عند التسجيل في التطبيق'}.`],
   [/^This isn’t part of this school’s subscription\.$/, () => 'هذه الخدمة ليست ضمن اشتراك المدرسة.'],
   [/^This comes with the subscription\. Ask the platform owner\.$/, () => 'هذه الخدمة جزء من الاشتراك. يُرجى التواصل مع مالك المنصة.'],
-  [/^(.+) isn’t switched on( for this school)?\.$/, (_, m, school) => `خدمة «${m}» غير مفعّلة${school ? ' لهذه المدرسة' : ''}.`],
-  [/^(.+) isn’t available yet\.$/, (_, m) => `خدمة «${m}» غير متاحة بعد.`],
+  [/^(.+) isn’t switched on( for this school)?\.$/, (_, m, school) => `خدمة «${moduleAr(m)}» غير مفعّلة${school ? ' لهذه المدرسة' : ''}.`],
+  [/^(.+) isn’t available yet\.$/, (_, m) => `خدمة «${moduleAr(m)}» غير متاحة بعد.`],
   [/^Choose at least one year group or class\.$/, () => 'يُرجى اختيار صف دراسي أو فصل واحد على الأقل.'],
   [/^Year group or class not found\.$/, () => 'لم يتم العثور على الصف الدراسي أو الفصل.'],
   // Messaging
@@ -342,7 +348,10 @@ const SERVER_AR: [RegExp, (...m: string[]) => string][] = [
   [/^One excuse can cover at most (\d+) days\.$/, (_, n) => `لا يغطي العذر الواحد أكثر من ${arN(+n, 'يوم واحد', 'يومين', 'أيام', 'يومًا')}.`],
   [/^There is no module called “(.+)”\.$/, (_, k) => `لا توجد خدمة باسم «${k}».`],
   [/^Unknown feature: (.+)\.$/, (_, f) => `ميزة غير معروفة: ${f}.`],
-  [/^Turn off (.+) first\. It needs (.+)\.$/, (_, a, b) => `يُرجى إيقاف خدمة «${a}» أولًا، فهي تحتاج إلى خدمة «${b}».`],
+  [/^Turn off (.+) first\. It needs (.+)\.$/, (_, a, b) => {
+    const off = a.split(' and ').map((n: string) => `«${moduleAr(n)}»`);
+    return `يُرجى إيقاف ${off.length === 1 ? 'خدمة' : 'الخدمات'} ${off.join(' و')} أولًا، فهي تحتاج إلى خدمة «${moduleAr(b)}».`;
+  }],
   [/^Overlaps period (\d+) \((.+)–(.+)\)\.$/, (_, n, from, to) => `تتداخل مع الحصة ${n} (من ${from} إلى ${to}).`],
   [/^It overlaps the year (.+)\.$/, (_, name) => `يتداخل مع العام الدراسي ${name}.`],
   [/^The year (.+) already exists\.$/, (_, name) => `العام الدراسي ${name} موجود بالفعل.`],
@@ -362,6 +371,14 @@ const SERVER_AR: [RegExp, (...m: string[]) => string][] = [
   [/^(.+) sent an excuse for (.+)$/, (_, parent, child) => `عذر غياب جديد من ${parent} عن ${child}`],
   [/^(.+) booked a meeting about (.+)$/, (_, parent, child) => `طلب حجز مقابلة من ${parent} بخصوص ${child}`],
   [/^(.+) cancelled the meeting on (.+) at (.+)$/, (_, parent, day, time) => `إلغاء مقابلة يوم ${day} الساعة ${time} من ${parent}`],
+  // The bodies of what staff are told: a parent's excuse, a meeting, an early departure, the urgent absence
+  [/^(.+?)(?: \((.+?)\))?: (sick|appointment|family|other), (\d{4}-\d{2}-\d{2})(?: to (\d{4}-\d{2}-\d{2}))?\.(?: (“.*”))?$/, (_, who, cls, why, from, to, note) => `${who}${cls ? ` (${cls})` : ''}: ${ar.excuses.reason[why.toUpperCase()]}، ${to ? `من ${from} إلى ${to}` : from}.${note ? ` ${note}` : ''}`],
+  [/^(\d{4}-\d{2}-\d{2}) at (\d\d:\d\d), (.*?)\.(?: (“.*”))?$/, (_, day, time, place, note) => `يوم ${day} الساعة ${time}، ${place}.${note ? ` ${note}` : ''}`],
+  [/^The time is free again\.$/, () => 'أصبح هذا الموعد متاحًا من جديد.'],
+  [/^(.+) left early$/, (_, who) => `انصراف مبكر: ${who}`],
+  [/^Went out through the gate at (\d\d:\d\d) without a dismissal\.$/, (_, at) => `انصراف من البوابة الساعة ${at} دون إذن انصراف.`],
+  [/^New message from (.+) about (.+)$/, (_, sender, child) => `رسالة جديدة من ${sender} بخصوص ${child}`],
+  [/^(.+?)(?: \((.+?)\))? didn’t come to school and the parents (said they don’t know where the child is|didn’t answer within (\d+) minutes)\. Call the parents to find out where (.+?) is: (.+)\.$/, (_, who, cls, _why, mins, first, calls) => `${who}${cls ? ` (${cls})` : ''}: غياب عن المدرسة، ${mins ? `ولم يرد أولياء الأمور خلال ${arN(+mins, 'دقيقة واحدة', 'دقيقتين', 'دقائق', 'دقيقة')}` : 'وأفاد أولياء الأمور بأنهم لا يعلمون مكان وجود الطالب'}. يُرجى الاتصال بأولياء الأمور لمعرفة مكان وجود ${first}: ${calls === 'no number on file' ? 'لا يوجد رقم مسجّل' : calls}.`],
 ];
 export function serverTextAr(s: string): string {
   for (const [re, f] of SERVER_AR) {
