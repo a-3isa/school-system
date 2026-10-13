@@ -78,7 +78,7 @@ export interface ServerMessage {
   text: string;
 }
 
-/** The first argument of `new XxxException(…)` and the conflict message of `mapPrismaError(e, …)`, plus fixed sentences kept in constants. */
+/** The first argument of `new XxxException(…)`, the conflict message of `mapPrismaError(e, …)`, the wording of form rules, and fixed sentences kept in constants. */
 export function serverMessages(): ServerMessage[] {
   const found: ServerMessage[] = [];
   for (const path of sourceFiles(API_SRC)) {
@@ -107,6 +107,12 @@ export function serverMessages(): ServerMessage[] {
       const args = balanced(src, m.index! + m[0].length - 1);
       const comma = args.indexOf(',');
       if (comma > 0) for (const text of literals(args.slice(comma + 1))) if (/ /.test(text)) found.push({ file, text });
+    }
+    // The wording of a rule on a form field: @IsEmail({}, { message: '…' }).
+    for (const m of src.matchAll(/@Is\w+\s*\(/g)) {
+      const args = balanced(src, m.index! + m[0].length - 1);
+      const at = args.indexOf('message:');
+      if (at >= 0) for (const text of literals(args.slice(at + 'message:'.length)).slice(0, 1)) found.push({ file, text });
     }
     for (const m of src.matchAll(/^(?:export )?const (?:[A-Z][A-Z_]+) = (['"`].*['"`]);$/gm)) {
       for (const text of literals(m[1])) if (/[.!?]$/.test(text)) found.push({ file, text });

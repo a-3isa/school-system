@@ -61,6 +61,12 @@ describe('serverTextAr, sentences with a number or a name in them', () => {
     expect(serverTextAr('Teacher not found in this school.')).toBe('لم يتم العثور على المعلم في هذه المدرسة.');
   });
 
+  it('says the rules on form fields', () => {
+    expect(serverTextAr('Enter a valid email address.')).toBe('أدخلوا عنوان بريد إلكتروني صحيحًا.');
+    expect(serverTextAr('startTime must look like 08:00')).toBe('يجب كتابة «startTime» بصيغة مثل 08:00.');
+    expect(serverTextAr('fromDate must look like 2026-09-30')).toBe('يجب كتابة «fromDate» بصيغة مثل 2026-09-30.');
+  });
+
   it('says a switched-off service with or without the school', () => {
     expect(serverTextAr('Messaging isn’t switched on for this school.')).toBe('خدمة «Messaging» غير مفعّلة لهذه المدرسة.');
     expect(serverTextAr('Messaging isn’t switched on.')).toBe('خدمة «Messaging» غير مفعّلة.');
