@@ -39,6 +39,7 @@ const SERVER_AR: [RegExp, (...m: string[]) => string][] = [
   [/^This isn’t part of this school’s subscription\.$/, () => 'هذه الخدمة ليست ضمن اشتراك المدرسة.'],
   [/^This comes with the subscription\. Ask the platform owner\.$/, () => 'هذه الخدمة جزء من الاشتراك. يُرجى التواصل مع مالك المنصة.'],
   [/^(.+) isn’t switched on for this school\.$/, (_, m) => `خدمة «${m}» غير مفعّلة لهذه المدرسة.`],
+  [/^(.+) isn’t available yet\.$/, (_, m) => `خدمة «${m}» غير متاحة بعد.`],
   [/^Choose at least one year group or class\.$/, () => 'يُرجى اختيار صف دراسي أو فصل واحد على الأقل.'],
   [/^Year group or class not found\.$/, () => 'لم يتم العثور على الصف الدراسي أو الفصل.'],
   // Messaging

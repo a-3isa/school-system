@@ -56,6 +56,7 @@ This describes every part that exists in the code today. Phase 1 is attendance. 
   - **Essentials:** core, attendance and messaging
   - **Smart:** adds transport, canteen and payments
   - **Complete:** everything
+  - Only the modules that are built can be switched on today: core, attendance, messaging, activities, academics and behaviour. Transport, canteen, payments, homework, admissions and reports are not listed anywhere yet, and the owner is told "… isn’t available yet" if they try. A plan switches on only what is built, so Smart and Complete give the same modules as Essentials plus whatever of theirs exists. The clinic switch inside Behaviour stays hidden until clinic visits are built.
   - Messaging comes in two sizes: **Essentials and Smart** get announcements and the emergency message; **Complete** adds parent–teacher chat, polls and meetings. Changing a school's plan sets these for it.
 - **Module switches:** turn any module on or off per school, and the features that come with the subscription: **automatic attendance (straps)** inside Attendance, and **chat, polls and meetings** inside Messaging. A school's own admin can't switch these; they see "In your subscription" or "Not in your subscription".
   - Other features (for example, trips or merit points) are the school's own to switch in **School settings**.

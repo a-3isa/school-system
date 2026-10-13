@@ -7,7 +7,7 @@ import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications';
 import { AuditService } from '../audit/audit';
-import { isModuleKey, MODULES } from '../platform/registry';
+import { isModuleKey, ModuleKey, MODULES, visibleFeatures } from '../platform/registry';
 import { AuthUser, CurrentUser, Public, Roles } from './auth.decorators';
 import { EmailService } from './email';
 import { LoginThrottle } from './login-throttle';
@@ -325,13 +325,12 @@ export class AuthService {
       },
     });
     const rows = auth.schoolId ? await this.prisma.schoolModule.findMany({ where: { schoolId: auth.schoolId, enabled: true } }) : [];
-    const modules = rows.map((m) => m.key);
+    // Only modules that are built, so screens never offer what doesn't exist yet.
+    const built = rows.filter((m) => isModuleKey(m.key) && MODULES[m.key].available);
+    const modules = built.map((m) => m.key);
     // Each enabled module's feature switches, so screens can hide what a school doesn't have.
     const features: Record<string, Record<string, boolean>> = {};
-    for (const m of rows) {
-      const def = isModuleKey(m.key) ? MODULES[m.key].features : {};
-      features[m.key] = { ...def, ...((m.features as Record<string, boolean> | null) ?? {}) };
-    }
+    for (const m of built) features[m.key] = visibleFeatures(m.key as ModuleKey, m.features as Record<string, boolean> | null);
     // The school subscribes to automatic attendance: straps, gateways and tracking.
     const straps = !!features.attendance?.automatic;
     const { school, ...rest } = user;

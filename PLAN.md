@@ -225,6 +225,8 @@ Every screen, tab and menu item appears **only if its module is enabled** for th
 
 Essentials lets a school start with no hardware and upgrade later without changing systems.
 
+Until a module is built it is not listed and cannot be switched on: Smart and Complete switch on only what exists. The table above is the commercial definition; `available` in `apps/api/src/platform/registry.ts` is what is built.
+
 ## 6. Build phases
 
 Each phase ends with something a school can use and pay for. Nothing gets rebuilt later.

@@ -23,33 +23,36 @@ export type ModuleKey = (typeof MODULE_KEYS)[number];
 export interface ModuleDefinition {
   key: ModuleKey;
   name: string;
+  // False while the module is not built yet: it is not listed and cannot be switched on.
+  available: boolean;
   requires: ModuleKey[];
   // Feature switches inside the module and their default values.
   features: Record<string, boolean>;
 }
 
 export const MODULES: Record<ModuleKey, ModuleDefinition> = {
-  core: { key: 'core', name: 'Core', requires: [], features: { excelImport: true } },
+  core: { key: 'core', name: 'Core', available: true, requires: [], features: { excelImport: true } },
   attendance: {
     key: 'attendance',
     name: 'Attendance',
+    available: true,
     requires: ['core'],
     // automatic = BLE gateways; off = manual marking on classroom PCs only.
     features: { automatic: false, leaveEarlyAlerts: true },
   },
-  transport: { key: 'transport', name: 'Transport', requires: ['core', 'attendance'], features: { liveMapForParents: true } },
-  canteen: { key: 'canteen', name: 'Canteen & wallet', requires: ['core', 'payments'], features: { parentalControls: true } },
-  payments: { key: 'payments', name: 'Payments & fees', requires: ['core'], features: { tuitionFees: false } },
+  transport: { key: 'transport', name: 'Transport', available: false, requires: ['core', 'attendance'], features: { liveMapForParents: true } },
+  canteen: { key: 'canteen', name: 'Canteen & wallet', available: false, requires: ['core', 'payments'], features: { parentalControls: true } },
+  payments: { key: 'payments', name: 'Payments & fees', available: false, requires: ['core'], features: { tuitionFees: false } },
   // Trips with permission slips and the events calendar belong to activities.
-  activities: { key: 'activities', name: 'Activities & clubs', requires: ['core'], features: { paidActivities: false, trips: true, events: true } },
-  academics: { key: 'academics', name: 'Academics', requires: ['core'], features: { reportCards: true } },
-  homework: { key: 'homework', name: 'Homework', requires: ['core', 'academics'], features: {} },
-  behavior: { key: 'behavior', name: 'Behaviour & notes', requires: ['core'], features: { clinic: true, merits: true } },
+  activities: { key: 'activities', name: 'Activities & clubs', available: true, requires: ['core'], features: { paidActivities: false, trips: true, events: true } },
+  academics: { key: 'academics', name: 'Academics', available: true, requires: ['core'], features: { reportCards: true } },
+  homework: { key: 'homework', name: 'Homework', available: false, requires: ['core', 'academics'], features: {} },
+  behavior: { key: 'behavior', name: 'Behaviour & notes', available: true, requires: ['core'], features: { clinic: true, merits: true } },
   // Announcements and the emergency broadcast are always part of messaging;
   // chat, polls and meetings come with the full Messaging of the Complete plan.
-  messaging: { key: 'messaging', name: 'Messaging', requires: ['core'], features: { chat: true, polls: true, meetings: true } },
-  admissions: { key: 'admissions', name: 'Admissions', requires: ['core', 'payments'], features: {} },
-  reports: { key: 'reports', name: 'Reports & analytics', requires: ['core'], features: {} },
+  messaging: { key: 'messaging', name: 'Messaging', available: true, requires: ['core'], features: { chat: true, polls: true, meetings: true } },
+  admissions: { key: 'admissions', name: 'Admissions', available: false, requires: ['core', 'payments'], features: {} },
+  reports: { key: 'reports', name: 'Reports & analytics', available: false, requires: ['core'], features: {} },
 };
 
 // Plans are presets: the modules a school gets when it signs up for a plan.
@@ -75,6 +78,21 @@ export const PLAN_FEATURES: Record<Plan, Partial<Record<ModuleKey, Record<string
 /** A module's features as a school on `plan` starts with them. */
 export function planFeatures(plan: Plan, key: ModuleKey): Record<string, boolean> {
   return { ...MODULES[key].features, ...PLAN_FEATURES[plan][key] };
+}
+
+// The modules that exist today. PLAN_MODULES stays the commercial definition (what
+// a plan will include once everything is built); availability applies where modules
+// are written and listed.
+export const AVAILABLE_KEYS: ModuleKey[] = MODULE_KEYS.filter((k) => MODULES[k].available);
+
+// Switches inside a module that belong to something not built yet.
+export const HIDDEN_FEATURES: Partial<Record<ModuleKey, string[]>> = { behavior: ['clinic'] };
+
+/** A module's features: its defaults overlaid with the saved ones, without the hidden switches. */
+export function visibleFeatures(key: ModuleKey, saved?: Record<string, boolean> | null): Record<string, boolean> {
+  const merged = { ...MODULES[key].features, ...(saved ?? {}) };
+  for (const f of HIDDEN_FEATURES[key] ?? []) delete merged[f];
+  return merged;
 }
 
 export function isModuleKey(key: string): key is ModuleKey {

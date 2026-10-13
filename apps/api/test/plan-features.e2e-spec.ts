@@ -30,9 +30,30 @@ describe('Plan features (e2e)', () => {
     const complete = await me((await make('full', 'COMPLETE')).admin);
     expect(complete.features.messaging).toEqual({ chat: true, polls: true, meetings: true });
     expect(complete.features.activities).toEqual({ paidActivities: false, trips: true, events: true });
-    expect(complete.features.behavior).toEqual({ clinic: true, merits: true });
+    expect(complete.features.behavior).toEqual({ merits: true });
     // Only enabled modules are listed.
     expect(Object.keys(complete.features).sort()).toEqual([...complete.modules].sort());
+  });
+
+  it('lists, and switches on, only the modules that are built', async () => {
+    const built = ['academics', 'activities', 'attendance', 'behavior', 'core', 'messaging'];
+    const smart = await make('smartmods', 'SMART');
+    expect([...(await me(smart.admin)).modules].sort()).toEqual(['attendance', 'core', 'messaging']);
+    const full = await make('fullmods', 'COMPLETE');
+    const profile = await me(full.admin);
+    expect([...profile.modules].sort()).toEqual(built);
+    expect(Object.keys(profile.features).sort()).toEqual(built);
+    // Not even the switch for clinic visits shows, though its saved value stays.
+    expect(profile.features.behavior).toEqual({ merits: true });
+    const listed = (await full.admin.get('/api/modules').expect(200)).body;
+    expect(listed.map((m: any) => m.key).sort()).toEqual(built);
+    expect(listed.find((m: any) => m.key === 'behavior').features).toEqual({ merits: true });
+    const row = (await owner.get('/api/owner/schools').expect(200)).body.find((s: any) => s.id === full.id);
+    expect([...row.modules].sort()).toEqual(built);
+    const ownerView = (await owner.get(`/api/owner/schools/${full.id}/modules`).expect(200)).body;
+    expect(ownerView.map((m: any) => m.key).sort()).toEqual(built);
+    const clinic = await full.admin.patch('/api/modules/behavior/features', { features: { clinic: false } }).expect(400);
+    expect(clinic.body.message).toBe('Unknown feature: clinic.');
   });
 
   it('lets only the platform owner switch a subscription feature', async () => {
