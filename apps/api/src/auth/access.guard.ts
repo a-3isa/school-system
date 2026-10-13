@@ -11,9 +11,13 @@ import { AuthUser, IS_PUBLIC, REQUIRES_FEATURE, REQUIRES_MODULE, ROLES } from '.
  * school come from the database, not the token, so a deactivated account or a
  * changed role takes effect on the next request.
  */
-export async function loadActiveUser(prisma: PrismaService, sub: string): Promise<AuthUser | null> {
-  const row = await prisma.user.findUnique({ where: { id: sub }, select: { id: true, schoolId: true, role: true, active: true } });
-  return row?.active ? { id: row.id, schoolId: row.schoolId, role: row.role } : null;
+export async function loadActiveUser(prisma: PrismaService, sub: string, issuedAt?: number): Promise<AuthUser | null> {
+  const row = await prisma.user.findUnique({ where: { id: sub }, select: { id: true, schoolId: true, role: true, active: true, sessionsValidAfter: true } });
+  if (!row?.active) return null;
+  // A sign-in from before "sign out of all devices" (or a new password) is over. Whole seconds,
+  // so the sign-in made right after a password reset in the same second still counts.
+  if (row.sessionsValidAfter && (issuedAt ?? 0) < Math.floor(row.sessionsValidAfter.getTime() / 1000)) return null;
+  return { id: row.id, schoolId: row.schoolId, role: row.role };
 }
 
 /** Does the school have this module switched on and, if given, this feature of it? */
@@ -44,13 +48,13 @@ export class AccessGuard implements CanActivate {
     const token = header?.startsWith('Bearer ') ? header.slice(7) : undefined;
     if (!token) throw new UnauthorizedException('Sign in first.');
 
-    let sub: string;
+    let claims: { sub: string; iat?: number };
     try {
-      sub = (await this.jwt.verifyAsync<{ sub: string }>(token)).sub;
+      claims = await this.jwt.verifyAsync<{ sub: string; iat?: number }>(token);
     } catch {
       throw new UnauthorizedException('Your session has expired. Sign in again.');
     }
-    const user = await loadActiveUser(this.prisma, sub);
+    const user = await loadActiveUser(this.prisma, claims.sub, claims.iat);
     if (!user) throw new UnauthorizedException('Your session has expired. Sign in again.');
     req.user = user;
 

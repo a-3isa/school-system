@@ -80,6 +80,8 @@ export class PhoneVerifyDto extends PhoneDto {
 export const hashPassword = (plain: string) => bcrypt.hash(plain, 10);
 
 const CODE_TTL_MS = 15 * 60_000;
+// How long a sign-in lasts: staff and the platform owner a week, parents a month.
+const SESSION_DAYS = (role: string) => (role === Role.PARENT ? 30 : 7);
 const MAX_ATTEMPTS = 5;
 const MAX_CODES_PER_HOUR = 5;
 const SECRET = () => process.env.JWT_SECRET ?? 'dev-secret';
@@ -109,7 +111,7 @@ export class AuthService {
   ) {}
 
   private async issue(user: { id: string; schoolId: string | null; role: string; name: string }) {
-    const token = await this.jwt.signAsync({ sub: user.id, schoolId: user.schoolId, role: user.role });
+    const token = await this.jwt.signAsync({ sub: user.id, schoolId: user.schoolId, role: user.role }, { expiresIn: `${SESSION_DAYS(user.role)}d` });
     return { token, user: { id: user.id, name: user.name, role: user.role, schoolId: user.schoolId } };
   }
 
@@ -298,7 +300,14 @@ export class AuthService {
     await this.useCode(email, CodePurpose.RESET, code);
     const user = await this.prisma.user.findUnique({ where: { email } });
     if (!user?.active || !user.passwordHash) throw wrongCode();
-    return this.issue(await this.prisma.user.update({ where: { id: user.id }, data: { passwordHash: await hashPassword(password) } }));
+    // A new password ends every other sign-in; the one issued here is made in the same second and stays.
+    return this.issue(await this.prisma.user.update({ where: { id: user.id }, data: { passwordHash: await hashPassword(password), sessionsValidAfter: new Date() } }));
+  }
+
+  /** Ends every sign-in this person has, on every device. */
+  async signOutEverywhere(auth: AuthUser) {
+    await this.prisma.user.update({ where: { id: auth.id }, data: { sessionsValidAfter: new Date() } });
+    return { signedOut: true };
   }
 
   // ---- a parent changing their mobile ----------------------------------------
@@ -405,6 +414,12 @@ export class AuthController {
   me(@CurrentUser() user: AuthUser) {
     return this.auth.me(user);
   }
+
+  /** "Sign out of all devices": every sign-in made before now stops working. */
+  @Post('sign-out-everywhere')
+  signOutEverywhere(@CurrentUser() user: AuthUser) {
+    return this.auth.signOutEverywhere(user);
+  }
 }
 
 @Module({
@@ -413,7 +428,8 @@ export class AuthController {
       global: true,
       useFactory: () => ({
         secret: SECRET(),
-        signOptions: { expiresIn: '30d' },
+        // Every token states its own lifetime (see issue()); this is only the safe default.
+        signOptions: { expiresIn: '7d' },
       }),
     }),
   ],

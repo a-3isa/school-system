@@ -102,7 +102,14 @@ export class StaffController {
     if (target.id === user.id && dto.active === false) throw new BadRequestException('You can’t deactivate your own account.');
     const updated = await this.prisma.user.update({
       where: { id },
-      data: { name: dto.name, honorific: dto.honorific, active: dto.active, passwordHash: dto.password ? await hashPassword(dto.password) : undefined },
+      data: {
+        name: dto.name,
+        honorific: dto.honorific,
+        active: dto.active,
+        passwordHash: dto.password ? await hashPassword(dto.password) : undefined,
+        // A new password, or switching the account off, ends the person's sign-ins everywhere.
+        sessionsValidAfter: dto.password || dto.active === false ? new Date() : undefined,
+      },
       select: publicUser,
     });
     await this.audit.log(user, 'staff.update', 'user', id, { name: dto.name, honorific: dto.honorific, active: dto.active, passwordChanged: !!dto.password });

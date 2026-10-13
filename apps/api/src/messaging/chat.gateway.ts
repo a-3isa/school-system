@@ -14,7 +14,7 @@ const room = (userId: string) => `user:${userId}`;
  * notification instead, and catches up by fetching the thread.
  */
 @Injectable()
-@WebSocketGateway({ path: '/api/socket.io', cors: { origin: true } })
+@WebSocketGateway({ path: '/api/socket.io' })
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer() server: Server;
   private readonly logger = new Logger('Chat');
@@ -31,8 +31,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     try {
       const token = client.handshake.auth?.token;
       if (typeof token !== 'string' || !token) throw new Error('no token');
-      const { sub } = await this.jwt.verifyAsync<{ sub: string }>(token);
-      const user = await loadActiveUser(this.prisma, sub);
+      const { sub, iat } = await this.jwt.verifyAsync<{ sub: string; iat?: number }>(token);
+      const user = await loadActiveUser(this.prisma, sub, iat);
       if (!user?.schoolId || !(await schoolHas(this.prisma, user.schoolId, 'messaging', 'chat'))) throw new Error('not allowed');
       this.who.set(client, user.id);
       this.online.set(user.id, (this.online.get(user.id) ?? 0) + 1);
