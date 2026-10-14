@@ -16,6 +16,18 @@ const KEEP_SIGHTINGS_DAYS = 7;
 const PURGE_BATCH = 10_000;
 const PURGE_BATCHES_PER_SCHOOL = 10;
 
+type ExceptionData = Omit<Prisma.AttendanceExceptionUncheckedCreateInput, 'status'>;
+
+function groupBy<T>(items: T[], key: (item: T) => string) {
+  const out = new Map<string, T[]>();
+  for (const item of items) {
+    const list = out.get(key(item));
+    if (list) list.push(item);
+    else out.set(key(item), [item]);
+  }
+  return out;
+}
+
 /**
  * Turns strap sightings into attendance, once a minute, for schools using
  * automatic attendance: decides each finished lesson, spots children who went
@@ -24,6 +36,8 @@ const PURGE_BATCHES_PER_SCHOOL = 10;
 @Injectable()
 export class AttendanceEvaluator {
   private readonly logger = new Logger('Evaluator');
+  // Per period in progress: the children already in its lesson or already reported missing from it.
+  private readonly settled = new Map<string, { date: string; ids: Set<string> }>();
 
   constructor(
     private readonly prisma: PrismaService,
@@ -93,7 +107,7 @@ export class AttendanceEvaluator {
     await this.checkBatteries(school, rules, date);
   }
 
-  private raise(data: Omit<Prisma.AttendanceExceptionUncheckedCreateInput, 'status'>) {
+  private raise(data: ExceptionData) {
     return this.prisma.attendanceException.createMany({ data: [data], skipDuplicates: true });
   }
 
@@ -107,7 +121,9 @@ export class AttendanceEvaluator {
       include: { class: true, room: { include: { gateways: true } }, subject: true },
     });
     const aways = await this.prisma.classAway.findMany({ where: { schoolId: school.id, date: day } });
+    const exceptions: ExceptionData[] = [];
 
+    const decidable: { lesson: (typeof lessons)[number]; roomIds: Set<string>; label: string }[] = [];
     for (const lesson of lessons) {
       const away = aways.some((a) => a.classId === lesson.classId && (a.fromPeriod == null || (a.fromPeriod <= period.number && period.number <= a.toPeriod!)));
       if (away) continue;
@@ -117,7 +133,7 @@ export class AttendanceEvaluator {
       const alive = roomGateways.filter((g) => g.lastSeenAt && g.lastSeenAt.getTime() >= end.getTime() - rules.gatewayOfflineMinutes * MINUTE);
       if (!alive.length) {
         // No working gateway: the class falls back to manual marking (decision C17).
-        await this.raise({
+        exceptions.push({
           schoolId: school.id, type: ExceptionType.GATEWAY_OFFLINE, date: day, classId: lesson.classId, periodId: period.id,
           message: roomGateways.length
             ? `The gateway in ${lesson.room.name} was offline. Mark ${label} manually.`
@@ -126,48 +142,59 @@ export class AttendanceEvaluator {
         });
         continue;
       }
+      decidable.push({ lesson, roomIds: new Set(roomGateways.map((g) => g.id)), label });
+    }
 
-      const students = await this.prisma.student.findMany({
-        where: { schoolId: school.id, classId: lesson.classId, active: true, strap: { isNot: null } },
-        include: { strap: true },
-      });
-      if (!students.length) continue;
-      const existing = await this.prisma.attendanceRecord.findMany({ where: { periodId: period.id, date: day, studentId: { in: students.map((s) => s.id) } } });
-      const manual = new Set(existing.filter((r) => r.source === AttendanceSource.MANUAL).map((r) => r.studentId));
+    // One lesson per class in a period, so the period's students, marks and gate arrivals are read once.
+    const students = decidable.length
+      ? await this.prisma.student.findMany({
+          where: { schoolId: school.id, classId: { in: decidable.map((d) => d.lesson.classId) }, active: true, strap: { isNot: null } },
+          include: { strap: true },
+        })
+      : [];
+    const ids = students.map((s) => s.id);
+    const [existing, presence] = ids.length
+      ? await Promise.all([
+          this.prisma.attendanceRecord.findMany({ where: { periodId: period.id, date: day, studentId: { in: ids } }, select: { studentId: true, source: true } }),
+          this.prisma.gatePresence.findMany({ where: { date: day, studentId: { in: ids } } }),
+        ])
+      : [[], []];
+    const sourceOf = new Map(existing.map((r) => [r.studentId, r.source]));
+    const arrived = new Map(presence.map((p) => [p.studentId, p]));
+    const fresh: Prisma.AttendanceRecordCreateManyInput[] = [];
 
+    for (const { lesson, roomIds, label } of decidable) {
+      const inClass = students.filter((s) => s.classId === lesson.classId);
+      if (!inClass.length) continue;
       const sightings = await this.prisma.sighting.findMany({
-        where: { schoolId: school.id, strapId: { in: students.map((s) => s.strap!.id) }, seenAt: { gte: start, lt: end } },
+        where: { schoolId: school.id, strapId: { in: inClass.map((s) => s.strap!.id) }, seenAt: { gte: start, lt: end } },
         select: { strapId: true, gatewayId: true, rssi: true, seenAt: true },
       });
-      const byStrap = new Map<string, typeof sightings>();
-      for (const s of sightings) byStrap.set(s.strapId, [...(byStrap.get(s.strapId) ?? []), s]);
-      const roomIds = new Set(roomGateways.map((g) => g.id));
-      const presence = await this.prisma.gatePresence.findMany({ where: { date: day, studentId: { in: students.map((s) => s.id) } } });
-      const arrived = new Map(presence.map((p) => [p.studentId, p]));
+      const byStrap = groupBy(sightings, (s) => s.strapId);
 
-      for (const student of students) {
-        if (manual.has(student.id)) continue; // a person's mark always wins
+      for (const student of inClass) {
+        const source = sourceOf.get(student.id);
+        if (source === AttendanceSource.MANUAL) continue; // a person's mark always wins
         const d = decidePeriod(byStrap.get(student.strap!.id) ?? [], roomIds, start, end, rules.room);
-        await this.prisma.attendanceRecord.upsert({
-          where: { studentId_date_periodId: { studentId: student.id, date: day, periodId: period.id } },
-          create: {
-            schoolId: school.id, studentId: student.id, classId: lesson.classId, periodId: period.id, date: day,
-            status: d.status, source: AttendanceSource.AUTOMATIC, firstSeenAt: d.firstSeenAt, secondsSeen: d.secondsInRoom,
-          },
-          update: { status: d.status, firstSeenAt: d.firstSeenAt, secondsSeen: d.secondsInRoom },
-        });
+        const decided = { status: d.status, firstSeenAt: d.firstSeenAt, secondsSeen: d.secondsInRoom };
+        if (source) {
+          // Only when a period is decided again.
+          await this.prisma.attendanceRecord.update({ where: { studentId_date_periodId: { studentId: student.id, date: day, periodId: period.id } }, data: decided });
+        } else {
+          fresh.push({ schoolId: school.id, studentId: student.id, classId: lesson.classId, periodId: period.id, date: day, source: AttendanceSource.AUTOMATIC, ...decided });
+        }
         if (d.status !== AttendanceStatus.ABSENT) continue;
         const name = `${student.firstName} ${student.lastName}`;
         const gate = arrived.get(student.id);
         if (d.share > 0) {
-          await this.raise({
+          exceptions.push({
             schoolId: school.id, type: ExceptionType.LEFT_LESSON, date: day, studentId: student.id, classId: lesson.classId, periodId: period.id,
             message: `${name} was in ${label} for only ${Math.round(d.share * 100)}% of the lesson.`,
             dedupeKey: `LEFT_LESSON:${student.id}:${period.id}:${date}`,
           });
         } else if (gate?.arrivedAt && gate.arrivedAt < end && !(gate.leftAt && gate.leftAt < start)) {
           const at = localParts(gate.arrivedAt, school.timezone).time;
-          await this.raise({
+          exceptions.push({
             schoolId: school.id, type: ExceptionType.NOT_IN_CLASS, date: day, studentId: student.id, classId: lesson.classId, periodId: period.id,
             message: `${name} arrived at ${at} but wasn’t in ${label}.`,
             dedupeKey: `NOT_IN_CLASS:${student.id}:${period.id}:${date}`,
@@ -175,6 +202,9 @@ export class AttendanceEvaluator {
         }
       }
     }
+    // A teacher who marks the lesson in the meantime keeps their mark: theirs is never overwritten.
+    if (fresh.length) await this.prisma.attendanceRecord.createMany({ data: fresh, skipDuplicates: true });
+    if (exceptions.length) await this.prisma.attendanceException.createMany({ data: exceptions, skipDuplicates: true });
   }
 
   /**
@@ -186,72 +216,103 @@ export class AttendanceEvaluator {
   async checkLessonsInProgress(school: School, rules: DetectionRules, date: string, now: Date, periods: { id: string; number: number; startTime: string; endTime: string }[]) {
     const day = dbDate(date);
     const nowMs = now.getTime();
-    for (const period of periods) {
+    const current = periods.filter((period) => {
+      const start = zonedTime(date, period.startTime, school.timezone).getTime();
+      const end = zonedTime(date, period.endTime, school.timezone).getTime();
+      return nowMs >= start + rules.room.lateAfterMinutes * MINUTE && nowMs < end;
+    });
+    for (const p of periods) if (!current.includes(p)) this.settled.delete(p.id);
+    if (!current.length) return;
+    const [aways, gates] = await Promise.all([
+      this.prisma.classAway.findMany({ where: { schoolId: school.id, date: day } }),
+      this.prisma.gateway.findMany({ where: { schoolId: school.id, kind: GatewayKind.GATE }, select: { id: true } }),
+    ]);
+    const gateIds = gates.map((g) => g.id);
+
+    for (const period of current) {
       const start = zonedTime(date, period.startTime, school.timezone);
-      const end = zonedTime(date, period.endTime, school.timezone);
-      if (nowMs < start.getTime() + rules.room.lateAfterMinutes * MINUTE || nowMs >= end.getTime()) continue;
+      let settled = this.settled.get(period.id);
+      if (settled?.date !== date) this.settled.set(period.id, (settled = { date, ids: new Set() }));
       const lessons = await this.prisma.timetableEntry.findMany({
         where: { schoolId: school.id, dayOfWeek: day.getUTCDay(), periodId: period.id },
         include: { class: true, room: { include: { gateways: true } }, subject: true },
       });
-      const aways = await this.prisma.classAway.findMany({ where: { schoolId: school.id, date: day } });
+      const watched = new Map<string, { lesson: (typeof lessons)[number]; roomIds: Set<string> }>();
       for (const lesson of lessons) {
         if (aways.some((a) => a.classId === lesson.classId && (a.fromPeriod == null || (a.fromPeriod <= period.number && period.number <= a.toPeriod!)))) continue;
         const roomGateways = lesson.room.gateways.filter(
           (g) => g.kind === GatewayKind.ROOM && g.lastSeenAt && g.lastSeenAt.getTime() >= nowMs - rules.gatewayOfflineMinutes * MINUTE,
         );
         if (!roomGateways.length) continue; // can't tell without a working gateway in the room
-        const students = await this.prisma.student.findMany({
-          where: { schoolId: school.id, classId: lesson.classId, active: true, strap: { isNot: null } },
+        watched.set(lesson.classId, { lesson, roomIds: new Set(roomGateways.map((g) => g.id)) });
+      }
+      if (!watched.size) continue;
+      const students = (
+        await this.prisma.student.findMany({
+          where: { schoolId: school.id, classId: { in: [...watched.keys()] }, active: true, strap: { isNot: null } },
           include: { strap: true, guardians: { where: { restricted: false } } },
+        })
+      ).filter((s) => !settled.ids.has(s.id));
+      if (!students.length) continue;
+      const ids = students.map((s) => s.id);
+      const [presence, marks] = await Promise.all([
+        this.prisma.gatePresence.findMany({ where: { date: day, studentId: { in: ids }, arrivedAt: { not: null, lte: now } } }),
+        this.prisma.attendanceRecord.findMany({ where: { date: day, periodId: period.id, studentId: { in: ids }, source: AttendanceSource.MANUAL } }),
+      ]);
+      // Still at school: not marked as gone, and not heard at the gate on the way out with nothing inside since.
+      const strapOf = new Map(students.map((s) => [s.id, s.strap!.id]));
+      const atSchool = presence.filter((p) => !(p.leftAt && p.leftAt <= now));
+      const outThroughGate = atSchool.filter((p) => p.lastGateAt && p.lastGateAt > p.arrivedAt!);
+      const lastInside = new Map<string, Date | null>();
+      if (outThroughGate.length) {
+        const heard = await this.prisma.sighting.groupBy({
+          by: ['strapId'],
+          where: {
+            strapId: { in: outThroughGate.map((p) => strapOf.get(p.studentId)!) },
+            seenAt: { gt: new Date(Math.min(...outThroughGate.map((p) => p.lastGateAt!.getTime()))), lte: now },
+            gatewayId: { notIn: gateIds },
+          },
+          _max: { seenAt: true },
         });
-        if (!students.length) continue;
-        const ids = students.map((s) => s.id);
-        const [presence, marks] = await Promise.all([
-          this.prisma.gatePresence.findMany({ where: { date: day, studentId: { in: ids }, arrivedAt: { not: null, lte: now } } }),
-          this.prisma.attendanceRecord.findMany({ where: { date: day, periodId: period.id, studentId: { in: ids }, source: AttendanceSource.MANUAL } }),
-        ]);
-        // Still at school: not marked as gone, and not heard at the gate on the way out with nothing inside since.
-        const gateIds = (await this.prisma.gateway.findMany({ where: { schoolId: school.id, kind: GatewayKind.GATE }, select: { id: true } })).map((g) => g.id);
-        const stillIn = [];
-        for (const p of presence) {
-          if (p.leftAt && p.leftAt <= now) continue;
-          if (p.lastGateAt && p.lastGateAt > p.arrivedAt!) {
-            const inside = await this.prisma.sighting.count({ where: { strap: { studentId: p.studentId }, seenAt: { gt: p.lastGateAt, lte: now }, gatewayId: { notIn: gateIds } } });
-            if (!inside) continue;
-          }
-          stillIn.push(p);
-        }
-        const arrived = new Map(stillIn.map((p) => [p.studentId, p.arrivedAt!]));
-        const marked = new Set(marks.map((m) => m.studentId)); // the teacher already decided
-        const candidates = students.filter((s) => arrived.has(s.id) && !marked.has(s.id));
-        if (!candidates.length) continue;
-        const sightings = await this.prisma.sighting.findMany({
-          where: { schoolId: school.id, strapId: { in: candidates.map((s) => s.strap!.id) }, seenAt: { gte: start, lte: now } },
-          select: { strapId: true, gatewayId: true, rssi: true, seenAt: true },
+        for (const h of heard) lastInside.set(h.strapId, h._max.seenAt);
+      }
+      const stillIn = atSchool.filter((p) => {
+        if (!p.lastGateAt || p.lastGateAt <= p.arrivedAt!) return true;
+        const inside = lastInside.get(strapOf.get(p.studentId)!);
+        return !!inside && inside > p.lastGateAt;
+      });
+      const arrived = new Map(stillIn.map((p) => [p.studentId, p.arrivedAt!]));
+      const marked = new Set(marks.map((m) => m.studentId)); // the teacher already decided
+      const candidates = students.filter((s) => arrived.has(s.id) && !marked.has(s.id));
+      if (!candidates.length) continue;
+      const sightings = await this.prisma.sighting.findMany({
+        where: { schoolId: school.id, strapId: { in: candidates.map((s) => s.strap!.id) }, seenAt: { gte: start, lte: now } },
+        select: { strapId: true, gatewayId: true, rssi: true, seenAt: true },
+      });
+      const byStrap = groupBy(sightings, (s) => s.strapId);
+      for (const student of candidates) {
+        const { lesson, roomIds } = watched.get(student.classId!)!;
+        const d = decidePeriod(byStrap.get(student.strap!.id) ?? [], roomIds, start, now, rules.room);
+        // Once in the room or reported, a child is settled for this lesson and their readings aren't read again.
+        settled.ids.add(student.id);
+        if (d.share > 0) continue; // has been in the room
+        const where = `${lesson.subject.name} in ${lesson.room.name}`;
+        const created = await this.raise({
+          schoolId: school.id, type: ExceptionType.NOT_IN_CLASS, date: day, studentId: student.id, classId: lesson.classId, periodId: period.id,
+          message: `${student.firstName} ${student.lastName} came in at ${localParts(arrived.get(student.id)!, school.timezone).time} but hasn’t been in ${lesson.class.name} ${where} (period ${period.number}).`,
+          dedupeKey: `NOT_IN_CLASS:${student.id}:${period.id}:${date}`,
         });
-        const roomIds = new Set(roomGateways.map((g) => g.id));
-        for (const student of candidates) {
-          const d = decidePeriod(sightings.filter((x) => x.strapId === student.strap!.id), roomIds, start, now, rules.room);
-          if (d.share > 0) continue; // has been in the room
-          const where = `${lesson.subject.name} in ${lesson.room.name}`;
-          const created = await this.raise({
-            schoolId: school.id, type: ExceptionType.NOT_IN_CLASS, date: day, studentId: student.id, classId: lesson.classId, periodId: period.id,
-            message: `${student.firstName} ${student.lastName} came in at ${localParts(arrived.get(student.id)!, school.timezone).time} but hasn’t been in ${lesson.class.name} ${where} (period ${period.number}).`,
-            dedupeKey: `NOT_IN_CLASS:${student.id}:${period.id}:${date}`,
-          });
-          if (!created.count) continue; // already told
-          await this.notifications.notify(
-            student.guardians.map((g) => ({
-              schoolId: school.id,
-              userId: g.userId,
-              type: 'attendance.lessonAbsent',
-              title: `${student.firstName} hasn’t joined ${where}`,
-              body: `${student.firstName} arrived at ${localParts(arrived.get(student.id)!, school.timezone).time} but hasn’t been in ${where}, which began at ${period.startTime}. The school has been informed and is following up.`,
-              data: { studentId: student.id, date, periodId: period.id, subject: lesson.subject.name, room: lesson.room.name },
-            })),
-          );
-        }
+        if (!created.count) continue; // already told
+        await this.notifications.notify(
+          student.guardians.map((g) => ({
+            schoolId: school.id,
+            userId: g.userId,
+            type: 'attendance.lessonAbsent',
+            title: `${student.firstName} hasn’t joined ${where}`,
+            body: `${student.firstName} arrived at ${localParts(arrived.get(student.id)!, school.timezone).time} but hasn’t been in ${where}, which began at ${period.startTime}. The school has been informed and is following up.`,
+            data: { studentId: student.id, date, periodId: period.id, subject: lesson.subject.name, room: lesson.room.name },
+          })),
+        );
       }
     }
   }
