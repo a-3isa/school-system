@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 
 import '../api.dart';
+import '../every.dart';
 import '../push.dart';
 import '../socket.dart';
 import '../strings.dart';
@@ -37,6 +38,14 @@ class HomeData extends ChangeNotifier {
   bool loaded = false;
   /// The child every tab is showing.
   String? childId;
+  /// The tab on screen. The others stay alive behind it, so they ask this before refreshing.
+  String tab = 'day';
+
+  void showTab(String key) {
+    if (key == tab) return;
+    tab = key;
+    notifyListeners();
+  }
   /// An announcement that a tapped notification asks the Messages tab to open.
   String? openAnnouncementId;
 
@@ -137,8 +146,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   late final HomeData _data = HomeData(widget.api, widget.me);
-  String _tab = 'day';
-  Timer? _timer;
+  late final Every _every;
   StreamSubscription<void>? _pushed;
   StreamSubscription<Map<String, dynamic>>? _tapped;
 
@@ -151,7 +159,7 @@ class _HomeScreenState extends State<HomeScreen> {
       if (launch != null && mounted) _openPush(launch);
     });
     _data.loadCrest();
-    _timer = Timer.periodic(const Duration(minutes: 1), (_) => _data.load());
+    _every = Every(const Duration(minutes: 1), _data.load);
     _pushed = widget.push?.arrived.listen((_) => _data.load());
     _tapped = widget.push?.opened.listen(_openPush);
   }
@@ -169,7 +177,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (!mounted) return;
     final child = _data.child(info['studentId'] as String?);
     if (child != null) _data.selectChild(child['id'] as String);
-    void go(String tab) => setState(() => _tab = tab);
+    void go(String tab) => _data.showTab(tab);
     final nav = Navigator.of(context);
 
     if (type.startsWith('attendance.') || type == 'announcement.emergency') return go('day'); // the urgent message is pinned there
@@ -215,7 +223,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
-    _timer?.cancel();
+    _every.cancel();
     _pushed?.cancel();
     _tapped?.cancel();
     _data.dispose();
@@ -237,7 +245,7 @@ class _HomeScreenState extends State<HomeScreen> {
           _Tab('notifs', s.tabNotifs, Icons.notifications_none, NotificationsTab(data: _data, onOpen: _open), badge: _data.unread),
           _Tab('account', s.tabAccount, Icons.person_outline, AccountTab(api: widget.api, me: widget.me, onSignOut: widget.onSignOut)),
         ];
-        final index = tabs.indexWhere((t) => t.key == _tab).clamp(0, tabs.length - 1);
+        final index = tabs.indexWhere((t) => t.key == _data.tab).clamp(0, tabs.length - 1);
         return Scaffold(
           body: SafeArea(bottom: false, child: IndexedStack(index: index, children: [for (final t in tabs) t.body])),
           bottomNavigationBar: DecoratedBox(
@@ -257,7 +265,7 @@ class _HomeScreenState extends State<HomeScreen> {
               child: NavigationBar(
                 selectedIndex: index,
                 height: 64,
-                onDestinationSelected: (i) => setState(() => _tab = tabs[i].key),
+                onDestinationSelected: (i) => _data.showTab(tabs[i].key),
                 destinations: [
                   for (final t in tabs)
                     NavigationDestination(
