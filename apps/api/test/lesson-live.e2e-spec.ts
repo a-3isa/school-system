@@ -1,7 +1,7 @@
 import { INestApplication } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import request from 'supertest';
-import { Client, login, ownerClient, startApp, KID, kid } from './helpers';
+import { Client, login, ownerClient, queriesDuring, startApp, KID, kid } from './helpers';
 import { localParts } from '../src/common/time';
 import { AttendanceEvaluator } from '../src/devices/evaluator';
 
@@ -107,6 +107,12 @@ const fits = local.date === localParts(end, 'Africa/Cairo').date && local.date =
     const told = Object.fromEntries(roster.body.students.map((s: any) => [s.name.split(' ')[0], s.live.parentsToldAt]));
     expect(told.Salma).toBeTruthy();
     expect(told.Layla).toBeNull();
+  });
+
+  it('does not read the readings again of children already in the lesson or already reported', async () => {
+    const school = await prisma.school.findUniqueOrThrow({ where: { id: schoolId } });
+    const queries = await queriesDuring(app, () => app.get(AttendanceEvaluator).evaluateSchool(school, new Date()));
+    expect(queries.filter((q) => q.includes('"Sighting"'))).toEqual([]);
   });
 
   it('lets the teacher mark a child present, which tells the parents again', async () => {

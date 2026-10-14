@@ -1,7 +1,7 @@
 import { INestApplication } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import request from 'supertest';
-import { Client, login, ownerClient, startApp, KID, kid } from './helpers';
+import { Client, login, ownerClient, queriesDuring, startApp, KID, kid } from './helpers';
 import { AttendanceEvaluator } from '../src/devices/evaluator';
 import { localParts } from '../src/common/time';
 import { rulesFor } from '../src/devices/rules';
@@ -145,7 +145,11 @@ describe('Automatic attendance (e2e)', () => {
     const evaluator = app.get(AttendanceEvaluator);
     const school = await prisma.school.findUniqueOrThrow({ where: { id: schoolId } });
     const period = await prisma.period.findUniqueOrThrow({ where: { id: ids.period } });
-    await evaluator.evaluatePeriod(school, rulesFor(school.detection), local.date, period);
+    const queries = await queriesDuring(app, () => evaluator.evaluatePeriod(school, rulesFor(school.detection), local.date, period));
+    // The whole period's register and follow-ups are written at once, not one child at a time.
+    expect(queries.filter((q) => /^INSERT INTO "public"\."AttendanceRecord"/.test(q))).toHaveLength(1);
+    expect(queries.filter((q) => /^INSERT INTO "public"\."AttendanceException"/.test(q))).toHaveLength(1);
+    expect(queries.filter((q) => /^UPDATE "public"\."AttendanceRecord"/.test(q))).toHaveLength(0);
     await evaluator.evaluatePeriod(school, rulesFor(school.detection), local.date, period); // idempotent
 
     const roster = await admin.get(`/api/attendance/classes/${ids.class}/periods/${ids.period}?date=${local.date}`).expect(200);
