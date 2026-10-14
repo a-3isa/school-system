@@ -249,6 +249,8 @@ async function seedVolume(sid: string, yearId: string) {
 
 async function main() {
   const started = Date.now();
+  const [{ tz }] = await prisma.$queryRawUnsafe<{ tz: string }[]>(`SELECT current_setting('TimeZone') AS tz`);
+  if (tz !== 'UTC' && tz !== 'Etc/UTC') throw new Error(`The perf database runs in ${tz}; run create-db.ts --fresh so it runs in UTC.`);
   const hash = await bcrypt.hash(PASSWORD, 10);
   await prisma.user.create({ data: { id: 'perf-owner', email: 'owner@perf', name: 'Owner', role: Role.OWNER, passwordHash: hash } });
   for (let k = 1; k <= SCHOOLS; k++) {

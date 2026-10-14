@@ -21,6 +21,9 @@ async function main() {
     await pg.query(`CREATE DATABASE "${name}"`);
     console.log(`Created ${name}.`);
   }
+  // As in CI and production: the seed's set-based SQL turns times into the timestamp columns in the
+  // session's time zone, so a server set to Cairo time would store every seeded time three hours off.
+  await pg.query(`ALTER DATABASE "${name}" SET timezone TO 'UTC'`);
   await pg.end();
   execSync('npx prisma migrate deploy', { cwd: `${__dirname}/../..`, env: { ...process.env, DATABASE_URL: PERF_URL }, stdio: 'inherit' });
 }
