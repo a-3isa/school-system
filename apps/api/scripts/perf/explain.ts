@@ -10,12 +10,33 @@ const at = zonedTime(PERF_DATE, PERF_TIME, 'Africa/Cairo');
 const dayStart = zonedTime(PERF_DATE, '00:00', 'Africa/Cairo');
 const weekAgo = new Date(at.getTime() - 7 * 86_400_000);
 
-const CASES: [string, string, unknown[]][] = [
+// Postgres 18 (local) can skip-scan [schoolId, seenAt] for a filter on seenAt alone; Postgres 16 (CI and
+// production) cannot, and falls back to reading the whole table.
+const AS_ON_PG16 = 'SET LOCAL enable_indexscan = off; SET LOCAL enable_indexonlyscan = off; SET LOCAL enable_bitmapscan = off';
+
+const CASES: [string, string, unknown[], string?][] = [
   ['Weekly clean-up of old readings (every minute)', `DELETE FROM "Sighting" WHERE "seenAt" < $1`, [weekAgo]],
+  ['Weekly clean-up, as on Postgres 16 (no skip scan)', `DELETE FROM "Sighting" WHERE "seenAt" < $1`, [weekAgo], AS_ON_PG16],
+  [
+    'Weekly clean-up per school, in batches (perf/sighting-cleanup)',
+    `DELETE FROM "Sighting" WHERE id IN (SELECT id FROM "Sighting" WHERE "schoolId" = $1 AND "seenAt" < $2 LIMIT 10000)`,
+    ['ps01', weekAgo],
+  ],
   [
     'On campus now: latest reading per band',
     `SELECT DISTINCT ON ("strapId") "strapId", "gatewayId", "seenAt" FROM "Sighting"
      WHERE "schoolId" = $1 AND "seenAt" >= $2 AND "seenAt" <= $3 AND rssi >= -85 ORDER BY "strapId", date_trunc('minute', "seenAt") DESC, rssi DESC`,
+    ['ps01', dayStart, at],
+  ],
+  [
+    'On campus now: the same with two index lookups per band (perf/locations)',
+    `SELECT l."strapId", s."gatewayId", s."seenAt" FROM (
+       SELECT st.id AS "strapId", (SELECT date_trunc('minute', "seenAt") FROM "Sighting"
+         WHERE "strapId" = st.id AND "schoolId" = $1 AND "seenAt" >= $2 AND "seenAt" <= $3 AND rssi >= -85 ORDER BY "seenAt" DESC LIMIT 1) AS minute
+       FROM "Strap" st WHERE st."schoolId" = $1) l
+     CROSS JOIN LATERAL (SELECT "gatewayId", "seenAt" FROM "Sighting"
+       WHERE "strapId" = l."strapId" AND "schoolId" = $1 AND "seenAt" >= $2 AND "seenAt" <= $3 AND rssi >= -85
+         AND "seenAt" >= l.minute AND "seenAt" < l.minute + interval '1 minute' ORDER BY rssi DESC LIMIT 1) s`,
     ['ps01', dayStart, at],
   ],
   [
@@ -57,10 +78,14 @@ async function main() {
   console.table(sizes.rows);
 
   const results: Record<string, unknown>[] = [];
-  for (const [name, sql, params] of CASES) {
+  for (const [name, sql, params, setup] of CASES) {
     await pg.query('BEGIN');
     try {
-      const res = await pg.query(`EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) ${sql}`, params);
+      if (setup) await pg.query(setup);
+      // The columns are timestamp without time zone, in UTC: pg would send a Date in local time, and
+      // Postgres drops the offset when it reads it into such a column.
+      const utc = params.map((p) => (p instanceof Date ? p.toISOString().replace('Z', '') : p));
+      const res = await pg.query(`EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) ${sql}`, utc);
       const plan = res.rows[0]['QUERY PLAN'][0];
       const nodes: string[] = [];
       const walk = (n: { 'Node Type': string; 'Relation Name'?: string; 'Index Name'?: string; Plans?: unknown[] }) => {
