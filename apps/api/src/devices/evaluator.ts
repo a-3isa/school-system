@@ -6,7 +6,7 @@ import { localParts, zonedTime } from '../common/time';
 import { dbDate } from '../common/dates';
 import { toMinutes } from '../common/validation';
 import { SchoolCalendar } from '../setup/calendar';
-import { decidePeriod, DetectionRules, rulesFor } from './rules';
+import { decidePeriod, DetectionRules, rulesFor, Sight } from './rules';
 
 const MINUTE = 60_000;
 // Wait this long after a period ends before deciding it, so late batches arrive.
@@ -15,6 +15,8 @@ const KEEP_SIGHTINGS_DAYS = 7;
 // Old readings go a batch at a time, and only so many a minute, so a backlog never holds up the job.
 const PURGE_BATCH = 10_000;
 const PURGE_BATCHES_PER_SCHOOL = 10;
+/** Schools evaluated side by side; the rest of the connection pool stays free for requests. */
+const SCHOOLS_AT_ONCE = 4;
 
 type ExceptionData = Omit<Prisma.AttendanceExceptionUncheckedCreateInput, 'status'>;
 
@@ -49,13 +51,17 @@ export class AttendanceEvaluator {
     const schools = await this.prisma.school.findMany({
       where: { attendanceMode: AttendanceMode.AUTOMATIC, modules: { some: { key: 'attendance', enabled: true } } },
     });
-    for (const school of schools) {
-      try {
-        await this.evaluateSchool(school, now);
-      } catch (e) {
-        this.logger.error(`School ${school.id}: ${(e as Error).message}`);
+    const queue = [...schools];
+    const worker = async () => {
+      for (let school = queue.shift(); school; school = queue.shift()) {
+        try {
+          await this.evaluateSchool(school, now);
+        } catch (e) {
+          this.logger.error(`School ${school.id}: ${(e as Error).message}`);
+        }
       }
-    }
+    };
+    await Promise.all(Array.from({ length: SCHOOLS_AT_ONCE }, worker));
     await this.purgeSightings(now);
   }
 
@@ -163,15 +169,20 @@ export class AttendanceEvaluator {
     const arrived = new Map(presence.map((p) => [p.studentId, p]));
     const fresh: Prisma.AttendanceRecordCreateManyInput[] = [];
 
+    // decidePeriod only looks at the loudest reading of each band in each minute of the lesson, so only
+    // those leave the database. Periods start on a whole minute, so its minutes are the clock's minutes.
+    const sightings = students.length
+      ? await this.prisma.$queryRaw<(Sight & { strapId: string })[]>(Prisma.sql`
+          SELECT DISTINCT ON ("strapId", date_trunc('minute', "seenAt")) "strapId", "gatewayId", "rssi", "seenAt"
+          FROM "Sighting"
+          WHERE "schoolId" = ${school.id} AND "strapId" IN (${Prisma.join(students.map((s) => s.strap!.id))})
+            AND "seenAt" >= (${start}::timestamptz AT TIME ZONE 'UTC') AND "seenAt" < (${end}::timestamptz AT TIME ZONE 'UTC') AND "rssi" >= ${rules.room.minRssi}
+          ORDER BY "strapId", date_trunc('minute', "seenAt"), "rssi" DESC, "seenAt"`)
+      : [];
+    const byStrap = groupBy(sightings, (s) => s.strapId);
+
     for (const { lesson, roomIds, label } of decidable) {
       const inClass = students.filter((s) => s.classId === lesson.classId);
-      if (!inClass.length) continue;
-      const sightings = await this.prisma.sighting.findMany({
-        where: { schoolId: school.id, strapId: { in: inClass.map((s) => s.strap!.id) }, seenAt: { gte: start, lt: end } },
-        select: { strapId: true, gatewayId: true, rssi: true, seenAt: true },
-      });
-      const byStrap = groupBy(sightings, (s) => s.strapId);
-
       for (const student of inClass) {
         const source = sourceOf.get(student.id);
         if (source === AttendanceSource.MANUAL) continue; // a person's mark always wins
