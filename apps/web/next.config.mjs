@@ -7,9 +7,12 @@ const securityHeaders = [
   { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
 ];
 
-export default {
+const config = {
   reactStrictMode: true,
   async headers() {
     return [{ source: '/:path*', headers: securityHeaders }];
   },
 };
+
+// ANALYZE=1 npm run build opens a map of what each page's JavaScript is made of.
+export default process.env.ANALYZE === '1' ? (await import('@next/bundle-analyzer')).default({ enabled: true })(config) : config;

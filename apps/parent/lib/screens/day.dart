@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../api.dart';
+import '../every.dart';
 import '../strings.dart';
 import '../theme.dart';
 import '../widgets.dart';
@@ -28,25 +29,27 @@ class _DayTabState extends State<DayTab> {
   Map<String, dynamic>? _day;
   String? _error;
   DateTime? _loadedAt;
-  Timer? _timer;
+  late final Every _every;
 
   @override
   void initState() {
     super.initState();
+    _every = Every(const Duration(seconds: 30), _load, active: () => widget.data.tab == 'day');
     widget.data.addListener(_childrenChanged);
     _childrenChanged();
-    _timer = Timer.periodic(const Duration(seconds: 30), (_) => _load());
   }
 
   @override
   void dispose() {
     widget.data.removeListener(_childrenChanged);
-    _timer?.cancel();
+    _every.cancel();
     super.dispose();
   }
 
   /// The child changed (picked here or in another tab, or the list just loaded): show their day.
+  /// Or the tab came back into view.
   void _childrenChanged() {
+    if (mounted) _every.check();
     final id = _childId;
     if (id == null || id == _dayFor) return;
     _dayFor = id;

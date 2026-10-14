@@ -1,7 +1,7 @@
 import { INestApplication } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import request from 'supertest';
-import { Client, login, ownerClient, startApp, KID, kid } from './helpers';
+import { Client, login, ownerClient, queriesDuring, startApp, KID, kid } from './helpers';
 import { AttendanceEvaluator } from '../src/devices/evaluator';
 import { localParts } from '../src/common/time';
 import { rulesFor } from '../src/devices/rules';
@@ -128,6 +128,14 @@ describe('Automatic attendance (e2e)', () => {
     expect(presence.map((p) => p.studentId)).toEqual([ids.Ali]);
   });
 
+  it('stores a report in the same number of queries however many straps it heard', async () => {
+    const one = (key: string, n: number[]) => queriesDuring(app, () => send(key, n.map((i) => ({ mac: mac(i), rssi: -60, at: at(-5) }))).expect(200));
+    // One loud reading each at the gate: not enough to confirm an arrival, so nothing changes.
+    expect((await one('GATE', [0])).length).toBe((await one('GATE', [2, 3, 4])).length);
+    expect((await one('R205', [0])).length).toBe((await one('R205', [0, 2, 3, 4])).length);
+    expect((await one('R205', [0, 2, 3, 4])).length).toBeLessThanOrEqual(6);
+  });
+
   it('decides the lesson from room sightings, loudest gateway wins', async () => {
     await send('R204', [
       ...everyMinute(mac(0), -60, 0, 45), // Layla in the room all lesson
@@ -145,7 +153,11 @@ describe('Automatic attendance (e2e)', () => {
     const evaluator = app.get(AttendanceEvaluator);
     const school = await prisma.school.findUniqueOrThrow({ where: { id: schoolId } });
     const period = await prisma.period.findUniqueOrThrow({ where: { id: ids.period } });
-    await evaluator.evaluatePeriod(school, rulesFor(school.detection), local.date, period);
+    const queries = await queriesDuring(app, () => evaluator.evaluatePeriod(school, rulesFor(school.detection), local.date, period));
+    // The whole period's register and follow-ups are written at once, not one child at a time.
+    expect(queries.filter((q) => /^INSERT INTO "public"\."AttendanceRecord"/.test(q))).toHaveLength(1);
+    expect(queries.filter((q) => /^INSERT INTO "public"\."AttendanceException"/.test(q))).toHaveLength(1);
+    expect(queries.filter((q) => /^UPDATE "public"\."AttendanceRecord"/.test(q))).toHaveLength(0);
     await evaluator.evaluatePeriod(school, rulesFor(school.detection), local.date, period); // idempotent
 
     const roster = await admin.get(`/api/attendance/classes/${ids.class}/periods/${ids.period}?date=${local.date}`).expect(200);
@@ -185,6 +197,17 @@ describe('Automatic attendance (e2e)', () => {
     const ex = await admin.get(`/api/attendance/exceptions?type=LOW_BATTERY`).expect(200);
     expect(ex.body).toHaveLength(1);
     expect(ex.body[0].message).toContain('12%');
+  });
+
+  it('keeps readings for a week and then removes them', async () => {
+    const strap = await prisma.strap.findFirstOrThrow({ where: { schoolId } });
+    const now = new Date();
+    const heard = (days: number) => prisma.sighting.create({ data: { schoolId, gatewayId: gw.R204.id, strapId: strap.id, rssi: -60, seenAt: new Date(now.getTime() - days * 24 * 60 * MIN) } });
+    const old = await heard(8);
+    const recent = await heard(6);
+    await app.get(AttendanceEvaluator).tick(now);
+    expect(await prisma.sighting.findUnique({ where: { id: old.id } })).toBeNull();
+    expect(await prisma.sighting.findUnique({ where: { id: recent.id } })).not.toBeNull();
   });
 
   it('leaves exceptions to the school office, not teachers', async () => {

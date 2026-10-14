@@ -1,6 +1,7 @@
 process.env.DATABASE_URL = process.env.TEST_DATABASE_URL ?? 'postgresql://school:school@localhost:5432/school_test';
 process.env.JWT_SECRET = 'test-secret';
 process.env.DISABLE_JOBS = '1';
+process.env.PRISMA_QUERY_EVENTS = '1'; // for queriesDuring()
 
 import { INestApplication } from '@nestjs/common';
 import { Test, TestingModuleBuilder } from '@nestjs/testing';
@@ -11,6 +12,7 @@ import { AppModule } from '../src/app.module';
 import { dbDate, isoDate, weekday } from '../src/common/dates';
 import { localParts, zonedTime } from '../src/common/time';
 import { configureApp } from '../src/main';
+import { PrismaService } from '../src/prisma/prisma.service';
 
 export type Client = ReturnType<typeof client>;
 
@@ -44,6 +46,29 @@ export async function startApp(customize: (builder: TestingModuleBuilder) => Tes
   await app.init();
   return app;
 }
+
+/**
+ * The SQL statements the app runs during `work`, so a test can keep a route or job from going back to
+ * one query per row. Only the app's own statements count, not those of a test's own PrismaClient.
+ */
+export async function queriesDuring(app: INestApplication, work: () => Promise<unknown>) {
+  const prisma = app.get(PrismaService) as unknown as { $on(event: 'query', cb: (e: { query: string }) => void): void };
+  let sink = listeners.get(prisma);
+  if (!sink) {
+    const s: { seen?: string[] } = {};
+    prisma.$on('query', (e) => s.seen?.push(e.query));
+    listeners.set(prisma, (sink = s));
+  }
+  const seen: string[] = [];
+  sink.seen = seen;
+  try {
+    await work();
+  } finally {
+    sink.seen = undefined;
+  }
+  return seen.filter((q) => !/^(BEGIN|COMMIT|ROLLBACK|DEALLOCATE)/i.test(q.trim()));
+}
+const listeners = new WeakMap<object, { seen?: string[] }>();
 
 export async function login(app: INestApplication, loginId: string, password: string) {
   const res = await request(app.getHttpServer()).post('/api/auth/login').send({ login: loginId, password }).expect(201);

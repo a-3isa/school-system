@@ -34,12 +34,22 @@ export class LocationsService {
 
   /** Per strap: the latest minute it was heard in [from, to], and the loudest gateway in that minute. */
   async lastHeard(schoolId: string, minRssi: number, from: Date, to: Date, strapIds?: string[]) {
-    const only = strapIds ? Prisma.sql`AND "strapId" IN (${strapIds.length ? Prisma.join(strapIds) : Prisma.sql`NULL`})` : Prisma.empty;
+    const only = strapIds ? Prisma.sql`AND st.id IN (${strapIds.length ? Prisma.join(strapIds) : Prisma.sql`NULL`})` : Prisma.empty;
+    const heard = Prisma.sql`"schoolId" = ${schoolId} AND "seenAt" >= (${from}::timestamptz AT TIME ZONE 'UTC') AND "seenAt" <= (${to}::timestamptz AT TIME ZONE 'UTC') AND "rssi" >= ${minRssi}`;
+    // Two index lookups per strap on (strapId, seenAt): its latest minute, then the loudest reading in it.
     const rows = await this.prisma.$queryRaw<{ strapId: string; gatewayId: string; seenAt: Date }[]>(Prisma.sql`
-      SELECT DISTINCT ON ("strapId") "strapId", "gatewayId", "seenAt"
-      FROM "Sighting"
-      WHERE "schoolId" = ${schoolId} AND "seenAt" >= (${from}::timestamptz AT TIME ZONE 'UTC') AND "seenAt" <= (${to}::timestamptz AT TIME ZONE 'UTC') AND "rssi" >= ${minRssi} ${only}
-      ORDER BY "strapId", date_trunc('minute', "seenAt") DESC, "rssi" DESC`);
+      SELECT l."strapId", s."gatewayId", s."seenAt"
+      FROM (
+        SELECT st.id AS "strapId", (
+          SELECT date_trunc('minute', "seenAt") FROM "Sighting" WHERE "strapId" = st.id AND ${heard} ORDER BY "seenAt" DESC LIMIT 1
+        ) AS minute
+        FROM "Strap" st WHERE st."schoolId" = ${schoolId} ${only}
+      ) l
+      CROSS JOIN LATERAL (
+        SELECT "gatewayId", "seenAt" FROM "Sighting"
+        WHERE "strapId" = l."strapId" AND ${heard} AND "seenAt" >= l.minute AND "seenAt" < l.minute + interval '1 minute'
+        ORDER BY "rssi" DESC LIMIT 1
+      ) s`);
     return new Map(rows.map((r) => [r.strapId, r]));
   }
 

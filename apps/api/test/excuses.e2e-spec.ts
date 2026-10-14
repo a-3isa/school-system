@@ -1,7 +1,7 @@
 import { INestApplication } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import request from 'supertest';
-import { Client, login, ownerClient, startApp, kid, PNG } from './helpers';
+import { Client, login, ownerClient, queriesDuring, startApp, kid, PNG } from './helpers';
 import { AttendanceService } from '../src/attendance/attendance.service';
 import { ExcusesService, ALERT_AFTER_MINUTES } from '../src/excuses/excuses';
 
@@ -68,7 +68,10 @@ describe('Excuses and the “didn’t come” check (e2e)', () => {
       await mark(ids.Layla, 'ABSENT');
       await mark(ids.Ali, 'ABSENT');
       await mark(ids.Omar, 'ABSENT');
-      await svc().sendAbsenceNotices();
+      const queries = await queriesDuring(app, () => svc().sendAbsenceNotices());
+      // Three children, one statement each for the notices and the messages.
+      expect(queries.filter((q) => /^INSERT INTO "AbsenceNotice"/.test(q.trim()))).toHaveLength(1);
+      expect(queries.filter((q) => /^INSERT INTO "public"\."Notification"/.test(q))).toHaveLength(1);
       expect(await svc().sendAbsenceNotices()).toBe(0);
       for (const c of [mona, amr]) expect(await titles(c)).toContain('attendance.absentCheck: Layla didn’t come to school today');
       const note = (await mona.get('/api/notifications').expect(200)).body.find((n: any) => n.type === 'attendance.absentCheck');

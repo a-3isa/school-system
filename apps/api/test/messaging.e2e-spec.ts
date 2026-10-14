@@ -3,7 +3,7 @@ import { PrismaClient, Role } from '@prisma/client';
 import { AddressInfo } from 'net';
 import { io, Socket } from 'socket.io-client';
 import request from 'supertest';
-import { Client, client, kid, login, ownerClient, PNG, startApp } from './helpers';
+import { Client, client, kid, login, ownerClient, PNG, queriesDuring, startApp } from './helpers';
 import { EmailService } from '../src/auth/email';
 import { localParts } from '../src/common/time';
 import { MeetingsService } from '../src/messaging/meetings';
@@ -314,6 +314,24 @@ describe('Messaging (e2e)', () => {
       // The second admin isn't offered as a contact: Student Affairs is one name.
       const names = (await p4.get(`/api/parent/children/${id.Omar}/contacts`).expect(200)).body.contacts.map((c: any) => c.name);
       expect(names.filter((n: string) => n === 'Zeinab' || n === 'Admin')).toEqual(['Admin']);
+    });
+
+    it('lists conversations in the same number of queries however many there are', async () => {
+      const list = () => queriesDuring(app, () => admin.get('/api/threads?scope=school').expect(200));
+      const write = async (staffId: string) => {
+        const thread = (await p4.post(`/api/parent/children/${id.Omar}/threads`, { staffId }).expect(201)).body;
+        await p4.post(`/api/threads/${thread.id}/messages`, { body: `Hello ${staffId}` }).expect(201);
+      };
+      await write(id.t1);
+      const fewer = await list();
+      await write(id.ht);
+      const more = await list();
+      expect(more.length).toBe(fewer.length);
+
+      const threads = (await admin.get('/api/threads?scope=school').expect(200)).body;
+      const toTeachers = threads.filter((t: any) => t.parent.name === 'Hoda' && [id.t1, id.ht].includes(t.staff.id));
+      expect(toTeachers).toHaveLength(2);
+      for (const t of toTeachers) expect(t.last).toEqual(expect.objectContaining({ body: `Hello ${t.staff.id}`, mine: false }));
     });
 
     it('checks what is sent', async () => {

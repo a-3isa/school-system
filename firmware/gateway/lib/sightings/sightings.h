@@ -55,4 +55,38 @@ inline void addToBacklog(Backlog& backlog, const Window& taken, std::size_t max)
   if (backlog.size() > max) backlog.erase(backlog.begin(), backlog.begin() + static_cast<std::ptrdiff_t>(backlog.size() - max));
 }
 
+/**
+ * How long to wait (ms) before trying again after `failures` failed tries in a row. The wait doubles
+ * from `first` up to `most`, and `random` (any number) places it somewhere in the upper half of that,
+ * so readers that lost the server at the same moment don't all come back at the same moment.
+ */
+inline uint32_t retryAfter(uint32_t failures, uint32_t first, uint32_t most, uint32_t random) {
+  if (failures == 0) return 0;
+  uint64_t cap = first;
+  for (uint32_t i = 1; i < failures && cap < most; i++) cap *= 2;
+  if (cap > most) cap = most;
+  uint32_t half = static_cast<uint32_t>(cap / 2);
+  return half + random % (static_cast<uint32_t>(cap) - half + 1);
+}
+
+/** Tries to reach something (Wi-Fi, the server) no more often than retryAfter allows. Times are millis(). */
+struct Retry {
+  uint32_t first;
+  uint32_t most;
+  uint32_t failures = 0;
+  uint32_t lastTry = 0;
+  uint32_t wait = 0;
+
+  Retry(uint32_t first, uint32_t most) : first(first), most(most) {}
+
+  /** Unsigned subtraction keeps this right when millis() wraps around after 49 days. */
+  bool due(uint32_t now) const { return failures == 0 || now - lastTry >= wait; }
+  void failed(uint32_t now, uint32_t random) {
+    failures++;
+    lastTry = now;
+    wait = retryAfter(failures, first, most, random);
+  }
+  void succeeded() { failures = 0; }
+};
+
 }  // namespace sightings

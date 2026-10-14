@@ -462,21 +462,27 @@ export class AttendanceService {
         },
         include: { guardians: { where: { restricted: false } } },
       });
-      for (const s of absent) {
-        // The notice row is the lock: a second run can't send twice.
-        const created = await this.prisma.absenceNotice.createMany({ data: [{ studentId: s.id, date: day }], skipDuplicates: true });
-        if (!created.count) continue;
-        sent += await this.notifications.notify(
-          s.guardians.map((g) => ({
-            schoolId: school.id,
-            userId: g.userId,
-            type: 'attendance.absentCheck',
-            title: `${s.firstName} didn’t come to school today`,
-            body: `${s.firstName} hasn’t been marked present at school today. Do you know why ${s.firstName} isn’t at school?`,
-            data: { studentId: s.id, date, check: true },
-          })),
-        );
-      }
+      if (!absent.length) continue;
+      // The notice row is the lock: a second run can't send twice.
+      const created = await this.prisma.$queryRaw<{ studentId: string }[]>`
+        INSERT INTO "AbsenceNotice" ("studentId", "date", "sentAt")
+        VALUES ${Prisma.join(absent.map((s) => Prisma.sql`(${s.id}, ${date}::date, (${now}::timestamptz AT TIME ZONE 'UTC'))`))}
+        ON CONFLICT DO NOTHING RETURNING "studentId"`;
+      const locked = new Set(created.map((c) => c.studentId));
+      sent += await this.notifications.notify(
+        absent
+          .filter((s) => locked.has(s.id))
+          .flatMap((s) =>
+            s.guardians.map((g) => ({
+              schoolId: school.id,
+              userId: g.userId,
+              type: 'attendance.absentCheck',
+              title: `${s.firstName} didn’t come to school today`,
+              body: `${s.firstName} hasn’t been marked present at school today. Do you know why ${s.firstName} isn’t at school?`,
+              data: { studentId: s.id, date, check: true },
+            })),
+          ),
+      );
     }
     return sent;
   }

@@ -51,6 +51,9 @@ jobs:
       - run: npm test -w apps/web
       - run: npm run build -w apps/web
         env: { NEXT_TELEMETRY_DISABLED: 1 }
+      # JavaScript per page (gzipped) and font bytes against apps/web/bundle-budget.json.
+      - run: node scripts/bundle-report.mjs --check
+        working-directory: apps/web
 
   parent:
     name: Parent app (Flutter)

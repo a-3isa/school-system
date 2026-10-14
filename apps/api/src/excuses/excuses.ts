@@ -143,7 +143,7 @@ export class ExcusesService {
     if (notice.answer) return { answer: notice.answer, alerted: !!notice.alertedAt };
     const answer = dto.knows ? AbsenceAnswer.KNOWS : AbsenceAnswer.DOESNT_KNOW;
     const { count } = await this.prisma.absenceNotice.updateMany({ where: { studentId, date: notice.date, answer: null }, data: { answer, answeredAt: now, answeredById: user.id } });
-    if (count && !dto.knows) await this.raiseAlert(student.schoolId, studentId, dto.date, 'said they don’t know where the child is', now);
+    if (count && !dto.knows) await this.raiseAlert(studentId, dto.date, 'said they don’t know where the child is', now);
     return { answer, alerted: !dto.knows || !!notice.alertedAt };
   }
 
@@ -295,55 +295,104 @@ export class ExcusesService {
   // ---- the "didn't come" alert -----------------------------------------------
 
   /** Tells the dashboard to find the child: an urgent follow-up, and a message to every admin. Once per child per day. */
-  async raiseAlert(schoolId: string, studentId: string, date: string, why: string, now = new Date()) {
+  async raiseAlert(studentId: string, date: string, why: string, now = new Date()) {
     const locked = await this.prisma.absenceNotice.updateMany({ where: { studentId, date: dbDate(date), alertedAt: null }, data: { alertedAt: now } });
     if (!locked.count) return false;
-    const student = await this.prisma.student.findUniqueOrThrow({ where: { id: studentId }, include: { class: { select: { name: true } }, guardians: { include: { user: { select: { name: true, phone: true } } } } } });
-    const calls = student.guardians.map((g) => `${g.user.name}${g.user.phone ? ` ${g.user.phone}` : ''}`).join(', ');
-    const full = `${student.firstName} ${student.lastName}`;
-    const message = `${full}${student.class ? ` (${student.class.name})` : ''} didn’t come to school and the parents ${why}. Call the parents to find out where ${student.firstName} is: ${calls || 'no number on file'}.`;
-    await this.prisma.attendanceException.upsert({
-      where: { dedupeKey: `absent-unknown:${studentId}:${date}` },
-      create: { schoolId, type: ExceptionType.ABSENT_UNKNOWN, date: dbDate(date), studentId, message, dedupeKey: `absent-unknown:${studentId}:${date}` },
-      update: {},
-    });
-    await this.notifications.notify(
-      (await this.admins(schoolId)).map((a) => ({
-        schoolId, userId: a.id, type: 'attendance.urgentAbsence', title: `URGENT: ${full} isn’t at school and the parents don’t know where`,
-        body: message, data: { studentId, date },
-      })),
-    );
+    await this.alertFor([{ studentId, date: dbDate(date) }], why);
     return true;
+  }
+
+  /** For notices just locked (alertedAt set): a follow-up for Student Affairs, and an urgent message to each admin. */
+  private async alertFor(locked: { studentId: string; date: Date }[], why: string) {
+    if (!locked.length) return;
+    const students = await this.prisma.student.findMany({
+      where: { id: { in: [...new Set(locked.map((l) => l.studentId))] } },
+      include: { class: { select: { name: true } }, guardians: { include: { user: { select: { name: true, phone: true } } } } },
+    });
+    const byId = new Map(students.map((s) => [s.id, s]));
+    const admins = await this.prisma.user.findMany({
+      where: { schoolId: { in: [...new Set(students.map((s) => s.schoolId))] }, role: Role.SCHOOL_ADMIN, active: true },
+      select: { id: true, schoolId: true },
+    });
+    const exceptions: Prisma.AttendanceExceptionCreateManyInput[] = [];
+    const messages: Parameters<NotificationsService['notify']>[0] = [];
+    for (const l of locked) {
+      const student = byId.get(l.studentId);
+      if (!student) continue;
+      const date = isoDate(l.date);
+      const { schoolId, id: studentId } = student;
+      const calls = student.guardians.map((g) => `${g.user.name}${g.user.phone ? ` ${g.user.phone}` : ''}`).join(', ');
+      const full = `${student.firstName} ${student.lastName}`;
+      const message = `${full}${student.class ? ` (${student.class.name})` : ''} didn’t come to school and the parents ${why}. Call the parents to find out where ${student.firstName} is: ${calls || 'no number on file'}.`;
+      exceptions.push({ schoolId, type: ExceptionType.ABSENT_UNKNOWN, date: l.date, studentId, message, dedupeKey: `absent-unknown:${studentId}:${date}` });
+      for (const a of admins) {
+        if (a.schoolId !== schoolId) continue;
+        messages.push({
+          schoolId, userId: a.id, type: 'attendance.urgentAbsence', title: `URGENT: ${full} isn’t at school and the parents don’t know where`,
+          body: message, data: { studentId, date },
+        });
+      }
+    }
+    await this.prisma.attendanceException.createMany({ data: exceptions, skipDuplicates: true });
+    await this.notifications.notify(messages);
   }
 
   /** Every minute: sets off the alert for a question left unanswered too long, and closes alerts for children who turned up. */
   async checkAlerts(now = new Date()) {
-    const due = await this.prisma.absenceNotice.findMany({
-      where: { answer: null, alertedAt: null, sentAt: { lte: new Date(now.getTime() - ALERT_AFTER_MINUTES * 60_000) } },
-      include: { student: { select: { schoolId: true } } },
-    });
-    for (const n of due) await this.raiseAlert(n.student.schoolId, n.studentId, isoDate(n.date), `didn’t answer within ${ALERT_AFTER_MINUTES} minutes`, now);
+    // Locking every due notice in one statement means each alert still goes once.
+    const due = await this.prisma.$queryRaw<{ studentId: string; date: Date }[]>`
+      UPDATE "AbsenceNotice" SET "alertedAt" = (${now}::timestamptz AT TIME ZONE 'UTC')
+      WHERE "answer" IS NULL AND "alertedAt" IS NULL AND "sentAt" <= (${new Date(now.getTime() - ALERT_AFTER_MINUTES * 60_000)}::timestamptz AT TIME ZONE 'UTC')
+      RETURNING "studentId", "date"`;
+    await this.alertFor(due, `didn’t answer within ${ALERT_AFTER_MINUTES} minutes`);
 
     const open = await this.prisma.attendanceException.findMany({ where: { type: ExceptionType.ABSENT_UNKNOWN, status: ExceptionStatus.OPEN, studentId: { not: null } } });
+    const byDay = new Map<string, string[]>();
     for (const e of open) {
+      const ids = byDay.get(isoDate(e.date));
+      if (ids) ids.push(e.studentId!);
+      else byDay.set(isoDate(e.date), [e.studentId!]);
+    }
+    const seenOn = new Map<string, Date>();
+    for (const [day, ids] of byDay) {
       const [present, gate] = await Promise.all([
-        this.prisma.attendanceRecord.findFirst({ where: { studentId: e.studentId!, date: e.date, status: { in: [AttendanceStatus.PRESENT, AttendanceStatus.LATE] } }, orderBy: { updatedAt: 'asc' } }),
-        this.prisma.gatePresence.findUnique({ where: { studentId_date: { studentId: e.studentId!, date: e.date } } }),
+        this.prisma.attendanceRecord.findMany({
+          where: { studentId: { in: ids }, date: dbDate(day), status: { in: [AttendanceStatus.PRESENT, AttendanceStatus.LATE] } },
+          select: { studentId: true, updatedAt: true },
+          orderBy: { updatedAt: 'desc' },
+        }),
+        this.prisma.gatePresence.findMany({ where: { studentId: { in: ids }, date: dbDate(day), arrivedAt: { not: null } }, select: { studentId: true, arrivedAt: true } }),
       ]);
-      const seen = gate?.arrivedAt ?? present?.updatedAt;
-      if (!seen) continue;
-      const school = await this.school(e.schoolId);
-      const time = localParts(seen, school.timezone).time;
-      await this.prisma.attendanceException.update({
-        where: { id: e.id },
-        data: { status: ExceptionStatus.RESOLVED, resolvedAt: now, note: `Closed automatically: the student arrived at school at ${time}.` },
-      });
-      const student = await this.prisma.student.findUniqueOrThrow({ where: { id: e.studentId! }, select: { firstName: true } });
+      for (const p of present) seenOn.set(`${p.studentId}|${day}`, p.updatedAt); // newest first, so the earliest is set last
+      for (const g of gate) seenOn.set(`${g.studentId}|${day}`, g.arrivedAt!);
+    }
+    const turnedUp = open.flatMap((e) => {
+      const seen = seenOn.get(`${e.studentId}|${isoDate(e.date)}`);
+      return seen ? [{ e, seen }] : [];
+    });
+    if (turnedUp.length) {
+      const [schools, students] = await Promise.all([
+        this.prisma.school.findMany({ where: { id: { in: [...new Set(turnedUp.map((t) => t.e.schoolId))] } }, select: { id: true, timezone: true } }),
+        this.prisma.student.findMany({
+          where: { id: { in: [...new Set(turnedUp.map((t) => t.e.studentId!))] } },
+          select: { id: true, firstName: true, guardians: { where: { restricted: false }, select: { userId: true } } },
+        }),
+      ]);
+      const zone = new Map(schools.map((s) => [s.id, s.timezone]));
+      const byId = new Map(students.map((s) => [s.id, s]));
+      const closed = turnedUp.map(({ e, seen }) => ({ e, time: localParts(seen, zone.get(e.schoolId)!).time }));
+      await this.prisma.$executeRaw`
+        UPDATE "AttendanceException" AS x SET "status" = 'RESOLVED', "resolvedAt" = (${now}::timestamptz AT TIME ZONE 'UTC'), "note" = v.note
+        FROM (VALUES ${Prisma.join(closed.map(({ e, time }) => Prisma.sql`(${e.id}, ${`Closed automatically: the student arrived at school at ${time}.`})`))}) AS v(id, note)
+        WHERE x.id = v.id`;
       await this.notifications.notify(
-        (await this.guardians(e.studentId!)).map((g) => ({
-          schoolId: e.schoolId, userId: g.userId, type: 'attendance.arrived', title: `${student.firstName} has arrived at school`,
-          body: `${student.firstName} arrived at school at ${time}.`, data: { studentId: e.studentId!, date: isoDate(e.date), time },
-        })),
+        closed.flatMap(({ e, time }) => {
+          const student = byId.get(e.studentId!);
+          return (student?.guardians ?? []).map((g) => ({
+            schoolId: e.schoolId, userId: g.userId, type: 'attendance.arrived', title: `${student!.firstName} has arrived at school`,
+            body: `${student!.firstName} arrived at school at ${time}.`, data: { studentId: e.studentId!, date: isoDate(e.date), time },
+          }));
+        }),
       );
     }
     return { asked: due.length, open: open.length };
