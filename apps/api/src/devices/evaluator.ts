@@ -12,6 +12,9 @@ const MINUTE = 60_000;
 // Wait this long after a period ends before deciding it, so late batches arrive.
 const SETTLE_MINUTES = 2;
 const KEEP_SIGHTINGS_DAYS = 7;
+// Old readings go a batch at a time, and only so many a minute, so a backlog never holds up the job.
+const PURGE_BATCH = 10_000;
+const PURGE_BATCHES_PER_SCHOOL = 10;
 
 /**
  * Turns strap sightings into attendance, once a minute, for schools using
@@ -39,7 +42,27 @@ export class AttendanceEvaluator {
         this.logger.error(`School ${school.id}: ${(e as Error).message}`);
       }
     }
-    await this.prisma.sighting.deleteMany({ where: { seenAt: { lt: new Date(now.getTime() - KEEP_SIGHTINGS_DAYS * 24 * 60 * MINUTE) } } });
+    await this.purgeSightings(now);
+  }
+
+  /**
+   * Removes readings older than a week (decision H38), school by school: the readings are indexed by
+   * school and time, and a delete by time alone reads the whole table.
+   */
+  async purgeSightings(now = new Date()) {
+    const before = new Date(now.getTime() - KEEP_SIGHTINGS_DAYS * 24 * 60 * MINUTE);
+    const schools = await this.prisma.school.findMany({ select: { id: true } });
+    let removed = 0;
+    for (const { id } of schools) {
+      for (let i = 0; i < PURGE_BATCHES_PER_SCHOOL; i++) {
+        const n = await this.prisma.$executeRaw`
+          DELETE FROM "Sighting" WHERE id IN (
+            SELECT id FROM "Sighting" WHERE "schoolId" = ${id} AND "seenAt" < (${before}::timestamptz AT TIME ZONE 'UTC') LIMIT ${PURGE_BATCH})`;
+        removed += n;
+        if (n < PURGE_BATCH) break;
+      }
+    }
+    return removed;
   }
 
   async evaluateSchool(school: School, now: Date) {

@@ -65,7 +65,7 @@ async function main() {
 
   // The weekly clean-up alone: nothing is older than a week in the seed, so this is its cost every minute.
   queries.reset();
-  const [purgeMs] = await timed(() => prisma.sighting.deleteMany({ where: { seenAt: { lt: new Date(start.getTime() - 7 * 86_400_000) } } }));
+  const [purgeMs] = await timed(() => evaluator.purgeSightings(start));
   results.push({ minute: '-', step: 'clean-up of old readings alone', ms: Math.round(purgeMs), queries: queries.count });
 
   console.table(results);
