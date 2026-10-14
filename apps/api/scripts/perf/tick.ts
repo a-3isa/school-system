@@ -24,6 +24,8 @@ async function main() {
   await prisma.attendanceRecord.deleteMany({ where: { date: day } });
   await prisma.attendanceException.deleteMany({ where: { date: day } });
   await prisma.notification.deleteMany({ where: { createdAt: { gt: seededBefore } } });
+  // The seed's notices were sent at 08:15; any others were sent by an earlier run.
+  await prisma.absenceNotice.deleteMany({ where: { date: day, sentAt: { not: zonedTime(PERF_DATE, '08:15', 'Africa/Cairo') } } });
   await prisma.absenceNotice.updateMany({ where: { date: day }, data: { alertedAt: null } });
   await prisma.gatePresence.updateMany({ where: { date: day }, data: { leftAt: null } });
 
