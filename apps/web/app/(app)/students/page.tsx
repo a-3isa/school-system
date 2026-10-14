@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { useApi } from '@/lib/hooks';
+import { useApi, useDebounced } from '@/lib/hooks';
 import { useI18n } from '@/lib/i18n';
 import { useSession } from '@/lib/session';
 import { Empty, ErrorNote, PageHead, Pill } from '@/components/ui';
@@ -15,7 +15,8 @@ export default function StudentsPage() {
   const isAdmin = me.role === 'SCHOOL_ADMIN';
   const [q, setQ] = useState('');
   const [classId, setClassId] = useState('');
-  const students = useApi<any[]>(`/students?active=true${q ? `&q=${encodeURIComponent(q)}` : ''}${classId ? `&classId=${classId}` : ''}`);
+  const search = useDebounced(q);
+  const students = useApi<any[]>(`/students?active=true${search ? `&q=${encodeURIComponent(search)}` : ''}${classId ? `&classId=${classId}` : ''}`);
   const classes = useApi<any[]>('/classes');
   return (
     <>
