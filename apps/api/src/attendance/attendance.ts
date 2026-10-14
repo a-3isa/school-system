@@ -127,16 +127,36 @@ export class AttendanceJobs implements OnModuleInit, OnModuleDestroy {
     if (this.timer) clearInterval(this.timer);
   }
 
+  private running = false;
+
+  /**
+   * One run at a time: a minute that runs long is not joined by the next one, which would send the
+   * same messages twice. Each step runs even if an earlier one failed.
+   */
   async tick(now = new Date()) {
+    if (this.running) {
+      this.logger.warn('The previous minute is still running; skipping this one.');
+      return;
+    }
+    this.running = true;
+    const steps: [string, () => Promise<unknown>][] = [
+      ['evaluator', () => this.evaluator.tick(now)],
+      ['absence notices', () => this.attendance.sendAbsenceNotices(now)],
+      ['approved excuses', () => this.excuses.applyApproved()],
+      ['follow-up alerts', () => this.excuses.checkAlerts(now)],
+      ['trip reminders', () => this.trips.remind(now)],
+      ['push messages', () => this.notifications.flush()],
+    ];
     try {
-      await this.evaluator.tick(now);
-      await this.attendance.sendAbsenceNotices(now);
-      await this.excuses.applyApproved();
-      await this.excuses.checkAlerts(now);
-      await this.trips.remind(now);
-      await this.notifications.flush();
-    } catch (e) {
-      this.logger.error(e);
+      for (const [name, run] of steps) {
+        try {
+          await run();
+        } catch (e) {
+          this.logger.error(`${name} failed`, e instanceof Error ? e.stack : String(e));
+        }
+      }
+    } finally {
+      this.running = false;
     }
   }
 }
