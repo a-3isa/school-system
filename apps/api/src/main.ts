@@ -1,6 +1,7 @@
 import 'reflect-metadata';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import compression from 'compression';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { allowedOrigins } from './common/cors';
@@ -11,6 +12,8 @@ export function configureApp(app: INestApplication) {
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
   // Crests and photos are fetched by the dashboard from another origin, so they stay readable cross-origin.
   app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
+  // Lists are JSON and shrink about twentyfold; photos and PDFs are left as they are.
+  app.use(compression());
   app.enableCors({ origin: allowedOrigins() });
   // Live chat: the socket server shares the HTTP server and the origin rule.
   app.useWebSocketAdapter(new SocketAdapter(app));

@@ -293,6 +293,13 @@ describe('Phase 1 core (e2e)', () => {
     expect(actions).toEqual(expect.arrayContaining(['student.create', 'guardian.add', 'timetable.create', 'module.features']));
   });
 
+  it('compresses replies for clients that accept it', async () => {
+    const res = await admin.get('/api/audit').set('Accept-Encoding', 'gzip').expect(200);
+    expect(JSON.stringify(res.body).length).toBeGreaterThan(1024); // big enough to be worth it
+    expect(res.headers['content-encoding']).toBe('gzip');
+    expect(res.body.length).toBeGreaterThan(0); // and still reads as before
+  });
+
   it('validates input', async () => {
     const res = await admin.post('/api/students', { ...(await kid(admin)), code: 'X', firstName: 'A', lastName: 'B', hacker: true }).expect(400);
     expect(JSON.stringify(res.body.message)).toContain('hacker');
