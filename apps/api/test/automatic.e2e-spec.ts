@@ -1,7 +1,7 @@
 import { INestApplication } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import request from 'supertest';
-import { Client, login, ownerClient, startApp, KID, kid } from './helpers';
+import { Client, login, ownerClient, queriesDuring, startApp, KID, kid } from './helpers';
 import { AttendanceEvaluator } from '../src/devices/evaluator';
 import { localParts } from '../src/common/time';
 import { rulesFor } from '../src/devices/rules';
@@ -126,6 +126,14 @@ describe('Automatic attendance (e2e)', () => {
     expect(notes.body[0]).toEqual(expect.objectContaining({ type: 'attendance.arrived', title: 'Ali has arrived at school' }));
     const presence = await prisma.gatePresence.findMany({ where: { studentId: { in: [ids.Ali, ids.Yara] } } });
     expect(presence.map((p) => p.studentId)).toEqual([ids.Ali]);
+  });
+
+  it('stores a report in the same number of queries however many straps it heard', async () => {
+    const one = (key: string, n: number[]) => queriesDuring(app, () => send(key, n.map((i) => ({ mac: mac(i), rssi: -60, at: at(-5) }))).expect(200));
+    // One loud reading each at the gate: not enough to confirm an arrival, so nothing changes.
+    expect((await one('GATE', [0])).length).toBe((await one('GATE', [2, 3, 4])).length);
+    expect((await one('R205', [0])).length).toBe((await one('R205', [0, 2, 3, 4])).length);
+    expect((await one('R205', [0, 2, 3, 4])).length).toBeLessThanOrEqual(6);
   });
 
   it('decides the lesson from room sightings, loudest gateway wins', async () => {
