@@ -3,11 +3,13 @@
 // which runs the same ingest.
 //
 //   npx ts-node --transpile-only scripts/perf/gateways.ts [--mode steady|heartbeat|catchup] [--seconds 60]
-//     [--schools 20] [--readers 10] [--every 5] [--api http://localhost:3100]
+//     [--schools 20] [--readers 10] [--every 5] [--spread 0] [--api http://localhost:3100]
 //
 // steady:    classroom readers send their class's 28 bands every 5 s; the gate reader sends a few arrivals.
 // heartbeat: every reader sends an empty report every 5 s (a campus with nobody in it).
 // catchup:   every reader comes back after an outage at the same moment and sends 10 reports of 150 at once.
+//            With --spread 30, each comes back at a random moment within 30 s and sends its reports one
+//            after another, as the firmware does with its reconnect backoff.
 import { arg, gatewaySecret, percentiles } from './env';
 
 const API = arg('api', 'http://localhost:3100') + '/api/gateway/sightings';
@@ -16,6 +18,7 @@ const SECONDS = Number(arg('seconds', '60'));
 const SCHOOLS = Number(arg('schools', '20'));
 const READERS = Number(arg('readers', '10'));
 const EVERY = Number(arg('every', '5')) * 1000;
+const SPREAD = Number(arg('spread', '0')) * 1000;
 const PER_CLASS = 28;
 const pad = (n: number) => String(n).padStart(2, '0');
 const mac = (k: number, n: number) => `DC:0D:${pad(k)}:${pad(Math.floor(n / 100))}:${pad(n % 100)}:01`;
@@ -60,13 +63,18 @@ async function main() {
 
   if (MODE === 'catchup') {
     const now = Date.now();
-    await Promise.all(
-      readers.flatMap(([k, g]) =>
-        Array.from({ length: 10 }, (_, chunk) =>
-          post(`PERF-${pad(k)}-GW${pad(g)}`, Array.from({ length: 150 }, (_, i) => ({ mac: mac(k, ((g || 1) - 1) * PER_CLASS + (i % PER_CLASS)), rssi: -60, at: now - (chunk * 150 + i) * 1000 }))),
-        ),
-      ),
-    );
+    const chunk = (k: number, g: number, c: number) =>
+      post(`PERF-${pad(k)}-GW${pad(g)}`, Array.from({ length: 150 }, (_, i) => ({ mac: mac(k, ((g || 1) - 1) * PER_CLASS + (i % PER_CLASS)), rssi: -60, at: now - (c * 150 + i) * 1000 })));
+    if (!SPREAD) {
+      await Promise.all(readers.flatMap(([k, g]) => Array.from({ length: 10 }, (_, c) => chunk(k, g, c))));
+    } else {
+      await Promise.all(
+        readers.map(async ([k, g]) => {
+          await new Promise((r) => setTimeout(r, Math.random() * SPREAD));
+          for (let c = 0; c < 10; c++) await chunk(k, g, c);
+        }),
+      );
+    }
   } else {
     // Readers start at random moments in the first window, as real ones do.
     const timers = readers.map(([k, g]) =>

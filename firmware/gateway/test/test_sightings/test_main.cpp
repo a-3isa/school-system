@@ -1,5 +1,6 @@
 // Runs on a computer: pio test -e native
 #include <unity.h>
+#include <algorithm>
 #include <sightings.h>
 
 using namespace sightings;
@@ -101,6 +102,56 @@ void test_backlog_cap_applies_to_one_big_window() {
   TEST_ASSERT_EQUAL(4, (int)b.size());
 }
 
+void test_retry_waits_double_each_time_up_to_the_most() {
+  // random = 0 gives the shortest wait: half of the cap.
+  TEST_ASSERT_EQUAL_UINT32(0, retryAfter(0, 2000, 60000, 0));
+  TEST_ASSERT_EQUAL_UINT32(1000, retryAfter(1, 2000, 60000, 0));
+  TEST_ASSERT_EQUAL_UINT32(2000, retryAfter(2, 2000, 60000, 0));
+  TEST_ASSERT_EQUAL_UINT32(4000, retryAfter(3, 2000, 60000, 0));
+  TEST_ASSERT_EQUAL_UINT32(30000, retryAfter(10, 2000, 60000, 0));
+  TEST_ASSERT_EQUAL_UINT32(30000, retryAfter(4000000000u, 2000, 60000, 0));  // no overflow
+}
+
+void test_retry_waits_stay_in_the_upper_half_of_the_cap() {
+  for (uint32_t r = 0; r < 100000; r += 997) {
+    uint32_t w = retryAfter(1, 2000, 60000, r * 2654435761u);
+    TEST_ASSERT_TRUE(w >= 1000 && w <= 2000);
+    w = retryAfter(20, 2000, 60000, r * 2654435761u);
+    TEST_ASSERT_TRUE(w >= 30000 && w <= 60000);
+  }
+}
+
+void test_readers_that_failed_together_come_back_spread_out() {
+  std::map<uint32_t, int> perSecond;
+  for (uint32_t r = 0; r < 200; r++) perSecond[retryAfter(6, 2000, 60000, r * 2654435761u) / 1000]++;
+  int busiest = 0;
+  for (const auto& s : perSecond) busiest = std::max(busiest, s.second);
+  TEST_ASSERT_TRUE(perSecond.size() >= 10);  // the 200 retries land in many different seconds
+  TEST_ASSERT_TRUE(busiest <= 40);
+}
+
+void test_retry_is_due_at_once_then_only_after_the_wait() {
+  Retry r(2000, 60000);
+  TEST_ASSERT_TRUE(r.due(5));
+  r.failed(100, 0);  // waits 1000 ms
+  TEST_ASSERT_FALSE(r.due(600));
+  TEST_ASSERT_TRUE(r.due(1100));
+  r.failed(1100, 0);  // waits 2000 ms
+  TEST_ASSERT_FALSE(r.due(3000));
+  TEST_ASSERT_TRUE(r.due(3100));
+  r.succeeded();
+  TEST_ASSERT_TRUE(r.due(3101));
+  r.failed(3101, 0);
+  TEST_ASSERT_EQUAL_UINT32(1000, r.wait);  // starts again from the first wait
+}
+
+void test_retry_survives_millis_wrapping_around() {
+  Retry r(2000, 60000);
+  r.failed(0xFFFFFF00u, 0);  // 1000 ms wait, 256 ms before the wrap
+  TEST_ASSERT_FALSE(r.due(100));
+  TEST_ASSERT_TRUE(r.due(800));
+}
+
 int main(int, char**) {
   UNITY_BEGIN();
   RUN_TEST(test_keeps_the_loudest_reading_and_when_it_was_heard);
@@ -115,5 +166,10 @@ int main(int, char**) {
   RUN_TEST(test_backlog_keeps_everything_while_it_has_room);
   RUN_TEST(test_backlog_drops_the_oldest_when_full);
   RUN_TEST(test_backlog_cap_applies_to_one_big_window);
+  RUN_TEST(test_retry_waits_double_each_time_up_to_the_most);
+  RUN_TEST(test_retry_waits_stay_in_the_upper_half_of_the_cap);
+  RUN_TEST(test_readers_that_failed_together_come_back_spread_out);
+  RUN_TEST(test_retry_is_due_at_once_then_only_after_the_wait);
+  RUN_TEST(test_retry_survives_millis_wrapping_around);
   return UNITY_END();
 }
