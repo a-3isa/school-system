@@ -5,6 +5,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../api.dart';
+import '../every.dart';
 import '../strings.dart';
 import '../theme.dart';
 import '../widgets.dart';
@@ -29,7 +30,7 @@ class _MessagesTabState extends State<MessagesTab> {
   List<Map<String, dynamic>> _threads = [];
   bool _loaded = false;
   String? _error;
-  Timer? _timer;
+  late final Every _every;
   StreamSubscription<Map<String, dynamic>>? _live;
 
   bool get _chat => widget.data.has('messaging', 'chat');
@@ -39,7 +40,7 @@ class _MessagesTabState extends State<MessagesTab> {
   void initState() {
     super.initState();
     _load();
-    _timer = Timer.periodic(const Duration(minutes: 1), (_) => _load());
+    _every = Every(const Duration(minutes: 1), _load, active: () => widget.data.tab == 'messages');
     // A new message changes the list at once, without waiting for the minute.
     if (_chat) _live = widget.data.chat.messages.listen((_) => _load());
     widget.data.addListener(_maybeOpen);
@@ -48,13 +49,15 @@ class _MessagesTabState extends State<MessagesTab> {
   @override
   void dispose() {
     widget.data.removeListener(_maybeOpen);
-    _timer?.cancel();
+    _every.cancel();
     _live?.cancel();
     super.dispose();
   }
 
   /// A tapped notification about an announcement opens it, once the list has it.
+  /// Also catches up on a refresh skipped while the tab was out of view.
   Future<void> _maybeOpen() async {
+    if (mounted) _every.check();
     final id = widget.data.openAnnouncementId;
     if (id == null || !mounted) return;
     widget.data.openAnnouncementId = null;
@@ -610,7 +613,7 @@ class _ChatScreenState extends State<ChatScreen> {
   final _text = TextEditingController();
   String? _fileName;
   Uint8List? _fileBytes;
-  Timer? _timer;
+  late final Every _every;
   final _subs = <StreamSubscription<dynamic>>[];
   final _scroll = ScrollController();
 
@@ -621,7 +624,7 @@ class _ChatScreenState extends State<ChatScreen> {
   void initState() {
     super.initState();
     _load();
-    _timer = Timer.periodic(const Duration(seconds: 30), (_) {
+    _every = Every(const Duration(seconds: 30), () {
       if (!widget.data.chat.connected) _load();
     });
     _subs.add(widget.data.chat.messages.listen((e) {
@@ -639,7 +642,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   void dispose() {
-    _timer?.cancel();
+    _every.cancel();
     for (final s in _subs) {
       s.cancel();
     }
