@@ -97,13 +97,20 @@ export class ChatService {
   private async withLastAndUnread(threads: ThreadRow[], viewer: AuthUser) {
     const ids = threads.map((t) => t.id);
     const [lasts, unreadRows] = await Promise.all([
-      Promise.all(ids.map((threadId) => this.prisma.chatMessage.findFirst({ where: { threadId }, orderBy: { createdAt: 'desc' }, select: { threadId: true, body: true, createdAt: true, senderId: true, fileType: true } }))),
+      // The newest message of each thread, one index lookup per thread.
+      ids.length
+        ? this.prisma.$queryRaw<{ threadId: string; body: string; createdAt: Date; senderId: string; fileType: string | null }[]>(Prisma.sql`
+            SELECT m."threadId", m."body", m."createdAt", m."senderId", m."fileType"
+            FROM unnest(${ids}::text[]) AS t(id)
+            CROSS JOIN LATERAL (SELECT * FROM "ChatMessage" WHERE "threadId" = t.id ORDER BY "createdAt" DESC LIMIT 1) m`)
+        : [],
       this.prisma.chatMessage.groupBy({ by: ['threadId', 'senderId'], where: { threadId: { in: ids }, readAt: null }, _count: true }),
     ]);
+    const lastOf = new Map(lasts.map((l) => [l.threadId, l]));
     return threads.map((t) => {
       // What is unread for the viewer is what the other side wrote.
       const unread = unreadRows.filter((u) => u.threadId === t.id && (viewer.role === Role.PARENT ? u.senderId !== t.parentId : u.senderId === t.parentId)).reduce((n, u) => n + u._count, 0);
-      return this.presentThread(t, viewer.id, unread, lasts.find((l) => l?.threadId === t.id) ?? null);
+      return this.presentThread(t, viewer.id, unread, lastOf.get(t.id) ?? null);
     });
   }
 
@@ -208,8 +215,8 @@ export class ChatService {
     // Someone who isn't connected hears about it as a notification.
     const me = await this.prisma.user.findUniqueOrThrow({ where: { id: user.id }, select: { name: true, honorific: true } });
     const sender = user.role === Role.PARENT ? me.name : titled(me);
-    const offline: string[] = [];
-    for (const id of others) if (!(await this.gateway.isOnline(id))) offline.push(id);
+    const online = await Promise.all(others.map((id) => this.gateway.isOnline(id)));
+    const offline = others.filter((_, i) => !online[i]);
     await this.notifications.notify(
       offline.map((userId) => ({
         schoolId: thread.schoolId, userId, type: 'message.new',
