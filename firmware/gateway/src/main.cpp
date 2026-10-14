@@ -40,6 +40,12 @@ sightings::Window window;
 std::mutex windowLock;  // the BLE callback runs on the NimBLE task
 sightings::Backlog backlog;
 
+// After a failed try, wait 2 s, then 4 s, … up to a minute (Wi-Fi: 5 s up to two minutes), at a
+// random point in the upper half of each wait: when the broker restarts, two hundred readers come back
+// spread over that time instead of all within the same second.
+sightings::Retry mqttRetry(2000, 60000);
+sightings::Retry wifiRetry(5000, 120000);
+
 uint64_t nowMs() {
   struct timeval tv;
   gettimeofday(&tv, nullptr);
@@ -84,6 +90,7 @@ void startScan() {
 
 void connectWifi() {
   if (WiFi.status() == WL_CONNECTED) return;
+  if (!wifiRetry.due(millis())) return;
   WiFi.mode(WIFI_STA);
   WiFi.begin(cfg.wifiSsid.c_str(), cfg.wifiPass.c_str());
   uint32_t start = millis();
@@ -92,14 +99,18 @@ void connectWifi() {
     esp_task_wdt_reset();
   }
   if (WiFi.status() == WL_CONNECTED) {
+    wifiRetry.succeeded();
     Serial.printf("Wi-Fi connected, IP %s\n", WiFi.localIP().toString().c_str());
     configTime(0, 0, "pool.ntp.org", "time.google.com");
+  } else {
+    wifiRetry.failed(millis(), esp_random());
   }
 }
 
 bool connectMqtt() {
   if (mqtt.connected()) return true;
   if (WiFi.status() != WL_CONNECTED) return false;
+  if (!mqttRetry.due(millis())) return false;
   // The gateway's secret goes in the MQTT login, so it only talks to a broker
   // whose certificate checks out against ca_cert.h. Plain MQTT is for
   // development builds only (build flag -DALLOW_PLAIN_MQTT).
@@ -116,7 +127,13 @@ bool connectMqtt() {
   mqtt.setBufferSize(MQTT_MAX_PACKET_SIZE);
   String clientId = "gw-" + cfg.serial;
   bool ok = mqtt.connect(clientId.c_str(), cfg.serial.c_str(), cfg.secret.c_str());
-  Serial.println(ok ? "MQTT connected" : "MQTT connection failed");
+  if (ok) {
+    mqttRetry.succeeded();
+    Serial.println("MQTT connected");
+  } else {
+    mqttRetry.failed(millis(), esp_random());
+    Serial.printf("MQTT connection failed, next try in %u s\n", (unsigned)(mqttRetry.wait / 1000));
+  }
   return ok;
 }
 
