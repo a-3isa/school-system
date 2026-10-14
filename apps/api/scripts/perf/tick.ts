@@ -28,6 +28,11 @@ async function main() {
   await prisma.absenceNotice.deleteMany({ where: { date: day, sentAt: { not: zonedTime(PERF_DATE, '08:15', 'Africa/Cairo') } } });
   await prisma.absenceNotice.updateMany({ where: { date: day }, data: { alertedAt: null } });
   await prisma.gatePresence.updateMany({ where: { date: day }, data: { leftAt: null } });
+  // gateways.ts and queries.ts report at the real time, which makes the seeded readers look offline on
+  // PERF_DATE (and their lessons undecided). Put them back as the seed left them.
+  const seededAt = zonedTime(PERF_DATE, PERF_TIME, 'Africa/Cairo');
+  await prisma.gateway.updateMany({ where: { serial: { startsWith: 'PERF-' } }, data: { lastSeenAt: seededAt } });
+  await prisma.strap.updateMany({ where: { schoolId: { startsWith: 'ps' } }, data: { lastSeenAt: seededAt } });
 
   const evaluator = app.get(AttendanceEvaluator);
   const attendance = app.get(AttendanceService);
