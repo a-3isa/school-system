@@ -1,5 +1,5 @@
 import { BadRequestException, Body, Controller, HttpCode, Injectable, Logger, OnModuleDestroy, OnModuleInit, Post, Req, UnauthorizedException } from '@nestjs/common';
-import { AttendanceMode, Gateway, GatewayKind } from '@prisma/client';
+import { AttendanceMode, Gateway, GatewayKind, Prisma } from '@prisma/client';
 import { plainToInstance, Type } from 'class-transformer';
 import { ArrayMaxSize, IsArray, IsInt, IsOptional, IsString, Max, Min, validate, ValidateNested } from 'class-validator';
 import { timingSafeEqual } from 'crypto';
@@ -104,8 +104,11 @@ export class IngestService {
       if (!prev || seenAt > prev.seenAt) latest.set(strap.id, { seenAt, battery: s.battery ?? prev?.battery });
     }
     if (rows.length) await this.prisma.sighting.createMany({ data: rows });
-    for (const [strapId, l] of latest) {
-      await this.prisma.strap.update({ where: { id: strapId }, data: { lastSeenAt: l.seenAt, battery: l.battery ?? undefined } });
+    if (latest.size) {
+      const values = [...latest].map(([id, l]) => Prisma.sql`(${id}, ${l.seenAt}::timestamptz AT TIME ZONE 'UTC', ${l.battery ?? null}::int)`);
+      await this.prisma.$executeRaw`
+        UPDATE "Strap" AS s SET "lastSeenAt" = v.seen, "battery" = COALESCE(v.battery, s."battery")
+        FROM (VALUES ${Prisma.join(values)}) AS v(id, seen, battery) WHERE s.id = v.id`;
     }
     if (gw.kind === GatewayKind.GATE && rows.length) await this.handleGate(gw, rows);
     return { stored: rows.length, unknown };
@@ -123,19 +126,41 @@ export class IngestService {
       where: { id: { in: [...new Set(rows.map((r) => r.strapId))] }, studentId: { not: null } },
       include: { student: { include: { guardians: { where: { restricted: false } } } } },
     });
+    if (!straps.length) return;
+    // Look around each strap's times in this batch (it may have been buffered for hours).
+    const windows = new Map<string, { from: Date; to: Date }>();
     for (const strap of straps) {
-      const student = strap.student!;
-      // Look around the times in this batch (it may have been buffered for hours).
       const times = rows.filter((r) => r.strapId === strap.id).map((r) => r.seenAt.getTime());
-      const recent = await this.prisma.sighting.findMany({
-        where: { strapId: strap.id, gatewayId: gw.id, seenAt: { gte: new Date(Math.min(...times) - 60_000), lte: new Date(Math.max(...times) + 60_000) } },
-        orderBy: { seenAt: 'asc' },
-      });
-      const loud = recent.filter((s) => s.rssi >= rules.gate.minRssi);
-      if (!loud.length) continue;
-      const { date } = localParts(loud[0].seenAt, school.timezone);
+      windows.set(strap.id, { from: new Date(Math.min(...times) - 60_000), to: new Date(Math.max(...times) + 60_000) });
+    }
+    const heard = await this.prisma.sighting.findMany({
+      where: { gatewayId: gw.id, OR: [...windows].map(([strapId, w]) => ({ strapId, seenAt: { gte: w.from, lte: w.to } })) },
+      orderBy: { seenAt: 'asc' },
+    });
+    const recentOf = new Map<string, typeof heard>();
+    for (const s of heard) {
+      const list = recentOf.get(s.strapId);
+      if (list) list.push(s);
+      else recentOf.set(s.strapId, [s]);
+    }
+
+    const loudOf = new Map(straps.map((strap) => [strap.id, (recentOf.get(strap.id) ?? []).filter((s) => s.rssi >= rules.gate.minRssi)]));
+    const dayOf = (strapId: string) => localParts(loudOf.get(strapId)![0].seenAt, school.timezone).date;
+    const asked = straps.filter((s) => loudOf.get(s.id)!.length);
+    const presences = asked.length
+      ? await this.prisma.gatePresence.findMany({
+          where: { OR: asked.map((s) => ({ studentId: s.studentId!, date: dbDate(dayOf(s.id)) })) },
+        })
+      : [];
+    const presenceOf = new Map(presences.map((p) => [`${p.studentId}|${p.date.toISOString().slice(0, 10)}`, p]));
+
+    for (const strap of asked) {
+      const student = strap.student!;
+      const recent = recentOf.get(strap.id)!;
+      const loud = loudOf.get(strap.id)!;
+      const date = dayOf(strap.id);
       const day = dbDate(date);
-      const presence = await this.prisma.gatePresence.findUnique({ where: { studentId_date: { studentId: student.id, date: day } } });
+      const presence = presenceOf.get(`${student.id}|${date}`);
 
       if (!presence?.arrivedAt) {
         const arrivedAt = confirmsArrival(recent, rules.gate);
