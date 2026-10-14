@@ -187,6 +187,17 @@ describe('Automatic attendance (e2e)', () => {
     expect(ex.body[0].message).toContain('12%');
   });
 
+  it('keeps readings for a week and then removes them', async () => {
+    const strap = await prisma.strap.findFirstOrThrow({ where: { schoolId } });
+    const now = new Date();
+    const heard = (days: number) => prisma.sighting.create({ data: { schoolId, gatewayId: gw.R204.id, strapId: strap.id, rssi: -60, seenAt: new Date(now.getTime() - days * 24 * 60 * MIN) } });
+    const old = await heard(8);
+    const recent = await heard(6);
+    await app.get(AttendanceEvaluator).tick(now);
+    expect(await prisma.sighting.findUnique({ where: { id: old.id } })).toBeNull();
+    expect(await prisma.sighting.findUnique({ where: { id: recent.id } })).not.toBeNull();
+  });
+
   it('leaves exceptions to the school office, not teachers', async () => {
     await teacher.get('/api/attendance/exceptions').expect(403);
     const [battery] = (await admin.get('/api/attendance/exceptions?type=LOW_BATTERY')).body; // raised today
