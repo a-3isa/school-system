@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Fragment, useState } from 'react';
-import { useApi } from '@/lib/hooks';
+import { useApi, useDebounced } from '@/lib/hooks';
 import { useI18n } from '@/lib/i18n';
 import { Empty, ErrorNote, PageHead, Pill } from '@/components/ui';
 
@@ -10,7 +10,8 @@ export default function ParentsPage() {
   const { t, lang } = useI18n();
   const router = useRouter();
   const [q, setQ] = useState('');
-  const parents = useApi<any[]>(`/parents${q ? `?q=${encodeURIComponent(q)}` : ''}`);
+  const search = useDebounced(q);
+  const parents = useApi<any[]>(`/parents${search ? `?q=${encodeURIComponent(search)}` : ''}`);
   const childName = (c: any) => (lang === 'ar' && c.student.nameAr ? c.student.nameAr : `${c.student.firstName} ${c.student.lastName}`);
 
   return (

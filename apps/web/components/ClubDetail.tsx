@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { post, put, todayCairo } from '@/lib/api';
-import { useAction, useApi } from '@/lib/hooks';
+import { useAction, useApi, useDebounced } from '@/lib/hooks';
 import { useI18n } from '@/lib/i18n';
 import { Places } from './ClassPicker';
 import { Empty, ErrorNote, Note, PageHead, Tabs, Tag, toast } from './ui';
@@ -29,7 +29,8 @@ function Members({ club, paidOn, isAdmin, onChanged }: { club: any; paidOn: bool
   const roster = useApi<any>(`/activities/${club.id}/roster`);
   const act = useAction();
   const [q, setQ] = useState('');
-  const found = useApi<any[]>(isAdmin && q.trim().length >= 2 ? `/students?active=true&q=${encodeURIComponent(q.trim())}` : null);
+  const search = useDebounced(q.trim());
+  const found = useApi<any[]>(isAdmin && search.length >= 2 ? `/students?active=true&q=${encodeURIComponent(search)}` : null);
   const taken = new Set([...(roster.data?.enrolled ?? []), ...(roster.data?.waitlist ?? [])].map((r: any) => r.studentId));
   const nameOf = (r: any) => x(lang === 'ar' && r.nameAr ? r.nameAr : r.name);
   const showPaid = paidOn && club.fee != null;
