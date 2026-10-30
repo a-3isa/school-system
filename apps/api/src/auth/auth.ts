@@ -85,7 +85,12 @@ export const hashPassword = (plain: string) => bcrypt.hash(plain, 10);
 const CODE_TTL_MS = 15 * 60_000;
 const MAX_ATTEMPTS = 5;
 const MAX_CODES_PER_HOUR = 5;
-const SECRET = () => process.env.JWT_SECRET ?? 'dev-secret';
+// No fallback: a known default would let anyone sign their own tokens on a server started without one.
+const SECRET = () => {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) throw new Error('Set JWT_SECRET (see apps/api/.env.example) before starting the API.');
+  return secret;
+};
 // Sign-up tickets are signed with their own key, so one can never be used to sign in.
 const TICKET_SECRET = () => `${SECRET()}:signup-ticket`;
 const hashCode = (target: string, code: string) => createHash('sha256').update(`${target}:${code}:${SECRET()}`).digest('hex');
