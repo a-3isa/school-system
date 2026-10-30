@@ -1,9 +1,36 @@
 node_modules/
 dist/
 coverage/
-.env
 *.log
 *.tsbuildinfo
+
+# Environment files: only the examples are committed
+.env
+.env.*
+!.env.example
+
+# Keys and certificates
+*.pem
+*.key
+*.p12
+*.jks
+*.keystore
+firmware/gateway/include/secrets.h
+
+# Build output and caches
+.next/
+out/
+.turbo/
+.eslintcache
+.pio/
+
+# Editors and operating systems
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+desktop.ini
 
 # Claude Code: personal settings and notes stay on each computer
 .claude/settings.local.json
