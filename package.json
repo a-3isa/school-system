@@ -11,5 +11,9 @@
     "api:test:e2e": "npm run test:e2e -w apps/api",
     "web:dev": "npm run dev -w apps/web",
     "web:build": "npm run build -w apps/web"
+  },
+  "overrides": {
+    "multer": "2.5.0",
+    "postcss": "^8.5.32"
   }
 }
