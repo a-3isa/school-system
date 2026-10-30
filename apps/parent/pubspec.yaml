@@ -1,6 +1,7 @@
 name: parent_app
 description: "The parent app: a child's school day and notifications, in English and Arabic."
 publish_to: 'none'
+repository: https://github.com/a-3isa/school-system/tree/main/apps/parent
 
 version: 1.0.0+1
 
