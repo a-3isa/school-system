@@ -3,7 +3,6 @@
 Attendance and school–parent communication for private schools in Egypt: a NestJS API, a staff dashboard, a parent mobile app, and ESP32 readers that take attendance from BLE smart bands.
 
 [![CI](https://github.com/a-3isa/school-system/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/a-3isa/school-system/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 ![TypeScript](https://img.shields.io/badge/language-TypeScript-3178c6.svg)
 
 ## Overview
@@ -219,4 +218,4 @@ CI runs all of the above on every push to `main` and every pull request, and als
 
 ## License and author
 
-[MIT](LICENSE). Built by Ahmed Ibrahim Hussien ([a-3isa](https://github.com/a-3isa)).
+All rights reserved. No licence is granted to use, copy or redistribute this code. Built by Ahmed Ibrahim Hussien ([a-3isa](https://github.com/a-3isa)).
