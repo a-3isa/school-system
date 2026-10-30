@@ -2,7 +2,7 @@
 
 The design the dashboard and the parent app follow: **"Ivory, Oxford navy & a crest. The school's own register."**
 
-It was exported from Claude Design as `Staff dashboard and parent app-handoff.zip` (repo root). Only the current version (v2) is kept here. The zip's `v1/` folder holds the earlier "Limestone & lapis" direction, which the app no longer follows.
+It was exported from Claude Design. Only the current version (v2) is kept here; the earlier "Limestone & lapis" direction (v1) is no longer followed and is in git history only.
 
 | File | What it shows |
 |---|---|
