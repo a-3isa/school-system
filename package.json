@@ -1,6 +1,16 @@
 {
   "name": "school-platform",
   "private": true,
+  "description": "School attendance and communication platform: NestJS API, Next.js staff dashboard, Flutter parent app and ESP32 smart band readers.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/a-3isa/school-system.git"
+  },
+  "author": "Ahmed Ibrahim Hussien (https://github.com/a-3isa)",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
   "workspaces": [
     "apps/api",
     "apps/web"
@@ -10,7 +20,10 @@
     "api:test": "npm test -w apps/api",
     "api:test:e2e": "npm run test:e2e -w apps/api",
     "web:dev": "npm run dev -w apps/web",
-    "web:build": "npm run build -w apps/web"
+    "web:build": "npm run build -w apps/web",
+    "lint": "npm run lint --workspaces",
+    "test": "npm test --workspaces",
+    "build": "npm run build --workspaces"
   },
   "overrides": {
     "multer": "2.5.0",
