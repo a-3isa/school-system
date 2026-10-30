@@ -2,6 +2,14 @@
   "name": "web",
   "version": "0.1.0",
   "private": true,
+  "description": "School platform staff dashboard and owner console: Next.js.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/a-3isa/school-system.git",
+    "directory": "apps/web"
+  },
+  "author": "Ahmed Ibrahim Hussien (https://github.com/a-3isa)",
+  "license": "UNLICENSED",
   "scripts": {
     "dev": "next dev -p 3001",
     "build": "next build",
@@ -24,7 +32,7 @@
     "vitest": "^4.1.11"
   },
   "dependencies": {
-    "next": "^15.5.27",
+    "next": "^15.5.28",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "socket.io-client": "^4.8.4"

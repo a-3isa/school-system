@@ -5,10 +5,18 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   api:
-    name: API (unit + e2e)
+    name: API (typecheck, build, unit + e2e)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     services:
       postgres:
         image: postgres:16
@@ -23,9 +31,9 @@ jobs:
       TEST_DATABASE_URL: postgresql://school:school@localhost:5432/school_test
       DATABASE_URL: postgresql://school:school@localhost:5432/school_test
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: 22, cache: npm }
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with: { node-version-file: .nvmrc, cache: npm }
       - run: npm ci
       - run: npx prisma generate
         working-directory: apps/api
@@ -35,49 +43,61 @@ jobs:
         run: |
           PGPASSWORD=school psql -h localhost -U school -d school_test -c 'CREATE DATABASE school_shadow'
           npx prisma migrate diff --from-migrations prisma/migrations --to-schema-datamodel prisma/schema.prisma --shadow-database-url postgresql://school:school@localhost:5432/school_shadow --exit-code
-      - run: npx tsc --noEmit -p tsconfig.json
-        working-directory: apps/api
-      - run: npm test -w apps/api
-      - run: npm run test:e2e -w apps/api
+      - name: Typecheck
+        run: npm run lint -w apps/api
+      - name: Build
+        run: npm run build -w apps/api
+      - name: Unit tests
+        run: npm test -w apps/api
+      - name: E2E tests
+        run: npm run test:e2e -w apps/api
 
   web:
-    name: Dashboard build
+    name: Dashboard (typecheck, build, test)
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: 22, cache: npm }
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with: { node-version-file: .nvmrc, cache: npm }
       - run: npm ci
-      - run: npm test -w apps/web
-      - run: npm run build -w apps/web
+      - name: Typecheck
+        run: npm run lint -w apps/web
+      - name: Build
+        run: npm run build -w apps/web
         env: { NEXT_TELEMETRY_DISABLED: 1 }
       # JavaScript per page (gzipped) and font bytes against apps/web/bundle-budget.json.
-      - run: node scripts/bundle-report.mjs --check
+      - name: Bundle budget
+        run: node scripts/bundle-report.mjs --check
         working-directory: apps/web
+      - name: Tests
+        run: npm test -w apps/web
 
   parent:
-    name: Parent app (Flutter)
+    name: Parent app (Flutter analyze, test)
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     defaults:
       run: { working-directory: apps/parent }
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: subosito/flutter-action@v2
-        with: { channel: stable, cache: true }
+        with: { channel: stable, flutter-version: 3.44.4, cache: true }
       - run: flutter pub get
       - run: flutter analyze
       - run: flutter test
 
   firmware:
-    name: Gateway firmware (ESP32)
+    name: Gateway firmware (ESP32 test, build)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     defaults:
       run: { working-directory: firmware/gateway }
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with: { python-version: "3.12" }
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: ~/.platformio
           key: pio-${{ hashFiles('firmware/gateway/platformio.ini') }}
