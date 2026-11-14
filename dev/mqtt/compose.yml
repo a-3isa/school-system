@@ -1,0 +1,21 @@
+# MQTT broker (EMQX) for testing a real gateway against the API on this computer.
+# Development only: plain MQTT on port 1883, no TLS.
+#
+#   docker compose -f dev/mqtt/compose.yml up -d
+#
+# Broker: mqtt://<this computer's IP>:1883   Admin page: http://localhost:18083 (admin / public)
+# See firmware/gateway/README.md, "Desk test with two ESP32s".
+
+name: school-mqtt-dev
+
+services:
+  emqx:
+    image: emqx/emqx:5.8.6
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+      - "18083:18083"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"  # the API, running on this computer
+    volumes:
+      - ./emqx.conf:/opt/emqx/etc/emqx.conf:ro

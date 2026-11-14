@@ -3,7 +3,7 @@ import { AttendanceMode, Gateway, GatewayKind, Prisma } from '@prisma/client';
 import { plainToInstance, Type } from 'class-transformer';
 import { ArrayMaxSize, IsArray, IsInt, IsOptional, IsString, Max, Min, validate, ValidateNested } from 'class-validator';
 import { timingSafeEqual } from 'crypto';
-import { connect, MqttClient } from 'mqtt';
+import { connect, IClientOptions, MqttClient } from 'mqtt';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications';
 import { Public } from '../auth/auth.decorators';
@@ -241,6 +241,22 @@ export class GatewayController {
 }
 
 /**
+ * How the API logs in to the broker. The broker checks that login by calling this API, so a
+ * login tried while the API is still starting (or while the broker can't reach it) is refused.
+ * mqtt.js stops reconnecting after a refused login unless told otherwise, which would leave the
+ * API deaf to every gateway until restarted: keep trying every 5 s instead.
+ */
+export function mqttOptions(env: NodeJS.ProcessEnv): IClientOptions {
+  return {
+    username: env.MQTT_USERNAME,
+    password: env.MQTT_PASSWORD,
+    clientId: `api-${process.pid}`,
+    reconnectPeriod: 5000,
+    reconnectOnConnackError: true,
+  };
+}
+
+/**
  * Gateways publish JSON to gw/<serial>/sightings (same body as the HTTP
  * endpoint). The broker has already checked who they are, so here the
  * serial in the topic identifies the gateway. Only runs when MQTT_URL is set.
@@ -258,7 +274,7 @@ export class MqttBridge implements OnModuleInit, OnModuleDestroy {
   onModuleInit() {
     const url = process.env.MQTT_URL;
     if (!url) return;
-    this.client = connect(url, { username: process.env.MQTT_USERNAME, password: process.env.MQTT_PASSWORD, clientId: `api-${process.pid}` });
+    this.client = connect(url, mqttOptions(process.env));
     this.client.on('connect', () => {
       this.logger.log(`Connected to ${url}`);
       this.client!.subscribe('$share/api/gw/+/sightings', { qos: 1 });

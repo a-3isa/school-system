@@ -197,6 +197,7 @@ Sign in at http://localhost:3001 as admin@demo.school.
 
 2. Those two children appear in Room 204 under **On campus now**.
 3. If the simulator answers `401`, sign in as the owner, open **Gateways**, press **New secret**, and use the new secret.
+4. To go through an MQTT broker the way a real gateway does, or to test with real ESP32 boards, see "Desk test with two ESP32s" in `firmware/gateway/README.md`.
 
 ## 11. Check the parent app
 

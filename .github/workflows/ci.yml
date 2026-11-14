@@ -104,3 +104,5 @@ jobs:
       - run: pip install platformio
       - run: pio test -e native
       - run: pio run -e esp32dev
+      # The development build for the desk test (plain MQTT), so that code path keeps compiling.
+      - run: pio run -e esp32dev-plain
