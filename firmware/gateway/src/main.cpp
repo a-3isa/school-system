@@ -200,7 +200,12 @@ void handleConsole() {
     else if (key == "secret") cfg.secret = val;
     else if (key == "mqttHost") cfg.mqttHost = val;
     else if (key == "mqttPort") cfg.mqttPort = val.toInt();
-    else if (key == "mqttTls") cfg.mqttTls = val == "on" || val == "1";
+    else if (key == "mqttTls") {
+      cfg.mqttTls = val == "on" || val == "1";
+#ifndef ALLOW_PLAIN_MQTT
+      if (!cfg.mqttTls) Serial.println("This build always uses TLS. For plain MQTT, flash the esp32dev-plain build.");
+#endif
+    }
     else if (key == "prefix") { val.toUpperCase(); cfg.macPrefix = val; }
     else if (key == "minRssi") cfg.minRssi = val.toInt();
     else if (key == "reportMs") cfg.reportMs = max(1000L, val.toInt());
